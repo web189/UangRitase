@@ -2,6 +2,8 @@ function formatRupiah(n) {
   return "Rp " + n.toLocaleString("id-ID") + ",-";
 }
 
+
+
 const data = {
   spsAqua: [
     ["CRG", "All SKU", 652000],
@@ -52,6 +54,8 @@ const data = {
   ]
 };
 
+
+
 function render(target, rows) {
   let html = `
     <table>
@@ -84,6 +88,25 @@ render("galon-aqua", data.galonAqua);
 render("sps-vit", data.spsVit);
 render("galon-vit", data.galonVit);
 
+/* =========================
+   VISITOR COUNTER
+========================= */
+const key = "visitor_count_logistik";
+let count = localStorage.getItem(key);
+
+if (!count) {
+  count = 1;
+} else {
+  count = parseInt(count) + 1;
+}
+
+localStorage.setItem(key, count);
+
+const visitorEl = document.getElementById("visitorNumber");
+if (visitorEl) {
+  visitorEl.textContent = count;
+}
+
 /* CLOCK */
 function updateTime() {
   const hari = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
@@ -96,6 +119,8 @@ function updateTime() {
     `${String(d.getMinutes()).padStart(2,"0")}:` +
     `${String(d.getSeconds()).padStart(2,"0")} WIB`;
 }
+
+
 
 setInterval(updateTime, 1000);
 updateTime();
