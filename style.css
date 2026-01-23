@@ -1,4 +1,6 @@
-/* RESET */
+/* =========================
+   RESET & BASE
+========================= */
 * {
   box-sizing: border-box;
   font-family: 'Inter', sans-serif;
@@ -9,7 +11,9 @@ body {
   color: #fff;
 }
 
-/* BACKGROUND */
+/* =========================
+   BACKGROUND VIDEO
+========================= */
 .video-bg {
   position: fixed;
   inset: 0;
@@ -28,16 +32,21 @@ body {
   background: rgba(0,0,0,0.38);
 }
 
-/* DATETIME */
+/* =========================
+   DATETIME
+========================= */
 .datetime {
   position: fixed;
   top: 12px;
   right: 14px;
   font-size: 12px;
   opacity: 0.85;
+  z-index: 10;
 }
 
-/* HEADER */
+/* =========================
+   HEADER
+========================= */
 .header {
   text-align: center;
   padding: 26px 14px 10px;
@@ -54,11 +63,13 @@ body {
   opacity: 0.8;
 }
 
-/* GOOGLE SHEET */
+/* =========================
+   GOOGLE SHEET BUTTON
+========================= */
 .sheet-link {
   display: block;
   width: fit-content;
-  margin: 18px auto;
+  margin: 18px auto 8px;
   text-decoration: none;
 }
 
@@ -78,6 +89,11 @@ body {
   background: rgba(255,255,255,0.28);
 }
 
+.sheet-logos {
+  display: flex;
+  gap: 6px;
+}
+
 .sheet-logos img {
   height: 34px;
 }
@@ -85,10 +101,42 @@ body {
 .sheet-content h3 {
   margin: 0;
   font-size: 16px;
-  color: #ff6bf5;
+  color: #FFFFFF;
 }
 
-/* LAYOUT */
+/* =========================
+   WA BUTTON + VISITOR
+========================= */
+.wa-button {
+  margin: 8px auto 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #25D366, #1EBE5D);
+  color: #fff;
+  text-decoration: none;
+  transition: all 0.25s ease;
+}
+
+.visitor-count {
+  font-size: 12px;
+  opacity: 0.9;
+  padding-right: 8px;
+  border-right: 1px solid rgba(255,255,255,0.35);
+}
+
+.wa-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(37, 211, 102, 0.45);
+}
+
+/* =========================
+   LAYOUT
+========================= */
 .container {
   padding: 14px;
   display: flex;
@@ -96,7 +144,9 @@ body {
   gap: 16px;
 }
 
-/* GLASS CARD */
+/* =========================
+   GLASS CARD
+========================= */
 .glass {
   background: rgba(255,255,255,0.16);
   backdrop-filter: blur(10px);
@@ -111,13 +161,13 @@ body {
   color: #b3e5fc;
 }
 
-/* ===================== */
-/* TABLE (FIX SEJAJAR)   */
-/* ===================== */
+/* =========================
+   TABLE (SEJAJAR & RINGKAS)
+========================= */
 table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed; /* KUNCI UTAMA */
+  table-layout: fixed;
   font-size: 12px;
 }
 
@@ -126,20 +176,18 @@ th, td {
   line-height: 1.25;
 }
 
-/* HEADER */
 th {
   background: rgba(0,102,179,0.65);
   font-weight: 600;
   white-space: nowrap;
 }
 
-/* BORDER */
 td {
   border-bottom: 1px solid rgba(255,255,255,0.12);
   transition: background 0.2s ease;
 }
 
-/* KOLOM SEJAJAR */
+/* Kolom sejajar */
 th:nth-child(1),
 td:nth-child(1) {
   width: 30%;
@@ -158,18 +206,32 @@ td:nth-child(3) {
   text-align: right;
 }
 
-/* UANG */
 .uang {
   font-weight: 700;
   white-space: nowrap;
 }
 
-/* HOVER */
+/* Hover row */
 tbody tr:hover td {
   background: rgba(255,255,255,0.1);
 }
 
-/* FOOTER */
+/* =========================
+   SPS & GALON VIT (MERAH)
+========================= */
+.sps-vit th,
+.galon-vit th {
+  background: rgba(185, 28, 28, 0.85);
+}
+
+.sps-vit tbody tr:hover td,
+.galon-vit tbody tr:hover td {
+  background: rgba(185, 28, 28, 0.1);
+}
+
+/* =========================
+   FOOTER
+========================= */
 .footer {
   text-align: center;
   padding: 18px 10px 22px;
@@ -182,7 +244,9 @@ tbody tr:hover td {
   text-decoration: none;
 }
 
-/* DESKTOP */
+/* =========================
+   DESKTOP
+========================= */
 @media (min-width: 768px) {
   .container {
     max-width: 1100px;
@@ -196,21 +260,23 @@ tbody tr:hover td {
   }
 }
 
-/* WA BUTTON DI HEADER */
-.wa-button {
-  margin-top: 8px;
-  display: inline-block;
-  padding: 7px 16px;
-  font-size: 12.5px;
-  font-weight: 600;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #25D366, #1EBE5D);
-  color: #fff;
-  text-decoration: none;
-  transition: all 0.25s ease;
+/* =========================
+   HEADER TABLE MERAH (VIT)
+========================= */
+
+/* SPS VIT */
+#sps-vit table th {
+  background: rgba(185, 28, 28, 0.9);
 }
 
-.wa-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(37, 211, 102, 0.45);
+/* GALON VIT */
+#galon-vit table th {
+  background: rgba(185, 28, 28, 0.9);
 }
+
+/* Hover baris (biar senada) */
+#sps-vit tbody tr:hover td,
+#galon-vit tbody tr:hover td {
+  background: rgba(185, 28, 28, 0.12);
+}
+
