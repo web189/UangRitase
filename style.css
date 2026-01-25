@@ -280,3 +280,106 @@ tbody tr:hover td {
   background: rgba(185, 28, 28, 0.12);
 }
 
+/* =========================
+   MUSIC PLAYER
+========================= */
+.music-player {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(8px);
+  display: inline-block;
+  min-width: 260px;
+}
+
+.music-title {
+  font-size: 12px;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  position: relative;
+}
+
+/* animasi teks berjalan */
+.music-title.playing {
+  animation: marquee 10s linear infinite;
+}
+
+@keyframes marquee {
+  0%   { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.music-controls {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+
+.music-controls button {
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 16px;
+  cursor: pointer;
+
+  /* GLASS EFFECT */
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  transition: all 0.25s ease;
+}
+
+.music-controls button:hover {
+  background: rgba(255,255,255,0.25);
+  transform: scale(1.12);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+}
+
+.music-controls button:active {
+  transform: scale(0.95);
+}
+
+/* FORCE GLASS BUTTON MUSIC PLAYER */
+.music-controls button {
+  all: unset; /* reset total style lama */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+
+  font-size: 16px;
+  cursor: pointer;
+  color: #fff;
+
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  border: 1px solid rgba(255,255,255,0.3);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+
+  transition: all 0.25s ease;
+}
+
+.music-controls button:hover {
+  background: rgba(255,255,255,0.3);
+  transform: scale(1.15);
+}
+
+.music-controls button:active {
+  transform: scale(0.95);
+}
+
+
+.music-controls button:hover {
+  transform: scale(1.1);
+}
