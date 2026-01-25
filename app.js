@@ -11,13 +11,13 @@ const data = {
     ["MKS", "All SKU", 767000],
     ["CHR", "All SKU", 612000],
     ["KEDEP", "All SKU", 656500],
-    ["CJR", "AQ 1500 ML", 943000],
-    ["CIANJUR", "AQ 600 ML", 943000],
-    ["CJR", "AQ 1500 ML", 749000],
-    ["CIANJUR", "AQ 600 ML", 749000],
-    ["CJR", "AQ 330 ML", 943000],
-    ["CIANJUR", "AQ 1500 ML", 823000],
-    ["CJR", "AQ 330 ML", 1167000],
+    ["CJR > 1120", "AQ 1500 ML", 943000],
+    ["CJR > 1440", "AQ 600 ML", 943000],
+    ["CJR > 840", "AQ 1500 ML", 749000],
+    ["CJR > 960", "AQ 600 ML", 749000],
+    ["CJR > 2340", "AQ 330 ML", 943000],
+    ["CJR > 980", "AQ 1500 ML", 823000],
+    ["CJR > 1820", "AQ 330 ML", 1167000],
     ["DEPO JONGGOL", "All SKU", 714000],
   ],
 
@@ -124,3 +124,4 @@ function updateTime() {
 
 setInterval(updateTime, 1000);
 updateTime();
+
