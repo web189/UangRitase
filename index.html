@@ -6,8 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
   <link rel="icon" href="favicon.png" sizes="32x32">
-<link rel="apple-touch-icon" href="favicon.png">
-
+  <link rel="apple-touch-icon" href="favicon.png">
 
   <!-- FONT -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -48,22 +47,21 @@
   </a>
 
   <!-- TOMBOL WA + COUNTER -->
-<a class="wa-button"
-   href="https://wa.me/6282127700502"
-   target="_blank"
-   rel="noopener">
+  <a class="wa-button"
+     href="https://wa.me/6282127700502"
+     target="_blank"
+     rel="noopener">
 
-  <span class="visitor-count">
-    Pengujung👁️ <span id="visitorNumber">0</span>
-  </span>
+    <span class="visitor-count">
+      Pengujung👁️ <span id="visitorNumber">0</span>
+    </span>
 
-  <span class="wa-text">
-    💬ChatWA Logistik
-  </span>
-</a>
+    <span class="wa-text">
+      💬Whatsapp Logistik
+    </span>
+  </a>
 
 </header>
-
 
 <!-- CONTENT -->
 <main class="container">
@@ -89,20 +87,46 @@
 </main>
 
 <footer class="footer">
-  <span>
-    © 2026 • Powered by
-    <a href="https://www.instagram.com/benyoriki" target="_blank">IG @benyoriki</a>
-	<div> </div>
-	<div> </div>
-	<div>__________________________________________</div>
-	<div> </div>
-    • Download Android
-    <a href="https://drive.google.com/file/d/1GPUQjbJoQtPdTrBBLc_vOV96L4wnJwtl/view?usp=drive_link">DMS.v06</a>
-  </span>
-</footer>
+  <span>© 2026 • Powered by</span>
 
+  <!-- SOSIAL MEDIA ICON -->
+  <div style="margin-top:10px; display:flex; justify-content:center; gap:14px;">
+    <a href="https://www.instagram.com/benyoriki?igsh=cGZkOXpuN2JyYjAy" target="_blank">
+      <img src="img/ig.png" alt="Instagram" width="28">
+    </a>
+
+    <a href="https://www.youtube.com/@rikihermawan8103" target="_blank">
+      <img src="img/yt.png" alt="YouTube" width="28">
+    </a>
+
+    <a href="https://www.tiktok.com/@benyoriki" target="_blank">
+      <img src="img/tiktok.png" alt="TikTok" width="28">
+    </a>
+
+    <a href="https://web.facebook.com/benyo.hermawan" target="_blank">
+      <img src="img/fb.png" alt="Facebook" width="28">
+    </a>
+  </div>
+
+  <div style="margin:10px 0;">__________________________________________</div>
+
+  • Download Android
+  <a href="https://drive.google.com/file/d/1GPUQjbJoQtPdTrBBLc_vOV96L4wnJwtl/view?usp=drive_link">DMS.v06</a>
+<div></div>
+<div></div>
+  <!-- MUSIC PLAYER -->
+  <div class="music-player">
+    <div class="music-title" id="musicTitle">🎵 Tidak ada lagu</div>
+    <div class="music-controls">
+      <button id="prevBtn">⏮</button>
+      <button id="playBtn">▶</button>
+      <button id="nextBtn">⏭</button>
+    </div>
+  </div>
+
+  <audio id="audioPlayer" preload="auto"></audio>
+</footer>
 
 <script src="app.js"></script>
 </body>
 </html>
-
