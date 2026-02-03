@@ -3,7 +3,6 @@
 ========================= */
 let isAdmin = localStorage.getItem("admin") === "true";
 
-
 const data = {
   spsAqua: [
     ["CRG", "All SKU", 652000], ["CTR", "All SKU", 532000], ["MKS", "All SKU", 767000],
@@ -45,8 +44,11 @@ function formatRupiah(n) {
 function render(target, rows) {
   const container = document.getElementById(target);
   if (!container) return;
-  
-  let html = `<table><thead><tr><th>Pabrik</th><th>Muatan</th><th>Uang</th></tr></thead><tbody>`;
+
+  let html = `<table>
+    <thead><tr><th>Pabrik</th><th>Muatan</th><th>Uang</th></tr></thead>
+    <tbody>`;
+
   rows.forEach((r, i) => {
     html += `
       <tr>
@@ -57,6 +59,7 @@ function render(target, rows) {
         </td>
       </tr>`;
   });
+
   html += "</tbody></table>";
   container.innerHTML = html;
 }
@@ -70,46 +73,17 @@ function renderAll() {
 }
 
 /* =========================
-   FEATURES
+   EDIT ADMIN
 ========================= */
-// 1. Clock
-setInterval(() => {
-  const d = new Date();
-  document.getElementById("datetime").innerText = d.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'medium' }) + " WIB";
-}, 1000);
-
-// 2. Theme Toggle (Fix: Only one declaration)
-const themeBtn = document.getElementById("themeToggle");
-const savedTheme = localStorage.getItem("theme") || "dark";
-if (savedTheme === "aqua") document.body.classList.add("aqua");
-
-themeBtn.addEventListener("click", () => {
-  document.body.classList.toggle("aqua");
-  const isAqua = document.body.classList.contains("aqua");
-  localStorage.setItem("theme", isAqua ? "aqua" : "dark");
-});
-
-// 3. Admin & Edit
-document.getElementById("adminBtn").addEventListener("click", () => {
-  const pass = prompt("🔐 Masukkan Password Admin");
-  if (pass === "admin123") {
-    isAdmin = true;
-    alert("✅ Mode Admin Aktif! Klik pada harga untuk mengubah data.");
-    attachEditEvents();
-  } else {
-    alert("❌ Password Salah!");
-  }
-});
-
 function attachEditEvents() {
   document.querySelectorAll(".uang").forEach(cell => {
     cell.style.cursor = "pointer";
-    cell.style.color = "#fbbf24"; // Memberi tanda bisa diedit
+    cell.style.color = "#fbbf24";
     cell.onclick = () => {
-      const t = cell.dataset.target.replace(/-([a-z])/g, g => g[1].toUpperCase()); // convert sps-aqua to spsAqua
+      const t = cell.dataset.target.replace(/-([a-z])/g, g => g[1].toUpperCase());
       const i = cell.dataset.index;
       const currentVal = data[t][i][2];
-      const v = prompt(`Edit Harga (Saat ini: ${currentVal}):`, currentVal);
+      const v = prompt(`Edit Harga (Saat ini: ${currentVal})`, currentVal);
       if (v && !isNaN(v)) {
         data[t][i][2] = parseInt(v);
         localStorage.setItem("ritaseData", JSON.stringify(data));
@@ -119,11 +93,35 @@ function attachEditEvents() {
   });
 }
 
-// 4. Music Player Logic
+/* =========================
+   CLOCK
+========================= */
+setInterval(() => {
+  const d = new Date();
+  const el = document.getElementById("datetime");
+  if (el) {
+    el.innerText =
+      d.toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "medium" }) + " WIB";
+  }
+}, 1000);
+
+/* =========================
+   VISITOR COUNTER
+========================= */
+let count = localStorage.getItem("visCount") || 1540;
+count = parseInt(count) + 1;
+localStorage.setItem("visCount", count);
+const visitorEl = document.getElementById("visitorNumber");
+if (visitorEl) visitorEl.innerText = count;
+
+/* =========================
+   MUSIC PLAYER
+========================= */
 const playlist = [
-  { title: "Water Relaxation", src: "video/music1.mp3" }, // Pastikan file ada
-  { title: "Driving Mood", src: "video/music2.mp3" }
+  { title: "coming soon 01", src: "video/music1.mp3" },
+  { title: "coming soon 02", src: "video/music2.mp3" }
 ];
+
 let trackIndex = 0;
 const audio = document.getElementById("audioPlayer");
 const playBtn = document.getElementById("playBtn");
@@ -132,6 +130,7 @@ const prevBtn = document.getElementById("prevBtn");
 const nextBtn = document.getElementById("nextBtn");
 
 function loadTrack(i) {
+  if (!audio) return;
   trackIndex = (i + playlist.length) % playlist.length;
   audio.src = playlist[trackIndex].src;
   audio.play();
@@ -140,84 +139,152 @@ function loadTrack(i) {
   musicTitle.classList.add("playing");
 }
 
-prevBtn.addEventListener("click", () => {
-  loadTrack(trackIndex - 1);
-});
+if (prevBtn) prevBtn.addEventListener("click", () => loadTrack(trackIndex - 1));
+if (nextBtn) nextBtn.addEventListener("click", () => loadTrack(trackIndex + 1));
 
-nextBtn.addEventListener("click", () => {
-  loadTrack(trackIndex + 1);
-});
+if (playBtn) {
+  playBtn.addEventListener("click", () => {
+    if (audio.paused) {
+      audio.src = playlist[trackIndex].src;
+      audio.play();
+      playBtn.innerText = "⏸";
+      musicTitle.innerText = "🎵 " + playlist[trackIndex].title;
+      musicTitle.classList.add("playing");
+    } else {
+      audio.pause();
+      playBtn.innerText = "▶";
+      musicTitle.classList.remove("playing");
+    }
+  });
+}
 
-playBtn.addEventListener("click", () => {
-  if (audio.paused) {
-    audio.src = playlist[trackIndex].src;
-    audio.play();
-    playBtn.innerText = "⏸";
-    musicTitle.innerText = "🎵 " + playlist[trackIndex].title;
-    musicTitle.classList.add("playing");
-  } else {
-    audio.pause();
-    playBtn.innerText = "▶";
-    musicTitle.classList.remove("playing");
-  }
-});
+/* =========================
+   DOM READY (BUTTONS)
+========================= */
+document.addEventListener("DOMContentLoaded", function () {
 
-// 5. Visitor Counter (Local Simulation)
-let count = localStorage.getItem("visCount") || 1540;
-count = parseInt(count) + 1;
-localStorage.setItem("visCount", count);
-document.getElementById("visitorNumber").innerText = count;
+  // THEME TOGGLE
+  const themeBtn = document.getElementById("themeToggle");
+  const savedTheme = localStorage.getItem("theme") || "dark";
+  if (savedTheme === "aqua") document.body.classList.add("aqua");
 
-// Init
-renderAll();
-setTimeout(() => {
-  document
-    .querySelectorAll(".uang")[i]
-    ?.classList.add("updated");
-}, 50);
-
-document.addEventListener("click", e => {
-  const row = e.target.closest("tr");
-  if (!row) return;
-
-  row.classList.remove("pulse"); // reset
-  void row.offsetWidth;          // force reflow
-  row.classList.add("pulse");
-});
-
-const observer = new IntersectionObserver(
-  entries => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add("show");
-      }
+  if (themeBtn) {
+    themeBtn.addEventListener("click", function () {
+      document.body.classList.toggle("aqua");
+      const isAqua = document.body.classList.contains("aqua");
+      localStorage.setItem("theme", isAqua ? "aqua" : "dark");
     });
-  },
-  { threshold: 0.15 }
-);
-
-document.querySelectorAll(".glass").forEach(card => {
-  card.classList.add("reveal");
-  observer.observe(card);
-});
-
-document.addEventListener("DOMContentLoaded", () => {
-
-  const chatToggle = document.getElementById("chatToggle");
-  const chatBox = document.getElementById("chatBox");
-  const chatClose = document.getElementById("chatClose");
-
-  if (!chatToggle || !chatBox) {
-    console.warn("Chat element tidak ditemukan");
-    return;
   }
 
+  // ADMIN BUTTON
+ let adminTimer = null;
+let adminTimeLeft = 30;
+
+const adminBtn = document.getElementById("adminBtn");
+
+if (adminBtn) {
+  adminBtn.addEventListener("click", function () {
+
+    // Kalau sedang admin, jangan minta password lagi
+    if (isAdmin) return;
+
+    const pass = prompt("🔐 Masukkan Password Admin");
+
+    if (pass === "123admin") {
+      isAdmin = true;
+      adminTimeLeft = 30;
+      alert("✅ Mode Admin Aktif (30 detik)");
+      attachEditEvents();
+
+      // Ubah tampilan tombol jadi countdown
+      adminBtn.textContent = adminTimeLeft;
+adminBtn.classList.add("countdown");
+
+
+      adminTimer = setInterval(() => {
+        adminTimeLeft--;
+        adminBtn.textContent = adminTimeLeft;
+
+        if (adminTimeLeft <= 0) {
+          clearInterval(adminTimer);
+          isAdmin = false;
+
+          // kembalikan tombol
+          adminBtn.textContent = "🔒";
+
+          alert("⏳ Waktu admin habis. Logout otomatis.");
+
+          renderAll(); // refresh supaya harga tidak bisa diklik lagi
+        }
+      }, 1000);
+
+    } else {
+      alert("❌ Password Salah!");
+    }
+
+  });
+}
+
+
+  // CHAT BUTTON
+const chatBox = document.getElementById("chatBox");
+const chatToggle = document.getElementById("chatToggle");
+const bubbles = document.querySelectorAll(".bubble");
+const typing = document.getElementById("typing");
+const chatWA = document.getElementById("chatWA");
+
+let chatOpenedOnce = false;
+
+function playChatSequence() {
+  bubbles.forEach(b => b.classList.add("hidden"));
+  typing.classList.remove("hidden");
+  chatWA.classList.add("hidden");
+
+  let i = 0;
+
+  const interval = setInterval(() => {
+    typing.classList.add("hidden");
+
+    if (bubbles[i]) {
+      bubbles[i].classList.remove("hidden");
+      i++;
+      typing.classList.remove("hidden");
+    } else {
+      clearInterval(interval);
+      typing.classList.add("hidden");
+      chatWA.classList.remove("hidden");
+    }
+  }, 1000);
+}
+
+if (chatToggle && chatBox) {
   chatToggle.addEventListener("click", () => {
     chatBox.classList.toggle("show");
-  });
 
-  chatClose.addEventListener("click", () => {
-    chatBox.classList.remove("show");
+    if (chatBox.classList.contains("show") && !chatOpenedOnce) {
+      playChatSequence();
+      chatOpenedOnce = true;
+    }
   });
+}
+
+
+
+
+window.addEventListener("load", () => {
+  setTimeout(() => {
+    if (!localStorage.getItem("chatAutoOpened")) {
+      chatBox.classList.add("show");
+      playChatSequence();
+      localStorage.setItem("chatAutoOpened", "yes");
+    }
+  }, 2500);
+});
+
 
 });
+
+/* =========================
+   INIT
+========================= */
+renderAll();
