@@ -92,29 +92,38 @@
   <!-- SOSIAL MEDIA ICON -->
   <div class="social" style="margin-top:10px; display:flex; justify-content:center; gap:14px;">
 
-    <a href="https://www.instagram.com/benyoriki?igsh=cGZkOXpuN2JyYjAy" target="_blank">
-      <img src="img/ig.png" alt="Instagram" width="28">
-    </a>
+  <!-- ADMIN BUTTON -->
+  <button class="admin-btn" id="adminBtn">🔒</button>
 
-    <a href="https://www.youtube.com/@rikihermawan8103" target="_blank">
-      <img src="img/yt.png" alt="YouTube" width="28">
-    </a>
+  <a href="https://www.instagram.com/benyoriki?igsh=cGZkOXpuN2JyYjAy" target="_blank">
+    <img src="img/ig.png" alt="Instagram" width="28">
+  </a>
 
-    <a href="https://www.tiktok.com/@benyoriki" target="_blank">
-      <img src="img/tiktok.png" alt="TikTok" width="28">
-    </a>
+  <a href="https://www.youtube.com/@rikihermawan8103" target="_blank">
+    <img src="img/yt.png" alt="YouTube" width="28">
+  </a>
 
-    <a href="https://web.facebook.com/benyo.hermawan" target="_blank">
-      <img src="img/fb.png" alt="Facebook" width="28">
-    </a>
-  </div>
+  <a href="https://www.tiktok.com/@benyoriki" target="_blank">
+    <img src="img/tiktok.png" alt="TikTok" width="28">
+  </a>
+
+  <a href="https://web.facebook.com/benyo.hermawan" target="_blank">
+    <img src="img/fb.png" alt="Facebook" width="28">
+  </a>
+</div>
+
 
   <div style="margin:10px 0;">__________________________________________</div>
 
+<div class="download-wrap">
+  
+
   <a class="download-btn"
-   href="https://drive.google.com/file/d/1GPUQjbJoQtPdTrBBLc_vOV96L4wnJwtl/view?usp=drive_link">
-  ⬇ Download DMS.v06
-</a>
+     href="https://drive.google.com/file/d/1GPUQjbJoQtPdTrBBLc_vOV96L4wnJwtl/view?usp=drive_link">
+    ⬇ Download DMS.v06
+  </a>
+</div>
+
 
 <div></div>
 <div></div>
@@ -142,27 +151,45 @@
 <!-- CHAT BOX -->
 <div class="chat-box" id="chatBox">
   <div class="chat-header">
-    <span>💬 Chat Logistik TUA</span>
-    <button id="chatClose">✕</button>
+    💬 Customer Service
   </div>
 
-  <div class="chat-body">
-    <p>Halo 👋<br>Silakan hubungi kami via WhatsApp</p>
+  <div class="chat-body" id="chatBody">
+    <div class="bubble bot hidden">Halo 👋</div>
+    <div class="bubble bot hidden">Ada yang bisa kami bantu?</div>
+    <div class="bubble bot hidden">Silakan klik WhatsApp di bawah ya 📲</div>
 
-    <a class="chat-wa"
-       href="https://wa.me/6282127700502"
-       target="_blank">
+    <div class="typing hidden" id="typing">...</div>
+  </div>
+
+  <div class="chat-footer">
+    <a class="chat-wa hidden" id="chatWA"
+       href="https://wa.me/6282127700502" target="_blank">
        💬 Chat WhatsApp
     </a>
   </div>
 </div>
 
+
+<audio id="chatSound">
+  <source src="https://assets.mixkit.co/sfx/preview/mixkit-click-pop-1114.mp3" type="audio/mpeg">
+</audio>
+
+
 <!-- TOGGLE AQUA MODE -->
-<button class="theme-toggle" id="themeToggle" title="Mode AQUA">
-  💧
+<button class="theme-toggle" id="themeToggle">
+  <span class="wave"></span>
+  <span class="bubble b1"></span>
+  <span class="bubble b2"></span>
+  <span class="bubble b3"></span>
+  <svg class="drop" viewBox="0 0 64 64">
+    <path d="M32 2 C20 18, 12 28, 12 40
+             a20 20 0 0 0 40 0
+             C52 28,44 18,32 2Z" />
+  </svg>
 </button>
-<!-- ADMIN BUTTON -->
-<button class="admin-btn" id="adminBtn">🔒</button>
+
+
 
 
 
