@@ -508,21 +508,31 @@ tbody tr:hover td {
 ========================= */
 .theme-toggle,
 .admin-btn {
-  position: fixed;
-  right: 18px;
-
-  width: 52px;
-  height: 52px;
+  position: relative;   /* tidak melayang lagi */
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   border: none;
   cursor: pointer;
 
-  font-size: 22px;
+  font-size: 18px;
   color: #fff;
 
-  z-index: 9999;       /* ⬅️ PALING ATAS */
-  pointer-events: auto; /* ⬅️ PAKSA BISA DIKLIK */
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.6);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
+.download-wrap {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px; /* jarak antara 🔒 dan Download */
+}
+
 
 .theme-toggle {
   bottom: 90px;
@@ -977,32 +987,189 @@ html {
   color: #fff;
 
   background: linear-gradient(135deg, #25D366, #1EBE5D);
-  box-shadow: 0 10px 25px rgba(37,211,102,0.6);
+  box-shadow:
+    0 10px 25px rgba(37,211,102,0.6),
+    0 0 0 rgba(37,211,102,0);
 
-  z-index: 9999;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+
+  animation: chatPulse 2.5s infinite;
 }
+
+.chat-toggle:hover {
+  transform: scale(1.15);
+}
+
+@keyframes chatPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(37,211,102,0.6); }
+  70%  { box-shadow: 0 0 0 14px rgba(37,211,102,0); }
+  100% { box-shadow: 0 0 0 0 rgba(37,211,102,0); }
+}
+
+.chat-body {
+  padding: 14px;
+  font-size: 13px;
+  line-height: 1.4;
+  animation: fadeInText 0.5s ease;
+}
+
+@keyframes fadeInText {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.chat-wa {
+  display: block;
+  margin-top: 12px;
+  padding: 10px;
+  text-align: center;
+
+  border-radius: 14px;
+  font-weight: 700;
+  text-decoration: none;
+
+  background: linear-gradient(135deg, #25D366, #1EBE5D);
+  color: #fff;
+
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.chat-wa:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 14px rgba(37,211,102,0.8);
+}
+
 
 .chat-box {
   position: fixed;
   right: 18px;
   bottom: 86px;
-
   width: 280px;
-  border-radius: 18px;
+  height: 360px;
 
-  background: rgba(15,23,42,0.75);
+  display: flex;
+  flex-direction: column;
+
+  border-radius: 20px;
+  overflow: hidden;
+
+  background: rgba(15,23,42,0.85);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 
-  box-shadow: 0 18px 40px rgba(0,0,0,0.55);
-
-  transform: translateY(20px);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+  
+  transform: translateY(40px) scale(0.9);
   opacity: 0;
   pointer-events: none;
-
   transition: all 0.3s ease;
   z-index: 9999;
 }
+
+.chat-box.show {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* HEADER */
+.chat-header {
+  padding: 10px;
+  text-align: center;
+  font-weight: bold;
+  background: linear-gradient(135deg, #25D366, #1EBE5D);
+  color: white;
+}
+
+/* BODY */
+.chat-body {
+  flex: 1;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+}
+
+/* FOOTER */
+.chat-footer {
+  padding: 10px;
+  background: rgba(0,0,0,0.3);
+}
+
+/* BUBBLE */
+.bubble {
+  background: #1e293b;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 14px;
+  font-size: 13px;
+  max-width: 85%;
+  animation: bubbleIn 0.4s ease;
+}
+
+.bubble.bot {
+  align-self: flex-start;
+}
+
+/* typing */
+.typing {
+  font-size: 18px;
+  letter-spacing: 2px;
+  color: #ccc;
+}
+
+/* tombol WA */
+.chat-wa {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  text-align: center;
+  border-radius: 14px;
+  font-weight: bold;
+  text-decoration: none;
+  background: linear-gradient(135deg, #25D366, #1EBE5D);
+  color: white;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.chat-wa:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(37,211,102,0.8);
+}
+
+/* hidden */
+.hidden {
+  display: none;
+}
+
+@keyframes bubbleIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.9); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+
+/* Saat tampil */
+.chat-box.show {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  pointer-events: auto;
+
+  box-shadow:
+    0 22px 45px rgba(0,0,0,0.65),
+    0 0 18px rgba(37,211,102,0.8);
+}
+
+@keyframes chatPop {
+  0%   { transform: scale(0.7) translateY(60px); opacity: 0; }
+  60%  { transform: scale(1.05) translateY(-4px); opacity: 1; }
+  100% { transform: scale(1) translateY(0); }
+}
+
+.chat-box.show {
+  animation: chatPop 0.45s ease;
+}
+
 
 .chat-box.show {
   transform: translateY(0);
@@ -1060,5 +1227,323 @@ html {
   z-index: 10000;
 }
 
+.theme-toggle {
+  position: fixed;
+  right: 18px;
+  bottom: 90px;
+
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+
+  background: rgba(56,189,248,0.25);
+  backdrop-filter: blur(14px);
+
+  box-shadow:
+    0 8px 22px rgba(0,0,0,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.25);
+
+  overflow: hidden;
+  z-index: 9999;
+}
+
+/* Hover */
+.theme-toggle:hover {
+  transform: scale(1.15);
+}
+
+/* Klik */
+.theme-toggle:active {
+  transform: scale(0.9);
+}
 
 
+/* Hover */
+.theme-toggle:hover {
+  transform: scale(1.15);
+}
+
+/* Klik */
+.theme-toggle:active {
+  transform: scale(0.9);
+}
+
+
+/* Hover */
+.theme-toggle:hover {
+  transform: scale(1.12);
+  background: rgba(56,189,248,0.45);
+  box-shadow:
+    0 0 18px rgba(56,189,248,0.9),
+    0 12px 30px rgba(0,0,0,0.6);
+}
+
+/* Active / klik */
+.theme-toggle:active {
+  transform: scale(0.95);
+}
+
+/* SAAT AQUA MODE AKTIF */
+body.aqua .theme-toggle {
+  background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+  box-shadow:
+    0 0 22px rgba(56,189,248,1),
+    0 0 45px rgba(14,165,233,0.8),
+    0 12px 30px rgba(0,0,0,0.7);
+}
+
+@keyframes aquaPulse {
+  0%   { box-shadow: 0 0 12px rgba(56,189,248,0.6); }
+  50%  { box-shadow: 0 0 28px rgba(56,189,248,1); }
+  100% { box-shadow: 0 0 12px rgba(56,189,248,0.6); }
+}
+
+body.aqua .theme-toggle {
+  animation: aquaPulse 2s infinite;
+}
+/* Animasi goyang seperti tetesan air */
+@keyframes waterDrop {
+  0%   { transform: translateY(0) rotate(0deg); }
+  25%  { transform: translateY(-3px) rotate(-6deg); }
+  50%  { transform: translateY(0) rotate(0deg); }
+  75%  { transform: translateY(2px) rotate(6deg); }
+  100% { transform: translateY(0) rotate(0deg); }
+}
+
+/* Ripple (gelombang air) */
+.theme-toggle::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid rgba(56,189,248,0.6);
+  opacity: 0;
+  animation: ripple 2.5s infinite;
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+.wave {
+  position: absolute;
+  bottom: -10px;
+  left: -50%;
+  width: 200%;
+  height: 30px;
+  background: rgba(56,189,248,0.6);
+  border-radius: 100%;
+  transform: rotate(3deg);
+  animation: waveMove 4s linear infinite;
+}
+
+@keyframes waveMove {
+  from { transform: translateX(0) rotate(3deg); }
+  to   { transform: translateX(50%) rotate(3deg); }
+}
+
+.drop {
+  position: absolute;
+  inset: 14px;
+  fill: #e0f2fe;
+  filter: drop-shadow(0 0 6px rgba(255,255,255,0.6));
+  transition: transform 0.3s ease;
+}
+
+.bubble {
+  position: absolute;
+  bottom: 6px;
+  width: 6px;
+  height: 6px;
+  background: rgba(255,255,255,0.7);
+  border-radius: 50%;
+  animation: bubbleUp 3s infinite ease-in;
+}
+
+.b1 { left: 18px; animation-delay: 0s; }
+.b2 { left: 28px; animation-delay: 1s; }
+.b3 { left: 38px; animation-delay: 2s; }
+
+@keyframes bubbleUp {
+  0%   { transform: translateY(0) scale(0.8); opacity: 0; }
+  30%  { opacity: 1; }
+  100% { transform: translateY(-40px) scale(1.4); opacity: 0; }
+}
+
+.theme-toggle::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid rgba(56,189,248,0.6);
+  opacity: 0;
+}
+
+.theme-toggle:active::after {
+  animation: splash 0.5s ease-out;
+}
+
+@keyframes splash {
+  from { transform: scale(0.4); opacity: 0.8; }
+  to   { transform: scale(1.6); opacity: 0; }
+}
+
+/* PAKSA admin button ikut layout (bukan fixed) */
+.admin-btn {
+  position: static !important;
+  right: auto !important;
+  bottom: auto !important;
+  top: auto !important;
+}
+
+.download-wrap {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Admin button ikut baris social media */
+.social .admin-btn {
+  position: static !important;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+
+  font-size: 18px;
+  color: #fff;
+
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  box-shadow:
+    0 8px 22px rgba(0,0,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.25);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.social .admin-btn {
+  transition: background 0.3s ease;
+}
+
+.social .admin-btn.countdown {
+  background: linear-gradient(135deg, #dc2626, #991b1b);
+}
+
+.bubble {
+  background: #1e293b;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 14px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  max-width: 90%;
+  animation: bubbleIn 0.4s ease;
+}
+
+.bubble.bot {
+  align-self: flex-start;
+}
+
+.hidden {
+  display: none;
+}
+
+@keyframes bubbleIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.9); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* typing */
+.typing {
+  font-size: 18px;
+  letter-spacing: 2px;
+  margin: 4px 0;
+  animation: typingDots 1.5s infinite;
+}
+
+@keyframes typingDots {
+  0% { content:"."; }
+  33% { content:".."; }
+  66% { content:"..."; }
+}
+
+/* PAKSA body chat jadi kolom */
+.chat-body {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  align-items: flex-start !important;
+  gap: 8px !important;
+  overflow-y: auto !important;
+}
+
+/* PAKSA bubble tidak absolute */
+.bubble,
+.typing {
+  position: static !important;
+  bottom: auto !important;
+  top: auto !important;
+  transform: none !important;
+}
+
+/* Biar tidak numpuk di bawah */
+.bubble {
+  margin-top: 4px !important;
+  margin-bottom: 4px !important;
+  max-width: 85%;
+}
+
+/* Pastikan footer (tombol WA) di bawah */
+.chat-footer {
+  flex-shrink: 0;
+}
+
+/* Rapikan bubble agar tidak memanjang satu sisi */
+.chat-body {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+}
+
+/* bubble dasar */
+.bubble {
+  display: inline-block !important;
+  max-width: 80% !important;
+  width: fit-content !important;
+
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+
+  line-height: 1.4;
+  padding: 8px 12px;
+  border-radius: 14px;
+  margin: 4px 0;
+
+  background: #1e293b;
+  color: #fff;
+}
+
+/* bot di kiri */
+.bubble.bot {
+  align-self: flex-start !important;
+}
+
+/* typing juga ikut rapi */
+.typing {
+  max-width: 80% !important;
+  align-self: flex-start !important;
+}
