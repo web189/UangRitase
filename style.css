@@ -17,19 +17,22 @@ body {
 .video-bg {
   position: fixed;
   inset: 0;
-  z-index: -2;
+  z-index: -10;          /* ⬅️ PAKSA PALING BELAKANG */
+  pointer-events: none; /* ⬅️ TIDAK BOLEH NANGKAP KLIK */
 }
 
 .video-bg video {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  pointer-events: none;
 }
 
 .overlay {
   position: absolute;
   inset: 0;
   background: rgba(0,0,0,0.38);
+  pointer-events: none;
 }
 
 /* =========================
@@ -53,8 +56,42 @@ body {
 }
 
 .header h1 {
+  background: linear-gradient(90deg, #7dd3fc, #38bdf8, #0ea5e9);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.header h1,
+.header h2,
+.header p {
+  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+.header::after {
+  content: "";
+  display: block;
+  margin: 12px auto 0;
+  width: 60%;
+  height: 1px;
+  background: rgba(255,255,255,0.25);
+}
+
+
+.header h1 {
   margin: 0;
-  font-size: 22px;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+}
+
+.header::after {
+  content: "";
+  display: block;
+  width: 90px;
+  height: 3px;
+  margin: 12px auto 0;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #38bdf8, #0ea5e9);
 }
 
 .header p {
@@ -147,19 +184,72 @@ body {
 /* =========================
    GLASS CARD
 ========================= */
+/* Update pada Glass Card */
 .glass {
-  background: rgba(255,255,255,0.16);
-  backdrop-filter: blur(10px);
-  border-radius: 18px;
-  padding: 16px;
-  box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.16),
+    rgba(255,255,255,0.06)
+  );
+  border: 1px solid rgba(255,255,255,0.22);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-radius: 26px;
+  overflow: hidden;
+
+  box-shadow:
+    0 20px 45px rgba(0,0,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.25);
 }
 
-.glass h2 {
-  margin: 0 0 10px;
-  font-size: 15px;
-  color: #b3e5fc;
+
+/* Mempercantik Tabel di Mobile */
+table {
+  border-spacing: 0;
 }
+
+th {
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 1px;
+  padding: 12px 8px;
+}
+
+td {
+  padding: 10px 10px;
+  font-size: 13px;
+}
+
+
+/* Responsivitas PC */
+@media (min-width: 1024px) {
+
+  .container {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 28px;
+  }
+
+  .glass {
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  .glass:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.45);
+  }
+}
+
+
+/* Animasi Halus */
+.uang:active {
+  transform: scale(0.95);
+  transition: 0.1s;
+}
+
+/* Float Buttons Gap */
+.theme-toggle { bottom: 90px; }
+.admin-btn { bottom: 160px; }
+.wa-float { bottom: 20px; }
 
 /* =========================
    TABLE (SEJAJAR & RINGKAS)
@@ -167,9 +257,25 @@ body {
 table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;
-  font-size: 12px;
+  table-layout: auto; /* ⬅️ BIAR FLEX DI HP */
 }
+
+
+thead th {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+
+tbody tr:nth-child(even) td {
+  background: rgba(255,255,255,0.04);
+}
+
+.uang {
+  font-size: 13.5px;
+  letter-spacing: 0.3px;
+}
+
 
 th, td {
   padding: 6px 8px;
@@ -207,27 +313,24 @@ td:nth-child(3) {
 }
 
 .uang {
-  font-weight: 700;
-  white-space: nowrap;
+  font-weight: 800;
+  font-size: 13.5px;
+  color: #e0f2fe;
+
+  white-space: nowrap;      /* ⬅️ PENTING */
+  text-align: right;
+  font-variant-numeric: tabular-nums; /* angka rapi */
 }
+
+
 
 /* Hover row */
 tbody tr:hover td {
-  background: rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.14);
+  transition: 0.2s ease;
 }
 
-/* =========================
-   SPS & GALON VIT (MERAH)
-========================= */
-.sps-vit th,
-.galon-vit th {
-  background: rgba(185, 28, 28, 0.85);
-}
 
-.sps-vit tbody tr:hover td,
-.galon-vit tbody tr:hover td {
-  background: rgba(185, 28, 28, 0.1);
-}
 
 /* =========================
    FOOTER
@@ -347,27 +450,10 @@ tbody tr:hover td {
 
 /* FORCE GLASS BUTTON MUSIC PLAYER */
 .music-controls button {
-  all: unset; /* reset total style lama */
+  all: unset;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-
-  font-size: 16px;
-  cursor: pointer;
-  color: #fff;
-
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-
-  border: 1px solid rgba(255,255,255,0.3);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
-
-  transition: all 0.25s ease;
 }
 
 .music-controls button:hover {
@@ -383,3 +469,596 @@ tbody tr:hover td {
 .music-controls button:hover {
   transform: scale(1.1);
 }
+
+.wa-float {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #25D366, #1EBE5D);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: #fff;
+  text-decoration: none;
+  box-shadow: 0 10px 25px rgba(37,211,102,0.6);
+  z-index: 50;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.glass {
+  animation: fadeUp 0.6s ease both;
+}
+
+/* =========================
+   THEME TOGGLE BUTTON
+========================= */
+.theme-toggle,
+.admin-btn {
+  position: fixed;
+  right: 18px;
+
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+
+  font-size: 22px;
+  color: #fff;
+
+  z-index: 9999;       /* ⬅️ PALING ATAS */
+  pointer-events: auto; /* ⬅️ PAKSA BISA DIKLIK */
+}
+
+.theme-toggle {
+  bottom: 90px;
+  background: linear-gradient(135deg, #38bdf8, #0284c7);
+  box-shadow: 0 10px 30px rgba(56,189,248,0.7);
+}
+
+.admin-btn {
+  bottom: 150px;
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+}
+
+/* =========================
+   AQUA MODE
+========================= */
+body.aqua {
+  color: #e0f2fe;
+}
+
+body.aqua .overlay {
+  background: rgba(2, 132, 199, 0.45);
+}
+
+body.aqua .glass {
+  background: rgba(14, 165, 233, 0.25);
+}
+
+body.aqua th {
+  background: rgba(2, 132, 199, 0.9);
+}
+
+body.aqua .uang {
+  color: #ffffff;
+}
+
+/* =========================
+   ADMIN BUTTON
+========================= */
+.admin-btn {
+  position: fixed;
+  bottom: 150px;
+  right: 18px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  color: #fff;
+
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  box-shadow: 0 8px 22px rgba(0,0,0,0.6);
+  z-index: 50;
+}
+
+/* FIX: supaya background TIDAK nangkap klik */
+/* FIX: supaya background TIDAK nangkap klik */
+.video-bg,
+.video-bg video,
+.overlay {
+  pointer-events: none;
+}
+
+.overlay {
+  pointer-events: none;
+}
+
+.glass h2 {
+  margin: 0;
+  padding: 14px 18px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+
+  background: linear-gradient(
+    135deg,
+    rgba(56,189,248,0.45),
+    rgba(14,165,233,0.25)
+  );
+
+  border-bottom: 1px solid rgba(255,255,255,0.18);
+}
+
+@media (max-width: 600px) {
+
+  th:nth-child(1),
+  td:nth-child(1) {
+    width: 28%;
+  }
+
+  th:nth-child(2),
+  td:nth-child(2) {
+    width: 38%;
+  }
+
+  th:nth-child(3),
+  td:nth-child(3) {
+    width: 34%;
+  }
+
+  td {
+    padding: 10px 6px;
+  }
+
+  .uang {
+    font-size: 13px;
+  }
+}
+
+
+tbody tr {
+  transition:
+    background 0.25s ease,
+    transform 0.15s ease;
+}
+
+tbody tr:hover {
+  transform: translateX(4px);
+}
+
+
+tbody tr:active {
+  transform: scale(0.985);
+}
+
+
+@keyframes cardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.glass {
+  animation: cardEnter 0.6s cubic-bezier(.4,.0,.2,1) both;
+}
+
+.wa-float,
+.theme-toggle,
+.admin-btn {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.wa-float:hover,
+.theme-toggle:hover,
+.admin-btn:hover {
+  transform: scale(1.12);
+}
+
+.header {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+
+.header h1 {
+  animation: fadeDown 0.6s ease;
+}
+
+@keyframes fadeDown {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.wa-float:active,
+.theme-toggle:active,
+.admin-btn:active {
+  transform: scale(0.95);
+}
+
+.glass h2 {
+  position: relative;
+  overflow: hidden;
+}
+
+.glass h2::after {
+  content: "";
+  position: absolute;
+  left: -100%;
+  bottom: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #7dd3fc, transparent);
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+html {
+  scroll-behavior: smooth;
+}
+
+@media (max-width: 600px) {
+  body {
+    overscroll-behavior: none;
+  }
+
+  .container {
+    padding-bottom: 100px;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(56,189,248,0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(56,189,248,0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(56,189,248,0);
+  }
+}
+
+.pulse {
+  animation: pulse 0.45s ease-out;
+}
+
+.glass h2 {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+
+  backdrop-filter: blur(12px);
+  background: linear-gradient(
+    135deg,
+    rgba(2,132,199,0.9),
+    rgba(14,165,233,0.75)
+  );
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.6s ease;
+}
+
+.reveal.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.footer .social a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+
+  background: rgba(255,255,255,0.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  box-shadow:
+    0 8px 22px rgba(0,0,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.25);
+
+  transition: all 0.3s ease;
+}
+
+
+.footer a img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+
+  transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+.footer a:hover {
+  transform: translateY(-6px) scale(1.08);
+}
+
+.footer a[href*="instagram"]:hover {
+  box-shadow: 0 0 18px rgba(225,48,108,0.9);
+}
+
+.footer a[href*="youtube"]:hover {
+  box-shadow: 0 0 18px rgba(255,0,0,0.9);
+}
+
+.footer a[href*="facebook"]:hover {
+  box-shadow: 0 0 18px rgba(24,119,242,0.9);
+}
+
+.footer a[href*="tiktok"]:hover {
+  box-shadow: 0 0 18px rgba(255,255,255,0.9);
+}
+
+@keyframes iconPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(56,189,248,0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 14px rgba(56,189,248,0);
+  }
+}
+
+.footer a:active {
+  animation: iconPulse 0.4s ease;
+}
+
+.footer a:hover img {
+  transform: rotate(-8deg) scale(1.15);
+}
+
+.download-btn {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 10px 20px;
+
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 13px;
+
+  color: #e0f2fe;
+  text-decoration: none;
+
+  background: rgba(255,255,255,0.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  box-shadow:
+    0 8px 22px rgba(0,0,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.25);
+
+  transition: all 0.25s ease;
+}
+
+.mini-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.mini-icon {
+  font-size: 20px;
+}
+
+.mini-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+.mini-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.mini-controls button {
+  all: unset;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 16px;
+  cursor: pointer;
+
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.mini-controls button:hover {
+  background: rgba(255,255,255,0.25);
+  transform: scale(1.15);
+}
+
+.mini-controls button:active {
+  transform: scale(0.9);
+}
+.mini-player {
+  position: relative;   /* ⬅️ IKUT ALUR FOOTER */
+  width: 100%;
+  max-width: 420px;
+
+  margin: 14px auto 0;  /* ⬅️ JARAK DARI DOWNLOAD */
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 10px 14px;
+  border-radius: 18px;
+
+  background: rgba(15,23,42,0.65);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  box-shadow:
+    0 12px 28px rgba(0,0,0,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+.mini-player:hover {
+  transform: translateY(-2px);
+  transition: 0.25s ease;
+}
+
+.mini-controls button:active {
+  transform: scale(0.9);
+}
+
+.mini-player::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 1px;
+  background: rgba(255,255,255,0.2);
+}
+
+.chat-toggle {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+
+  font-size: 24px;
+  cursor: pointer;
+  color: #fff;
+
+  background: linear-gradient(135deg, #25D366, #1EBE5D);
+  box-shadow: 0 10px 25px rgba(37,211,102,0.6);
+
+  z-index: 9999;
+}
+
+.chat-box {
+  position: fixed;
+  right: 18px;
+  bottom: 86px;
+
+  width: 280px;
+  border-radius: 18px;
+
+  background: rgba(15,23,42,0.75);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  box-shadow: 0 18px 40px rgba(0,0,0,0.55);
+
+  transform: translateY(20px);
+  opacity: 0;
+  pointer-events: none;
+
+  transition: all 0.3s ease;
+  z-index: 9999;
+}
+
+.chat-box.show {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+
+  background: rgba(56,189,248,0.3);
+  border-bottom: 1px solid rgba(255,255,255,0.15);
+}
+
+.chat-header button {
+  all: unset;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.chat-body {
+  padding: 14px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.chat-wa {
+  display: block;
+  margin-top: 12px;
+  padding: 10px;
+  text-align: center;
+
+  border-radius: 14px;
+  font-weight: 700;
+  text-decoration: none;
+
+  background: linear-gradient(135deg, #25D366, #1EBE5D);
+  color: #fff;
+
+  transition: transform 0.2s ease;
+}
+
+.chat-wa:hover {
+  transform: scale(1.05);
+}
+
+.chat-toggle {
+  pointer-events: auto !important;
+  z-index: 10000;
+}
+
+
+
