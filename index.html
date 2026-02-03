@@ -57,7 +57,7 @@
     </span>
 
     <span class="wa-text">
-      💬Whatsapp Logistik
+      💬WA Logistik TUA
     </span>
   </a>
 
@@ -66,22 +66,22 @@
 <!-- CONTENT -->
 <main class="container">
   <section class="glass">
-    <h2>SPS AQUA</h2>
+    <h2>💧 SPS AQUA</h2>
     <div id="sps-aqua"></div>
   </section>
 
   <section class="glass">
-    <h2>GALON AQUA</h2>
+    <h2>🧴 GALON AQUA</h2>
     <div id="galon-aqua"></div>
   </section>
 
   <section class="glass">
-    <h2>SPS VIT</h2>
+    <h2>🔴 SPS VIT</h2>
     <div id="sps-vit"></div>
   </section>
 
   <section class="glass">
-    <h2>GALON VIT</h2>
+    <h2>🔴 GALON VIT</h2>
     <div id="galon-vit"></div>
   </section>
 </main>
@@ -90,7 +90,8 @@
   <span>© 2026 • Powered by</span>
 
   <!-- SOSIAL MEDIA ICON -->
-  <div style="margin-top:10px; display:flex; justify-content:center; gap:14px;">
+  <div class="social" style="margin-top:10px; display:flex; justify-content:center; gap:14px;">
+
     <a href="https://www.instagram.com/benyoriki?igsh=cGZkOXpuN2JyYjAy" target="_blank">
       <img src="img/ig.png" alt="Instagram" width="28">
     </a>
@@ -110,22 +111,30 @@
 
   <div style="margin:10px 0;">__________________________________________</div>
 
-  • Download Android
-  <a href="https://drive.google.com/file/d/1GPUQjbJoQtPdTrBBLc_vOV96L4wnJwtl/view?usp=drive_link">DMS.v06</a>
+  <a class="download-btn"
+   href="https://drive.google.com/file/d/1GPUQjbJoQtPdTrBBLc_vOV96L4wnJwtl/view?usp=drive_link">
+  ⬇ Download DMS.v06
+</a>
+
 <div></div>
 <div></div>
-  <!-- MUSIC PLAYER -->
-  <div class="music-player">
-    <div class="music-title" id="musicTitle">🎵 Tidak ada lagu</div>
-    <div class="music-controls">
-      <button id="prevBtn">⏮</button>
-      <button id="playBtn">▶</button>
-      <button id="nextBtn">⏭</button>
-    </div>
+<div class="mini-player" id="miniPlayer">
+  <div class="mini-info">
+    <span class="mini-icon">🎧</span>
+    <div class="mini-title" id="musicTitle">Tidak ada lagu</div>
   </div>
+
+  <div class="mini-controls">
+    <button id="prevBtn">⏮</button>
+    <button id="playBtn">▶</button>
+    <button id="nextBtn">⏭</button>
+  </div>
+</div>
+
 
   <audio id="audioPlayer" preload="auto"></audio>
 </footer>
+
 
 <script src="app.js"></script>
 </body>
