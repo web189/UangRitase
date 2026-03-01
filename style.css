@@ -1547,3 +1547,213 @@ body.aqua .theme-toggle {
   max-width: 80% !important;
   align-self: flex-start !important;
 }
+
+.table-section {
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;   /* penting */
+  align-items: center;      /* supaya tetap di tengah */
+}
+
+.table-wrapper {
+  width: 100%;
+  max-width: 1000px;
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(10px);
+  border-radius: 15px;
+  padding: 25px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.table-title {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 22px;
+  letter-spacing: 1px;
+}
+
+#searchInput {
+  width: 100%;
+  padding: 10px 15px;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+  font-size: 14px;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 500px;
+}
+
+thead {
+  background: #f4c400;
+  color: black;
+}
+
+th, td {
+  padding: 12px 15px;
+  text-align: left;
+}
+
+th {
+  font-weight: bold;
+}
+
+tbody tr {
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  transition: 0.3s;
+}
+
+tbody tr:hover {
+  background: rgba(255,255,255,0.08);
+  transform: scale(1.01);
+}
+
+@media (max-width: 600px) {
+  .table-wrapper {
+    padding: 15px;
+  }
+
+  th, td {
+    font-size: 13px;
+    padding: 10px;
+  }
+
+  .table-title {
+    font-size: 18px;
+  }
+}
+
+.table-title {
+  text-align: center;
+  margin-bottom: 25px;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+/* MODAL BACKGROUND */
+.zoom-modal {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(5px);
+  justify-content: center;
+  align-items: center;
+}
+
+/* CONTENT */
+.zoom-content {
+  background: white;
+  padding: 40px;
+  border-radius: 15px;
+  max-width: 90%;
+  width: 400px;
+  text-align: center;
+  animation: zoomIn 0.3s ease;
+  position: relative;
+}
+
+.zoom-content p {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+#closeZoom {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 25px;
+  cursor: pointer;
+}
+
+@keyframes zoomIn {
+  from {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Efek klik zoom */
+tbody tr {
+  cursor: pointer;
+  transition: all 0.4s ease;
+}
+
+tbody tr.active-row {
+  background: rgba(255, 196, 0, 0.25);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+  position: relative;
+  z-index: 20;
+}
+
+tbody tr.active-row td {
+  font-size: 17px;
+  font-weight: bold;
+  transition: 0.3s ease;
+}
+
+tbody tr.dim {
+  opacity: 0.3;
+  transform: scale(0.98);
+}
+
+/* efek blur ringan ke background */
+.table-container.blur-active {
+  backdrop-filter: blur(4px);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+th, td {
+  padding: 12px 15px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  padding: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  text-align: left;
+}
+
+/* efek klik */
+.data-table tbody tr {
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.data-table tbody tr.active-row {
+  background: rgba(255, 196, 0, 0.25);
+  box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+  position: relative;
+  z-index: 10;
+}
+
+/* isi membesar tanpa merusak layout */
+.data-table tbody tr.active-row td {
+  font-size: 17px;
+  font-weight: bold;
+}
