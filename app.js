@@ -288,3 +288,69 @@ window.addEventListener("load", () => {
    INIT
 ========================= */
 renderAll();
+
+const searchInput = document.getElementById("searchInput");
+const table = document.getElementById("dmsTable");
+const rows = table.getElementsByTagName("tr");
+
+searchInput.addEventListener("keyup", function () {
+  const filter = searchInput.value.toUpperCase();
+
+  for (let i = 1; i < rows.length; i++) {
+    const tdKode = rows[i].getElementsByTagName("td")[0];
+    const tdNama = rows[i].getElementsByTagName("td")[1];
+
+    if (tdKode || tdNama) {
+      const txtValue = tdKode.textContent + tdNama.textContent;
+      rows[i].style.display = txtValue.toUpperCase().includes(filter)
+        ? ""
+        : "none";
+    }
+  }
+});
+
+const tableRows = document.querySelectorAll("#dmsTable tbody tr");
+const tableContainer = document.querySelector(".table-container");
+
+tableRows.forEach(row => {
+  row.addEventListener("click", () => {
+
+    if (row.classList.contains("active-row")) {
+      tableRows.forEach(r => {
+        r.classList.remove("active-row", "dim");
+      });
+      tableContainer.classList.remove("blur-active");
+      return;
+    }
+
+    tableRows.forEach(r => {
+      r.classList.remove("active-row", "dim");
+    });
+
+    row.classList.add("active-row");
+    tableContainer.classList.add("blur-active");
+
+    tableRows.forEach(r => {
+      if (r !== row) {
+        r.classList.add("dim");
+      }
+    });
+
+  });
+});
+
+document.addEventListener("click", function (e) {
+  const row = e.target.closest("tr");
+  if (!row || !row.parentElement.closest("tbody")) return;
+
+  const table = row.closest("table");
+  const rows = table.querySelectorAll("tbody tr");
+
+  if (row.classList.contains("active-row")) {
+    row.classList.remove("active-row");
+    return;
+  }
+
+  rows.forEach(r => r.classList.remove("active-row"));
+  row.classList.add("active-row");
+});
