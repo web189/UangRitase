@@ -196,3 +196,58 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
 });
+
+/* =========================
+   CHAT PREMIUM FIX
+========================= */
+
+document.addEventListener("DOMContentLoaded", () => {
+
+  const chatToggle = document.getElementById("chatToggle");
+  const chatBox = document.getElementById("chatBox");
+  const chatClose = document.getElementById("chatClose");
+  const chatWA = document.getElementById("chatWA");
+  const typing = document.getElementById("typing");
+  const bubbles = document.querySelectorAll(".bubble.bot");
+  const chatSound = document.getElementById("chatSound");
+
+  function showChatSequence() {
+    let delay = 800;
+
+    bubbles.forEach((bubble, i) => {
+      setTimeout(() => {
+        typing.classList.remove("hidden");
+
+        setTimeout(() => {
+          typing.classList.add("hidden");
+          bubble.classList.remove("hidden");
+          chatSound.play();
+        }, 800);
+
+      }, delay);
+
+      delay += 1500;
+    });
+
+    setTimeout(() => {
+      chatWA.classList.remove("hidden");
+    }, delay);
+  }
+
+  if (chatToggle) {
+    chatToggle.addEventListener("click", () => {
+      chatBox.classList.toggle("show");
+
+      if (chatBox.classList.contains("show")) {
+        showChatSequence();
+      }
+    });
+  }
+
+  if (chatClose) {
+    chatClose.addEventListener("click", () => {
+      chatBox.classList.remove("show");
+    });
+  }
+
+});
