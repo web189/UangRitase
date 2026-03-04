@@ -209,13 +209,40 @@
 
 
 <!-- CHAT TOGGLE BUTTON -->
-<button class="chat-toggle" id="chatToggle">💬</button>
+<button class="chat-toggle" id="chatToggle">
+  <i class="fas fa-comments"></i>
+</button>
 
-<!-- CHAT BOX -->
 <div class="chat-box" id="chatBox">
+
   <div class="chat-header">
-    💬 Customer Service
+    <div class="chat-header-left">
+      <div class="chat-avatar">CS</div>
+      <div>
+        <div class="chat-title">Customer Service</div>
+        <div class="chat-status">Online</div>
+      </div>
+    </div>
+    <span class="chat-close" id="chatClose">✖</span>
   </div>
+
+  <div class="chat-body" id="chatBody">
+    <div class="bubble bot hidden">Halo 👋</div>
+    <div class="bubble bot hidden">Ada yang bisa kami bantu?</div>
+    <div class="bubble bot hidden">Silakan klik WhatsApp di bawah ya 📲</div>
+
+    <div class="typing hidden" id="typing">Mengetik...</div>
+  </div>
+
+  <div class="chat-footer">
+    <a class="chat-wa hidden" id="chatWA"
+       href="https://wa.me/6282127700502" target="_blank">
+       💬 Chat WhatsApp
+    </a>
+  </div>
+
+</div>
+
 
   <div class="chat-body" id="chatBody">
     <div class="bubble bot hidden">Halo 👋</div>
