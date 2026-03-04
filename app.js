@@ -1,7 +1,9 @@
 /* =========================
    GLOBAL STATE
 ========================= */
-let isAdmin = localStorage.getItem("admin") === "true";
+let isAdmin = false;
+let adminTimer = null;
+let adminTimeLeft = 30;
 
 const data = {
   spsAqua: [
@@ -30,24 +32,37 @@ const data = {
   ]
 };
 
-// Load saved data
+/* =========================
+   LOAD SAVED DATA
+========================= */
 const saved = localStorage.getItem("ritaseData");
 if (saved) Object.assign(data, JSON.parse(saved));
 
 /* =========================
-   CORE FUNCTIONS
+   UTIL
 ========================= */
 function formatRupiah(n) {
-  return "Rp " + n.toLocaleString("id-ID");
+  return "Rp " + Number(n).toLocaleString("id-ID");
 }
 
+/* =========================
+   RENDER TABLE
+========================= */
 function render(target, rows) {
   const container = document.getElementById(target);
   if (!container) return;
 
-  let html = `<table>
-    <thead><tr><th>Pabrik</th><th>Muatan</th><th>Uang</th></tr></thead>
-    <tbody>`;
+  let html = `
+    <div class="ritase-table-wrapper">
+    <table class="ritase-table">
+      <thead>
+        <tr>
+          <th>Pabrik</th>
+          <th>Muatan</th>
+          <th>Uang</th>
+        </tr>
+      </thead>
+      <tbody>`;
 
   rows.forEach((r, i) => {
     html += `
@@ -60,8 +75,10 @@ function render(target, rows) {
       </tr>`;
   });
 
-  html += "</tbody></table>";
+  html += "</tbody></table></div>";
   container.innerHTML = html;
+
+  if (isAdmin) attachEditEvents();
 }
 
 function renderAll() {
@@ -69,23 +86,24 @@ function renderAll() {
   render("galon-aqua", data.galonAqua);
   render("sps-vit", data.spsVit);
   render("galon-vit", data.galonVit);
-  if (isAdmin) attachEditEvents();
 }
 
 /* =========================
-   EDIT ADMIN
+   ADMIN EDIT
 ========================= */
 function attachEditEvents() {
   document.querySelectorAll(".uang").forEach(cell => {
     cell.style.cursor = "pointer";
     cell.style.color = "#fbbf24";
+
     cell.onclick = () => {
-      const t = cell.dataset.target.replace(/-([a-z])/g, g => g[1].toUpperCase());
-      const i = cell.dataset.index;
-      const currentVal = data[t][i][2];
-      const v = prompt(`Edit Harga (Saat ini: ${currentVal})`, currentVal);
-      if (v && !isNaN(v)) {
-        data[t][i][2] = parseInt(v);
+      const key = cell.dataset.target.replace(/-([a-z])/g, g => g[1].toUpperCase());
+      const index = cell.dataset.index;
+      const current = data[key][index][2];
+
+      const value = prompt(`Edit Harga (Saat ini: ${current})`, current);
+      if (value && !isNaN(value)) {
+        data[key][index][2] = parseInt(value);
         localStorage.setItem("ritaseData", JSON.stringify(data));
         renderAll();
       }
@@ -94,263 +112,87 @@ function attachEditEvents() {
 }
 
 /* =========================
-   CLOCK
+   DOM READY
 ========================= */
-setInterval(() => {
-  const d = new Date();
-  const el = document.getElementById("datetime");
-  if (el) {
+document.addEventListener("DOMContentLoaded", () => {
+
+  renderAll();
+
+  /* CLOCK */
+  setInterval(() => {
+    const el = document.getElementById("datetime");
+    if (!el) return;
+    const d = new Date();
     el.innerText =
       d.toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "medium" }) + " WIB";
-  }
-}, 1000);
-
-/* =========================
-   VISITOR COUNTER
-========================= */
-let count = localStorage.getItem("visCount") || 1540;
-count = parseInt(count) + 1;
-localStorage.setItem("visCount", count);
-const visitorEl = document.getElementById("visitorNumber");
-if (visitorEl) visitorEl.innerText = count;
-
-/* =========================
-   MUSIC PLAYER
-========================= */
-const playlist = [
-  { title: "coming soon 01", src: "video/music1.mp3" },
-  { title: "coming soon 02", src: "video/music2.mp3" }
-];
-
-let trackIndex = 0;
-const audio = document.getElementById("audioPlayer");
-const playBtn = document.getElementById("playBtn");
-const musicTitle = document.getElementById("musicTitle");
-const prevBtn = document.getElementById("prevBtn");
-const nextBtn = document.getElementById("nextBtn");
-
-function loadTrack(i) {
-  if (!audio) return;
-  trackIndex = (i + playlist.length) % playlist.length;
-  audio.src = playlist[trackIndex].src;
-  audio.play();
-  playBtn.innerText = "⏸";
-  musicTitle.innerText = "🎵 " + playlist[trackIndex].title;
-  musicTitle.classList.add("playing");
-}
-
-if (prevBtn) prevBtn.addEventListener("click", () => loadTrack(trackIndex - 1));
-if (nextBtn) nextBtn.addEventListener("click", () => loadTrack(trackIndex + 1));
-
-if (playBtn) {
-  playBtn.addEventListener("click", () => {
-    if (audio.paused) {
-      audio.src = playlist[trackIndex].src;
-      audio.play();
-      playBtn.innerText = "⏸";
-      musicTitle.innerText = "🎵 " + playlist[trackIndex].title;
-      musicTitle.classList.add("playing");
-    } else {
-      audio.pause();
-      playBtn.innerText = "▶";
-      musicTitle.classList.remove("playing");
-    }
-  });
-}
-
-/* =========================
-   DOM READY (BUTTONS)
-========================= */
-document.addEventListener("DOMContentLoaded", function () {
-
-  // THEME TOGGLE
-  const themeBtn = document.getElementById("themeToggle");
-  const savedTheme = localStorage.getItem("theme") || "dark";
-  if (savedTheme === "aqua") document.body.classList.add("aqua");
-
-  if (themeBtn) {
-    themeBtn.addEventListener("click", function () {
-      document.body.classList.toggle("aqua");
-      const isAqua = document.body.classList.contains("aqua");
-      localStorage.setItem("theme", isAqua ? "aqua" : "dark");
-    });
-  }
-
-  // ADMIN BUTTON
- let adminTimer = null;
-let adminTimeLeft = 30;
-
-const adminBtn = document.getElementById("adminBtn");
-
-if (adminBtn) {
-  adminBtn.addEventListener("click", function () {
-
-    // Kalau sedang admin, jangan minta password lagi
-    if (isAdmin) return;
-
-    const pass = prompt("🔐 Masukkan Password Admin");
-
-    if (pass === "123admin") {
-      isAdmin = true;
-      adminTimeLeft = 30;
-      alert("✅ Mode Admin Aktif (30 detik)");
-      attachEditEvents();
-
-      // Ubah tampilan tombol jadi countdown
-      adminBtn.textContent = adminTimeLeft;
-adminBtn.classList.add("countdown");
-
-
-      adminTimer = setInterval(() => {
-        adminTimeLeft--;
-        adminBtn.textContent = adminTimeLeft;
-
-        if (adminTimeLeft <= 0) {
-          clearInterval(adminTimer);
-          isAdmin = false;
-
-          // kembalikan tombol
-          adminBtn.textContent = "🔒";
-
-          alert("⏳ Waktu admin habis. Logout otomatis.");
-
-          renderAll(); // refresh supaya harga tidak bisa diklik lagi
-        }
-      }, 1000);
-
-    } else {
-      alert("❌ Password Salah!");
-    }
-
-  });
-}
-
-
-  // CHAT BUTTON
-const chatBox = document.getElementById("chatBox");
-const chatToggle = document.getElementById("chatToggle");
-const bubbles = document.querySelectorAll(".bubble");
-const typing = document.getElementById("typing");
-const chatWA = document.getElementById("chatWA");
-
-let chatOpenedOnce = false;
-
-function playChatSequence() {
-  bubbles.forEach(b => b.classList.add("hidden"));
-  typing.classList.remove("hidden");
-  chatWA.classList.add("hidden");
-
-  let i = 0;
-
-  const interval = setInterval(() => {
-    typing.classList.add("hidden");
-
-    if (bubbles[i]) {
-      bubbles[i].classList.remove("hidden");
-      i++;
-      typing.classList.remove("hidden");
-    } else {
-      clearInterval(interval);
-      typing.classList.add("hidden");
-      chatWA.classList.remove("hidden");
-    }
   }, 1000);
-}
 
-if (chatToggle && chatBox) {
-  chatToggle.addEventListener("click", () => {
-    chatBox.classList.toggle("show");
+  /* VISITOR */
+  let count = localStorage.getItem("visCount") || 1540;
+  count = parseInt(count) + 1;
+  localStorage.setItem("visCount", count);
+  const visitorEl = document.getElementById("visitorNumber");
+  if (visitorEl) visitorEl.innerText = count;
 
-    if (chatBox.classList.contains("show") && !chatOpenedOnce) {
-      playChatSequence();
-      chatOpenedOnce = true;
-    }
-  });
-}
+  /* ADMIN BUTTON */
+  const adminBtn = document.getElementById("adminBtn");
 
+  if (adminBtn) {
+    adminBtn.addEventListener("click", () => {
 
+      if (isAdmin) return;
 
+      const pass = prompt("🔐 Masukkan Password Admin");
 
-window.addEventListener("load", () => {
-  setTimeout(() => {
-    if (!localStorage.getItem("chatAutoOpened")) {
-      chatBox.classList.add("show");
-      playChatSequence();
-      localStorage.setItem("chatAutoOpened", "yes");
-    }
-  }, 2500);
-});
+      if (pass === "123admin") {
+        isAdmin = true;
+        adminTimeLeft = 30;
+        attachEditEvents();
 
+        adminBtn.classList.add("countdown");
 
-});
+        adminTimer = setInterval(() => {
+          adminTimeLeft--;
+          adminBtn.textContent = adminTimeLeft;
 
-/* =========================
-   INIT
-========================= */
-renderAll();
+          if (adminTimeLeft <= 0) {
+            clearInterval(adminTimer);
+            isAdmin = false;
+            adminBtn.textContent = "🔒";
+            renderAll();
+            alert("⏳ Waktu admin habis.");
+          }
+        }, 1000);
 
-const searchInput = document.getElementById("searchInput");
-const table = document.getElementById("dmsTable");
-const rows = table.getElementsByTagName("tr");
-
-searchInput.addEventListener("keyup", function () {
-  const filter = searchInput.value.toUpperCase();
-
-  for (let i = 1; i < rows.length; i++) {
-    const tdKode = rows[i].getElementsByTagName("td")[0];
-    const tdNama = rows[i].getElementsByTagName("td")[1];
-
-    if (tdKode || tdNama) {
-      const txtValue = tdKode.textContent + tdNama.textContent;
-      rows[i].style.display = txtValue.toUpperCase().includes(filter)
-        ? ""
-        : "none";
-    }
-  }
-});
-
-const tableRows = document.querySelectorAll("#dmsTable tbody tr");
-const tableContainer = document.querySelector(".table-container");
-
-tableRows.forEach(row => {
-  row.addEventListener("click", () => {
-
-    if (row.classList.contains("active-row")) {
-      tableRows.forEach(r => {
-        r.classList.remove("active-row", "dim");
-      });
-      tableContainer.classList.remove("blur-active");
-      return;
-    }
-
-    tableRows.forEach(r => {
-      r.classList.remove("active-row", "dim");
-    });
-
-    row.classList.add("active-row");
-    tableContainer.classList.add("blur-active");
-
-    tableRows.forEach(r => {
-      if (r !== row) {
-        r.classList.add("dim");
+      } else {
+        alert("❌ Password Salah!");
       }
     });
-
-  });
-});
-
-document.addEventListener("click", function (e) {
-  const row = e.target.closest("tr");
-  if (!row || !row.parentElement.closest("tbody")) return;
-
-  const table = row.closest("table");
-  const rows = table.querySelectorAll("tbody tr");
-
-  if (row.classList.contains("active-row")) {
-    row.classList.remove("active-row");
-    return;
   }
 
-  rows.forEach(r => r.classList.remove("active-row"));
-  row.classList.add("active-row");
+  /* SEARCH DMS */
+  const searchInput = document.getElementById("searchInput");
+  const dmsTable = document.getElementById("dmsTable");
+
+  if (searchInput && dmsTable) {
+    const rows = dmsTable.querySelectorAll("tbody tr");
+
+    searchInput.addEventListener("keyup", () => {
+      const filter = searchInput.value.toUpperCase();
+
+      rows.forEach(row => {
+        const text = row.innerText.toUpperCase();
+        row.style.display = text.includes(filter) ? "" : "none";
+      });
+    });
+
+    /* ROW ACTIVE (NO DOUBLE LOGIC) */
+    rows.forEach(row => {
+      row.addEventListener("click", () => {
+        rows.forEach(r => r.classList.remove("active-row"));
+        row.classList.add("active-row");
+      });
+    });
+  }
+
 });
