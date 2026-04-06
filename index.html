@@ -3,41 +3,33 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<!-- Title -->
 <title>UangRitase - Pabrik AQUA VIT</title>
 
 <!-- Primary Meta -->
 <meta name="title" content="UangRitase - Data DMS & Ritase Pabrik AQUA VIT">
 <meta name="description" content="Data DMS terbaru SPS & Galon AQUA dan VIT. Informasi ritase pabrik, SKU dan nominal harga terupdate. Tampilan modern, cepat dan mobile friendly.">
 
-<!-- Open Graph (WhatsApp / Facebook) -->
+<!-- Open Graph -->
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://web189.github.io/UangRitase/">
 <meta property="og:title" content="UangRitase - Data DMS & Ritase Pabrik AQUA VIT">
 <meta property="og:description" content="Cek data DMS SPS & Galon AQUA VIT terbaru. Informasi ritase pabrik lengkap dan update.">
 <meta property="og:image" content="https://web189.github.io/UangRitase/img/preview.jpg">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
 
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="UangRitase - Data DMS & Ritase Pabrik AQUA VIT">
 <meta name="twitter:description" content="Informasi DMS & ritase pabrik AQUA dan VIT terbaru. Mobile friendly & modern design.">
-<meta name="twitter:image" content="https://web189.github.io/UangRitase/img/preview.jpg">
 
-<!-- SEO Tambahan -->
 <meta name="robots" content="index, follow">
 <meta name="author" content="UangRitase">
 
-<!-- Icon -->
 <link rel="icon" href="favicon.png">
-
-<!-- CSS -->
 <link rel="stylesheet" href="style.css">
-
-<!-- Font Awesome -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 </head>
 
 <body>
@@ -50,211 +42,343 @@
   <div class="overlay"></div>
 </div>
 
-<!-- DATETIME -->
-<div class="datetime" id="datetime"></div>
+<!-- ANIMATED MESH BACKGROUND (fallback/overlay) -->
+<canvas id="meshCanvas"></canvas>
+
+<!-- DATETIME PILL -->
+<div class="datetime-pill" id="datetime"></div>
+
+<!-- NOTIFICATION TOAST -->
+<div class="toast-container" id="toastContainer"></div>
 
 <!-- HEADER -->
 <header class="header">
-  <h1>Rp.UANG RITASE DRIVER TUA</h1>
-  <p>Depo Parung • Update Manual</p>
+  <div class="header-badge">
+    <span class="pulse-dot"></span>
+    <span>LIVE UPDATE</span>
+  </div>
 
-  <!-- GOOGLE SHEET -->
-  <a class="sheet-link"
-     href="https://docs.google.com/spreadsheets/d/1PUt8ki9BXIfZfuwZp3SBa4uOmAvvppvezO8ToetUpT4/htmlview"
-     target="_blank">
-    <div class="sheet-content">
+  <h1 class="header-title">
+    <span class="title-rp">Rp</span>UANG RITASE
+  </h1>
+  <p class="header-sub">Driver Tua · Depo Parung · <span id="updateTag">Update Manual</span></p>
+
+  <div class="header-actions">
+    <!-- GOOGLE SHEET LINK -->
+    <a class="action-card sheet-link"
+       href="https://docs.google.com/spreadsheets/d/1PUt8ki9BXIfZfuwZp3SBa4uOmAvvppvezO8ToetUpT4/htmlview"
+       target="_blank">
       <div class="sheet-logos">
-        <img src="img/logo1.png" alt="Logo AQUA">
-        <img src="img/logo2.png" alt="Logo VIT">
+        <img src="img/logo1.png" alt="AQUA" onerror="this.style.display='none'">
+        <img src="img/logo2.png" alt="VIT" onerror="this.style.display='none'">
+        <span class="fallback-icon">📊</span>
       </div>
-      <h3>Cek Data Google Sheet</h3>
+      <span>Cek Google Sheet</span>
+      <i class="fas fa-arrow-up-right-from-square"></i>
+    </a>
+
+    <!-- WA BUTTON -->
+    <a class="action-card wa-button"
+       href="https://wa.me/6282127700502"
+       target="_blank" rel="noopener">
+      <i class="fab fa-whatsapp"></i>
+      <span>WA Logistik TUA</span>
+      <span class="visitor-badge">
+        <i class="fas fa-eye"></i>
+        <span id="visitorNumber">0</span>
+      </span>
+    </a>
+  </div>
+
+  <!-- STATS BAR -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <span class="stat-value" id="statTotal">—</span>
+      <span class="stat-label">Total Rute</span>
     </div>
-  </a>
-
-  <!-- TOMBOL WA + COUNTER -->
-  <a class="wa-button"
-     href="https://wa.me/6282127700502"
-     target="_blank"
-     rel="noopener">
-
-    <span class="visitor-count">
-      Pengujung👁️ <span id="visitorNumber">0</span>
-    </span>
-
-    <span class="wa-text">
-      💬WA Logistik TUA
-    </span>
-  </a>
-
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-value" id="statAvg">—</span>
+      <span class="stat-label">Rata-rata</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-value" id="statHigh">—</span>
+      <span class="stat-label">Tertinggi</span>
+    </div>
+  </div>
 </header>
 
-<!-- CONTENT -->
-<main class="container">
-  <section class="glass">
-    <h2>💧 SPS AQUA</h2>
+<!-- QUICK FILTER NAV -->
+<nav class="filter-nav">
+  <button class="filter-btn active" data-filter="all">
+    <i class="fas fa-border-all"></i> Semua
+  </button>
+  <button class="filter-btn" data-filter="aqua">
+    <i class="fas fa-droplet"></i> AQUA
+  </button>
+  <button class="filter-btn" data-filter="vit">
+    <i class="fas fa-circle"></i> VIT
+  </button>
+  <button class="filter-btn" data-filter="sps">
+    <i class="fas fa-truck"></i> SPS
+  </button>
+  <button class="filter-btn" data-filter="galon">
+    <i class="fas fa-jug-water"></i> Galon
+  </button>
+</nav>
+
+<!-- CONTENT GRID -->
+<main class="container" id="mainContainer">
+  <section class="glass-card" data-category="aqua sps">
+    <div class="card-header">
+      <div class="card-icon aqua-icon"><i class="fas fa-droplet"></i></div>
+      <div>
+        <h2>SPS AQUA</h2>
+        <span class="card-count" id="count-sps-aqua">0 rute</span>
+      </div>
+      <button class="card-sort" data-target="sps-aqua" title="Sort by price">
+        <i class="fas fa-sort"></i>
+      </button>
+    </div>
     <div id="sps-aqua"></div>
   </section>
 
-  <section class="glass">
-    <h2>🧴 GALON AQUA</h2>
+  <section class="glass-card" data-category="aqua galon">
+    <div class="card-header">
+      <div class="card-icon aqua-icon"><i class="fas fa-jug-water"></i></div>
+      <div>
+        <h2>GALON AQUA</h2>
+        <span class="card-count" id="count-galon-aqua">0 rute</span>
+      </div>
+      <button class="card-sort" data-target="galon-aqua" title="Sort by price">
+        <i class="fas fa-sort"></i>
+      </button>
+    </div>
     <div id="galon-aqua"></div>
   </section>
 
-  <section class="glass">
-    <h2>🔴 SPS VIT</h2>
+  <section class="glass-card" data-category="vit sps">
+    <div class="card-header">
+      <div class="card-icon vit-icon"><i class="fas fa-circle-dot"></i></div>
+      <div>
+        <h2>SPS VIT</h2>
+        <span class="card-count" id="count-sps-vit">0 rute</span>
+      </div>
+      <button class="card-sort" data-target="sps-vit" title="Sort by price">
+        <i class="fas fa-sort"></i>
+      </button>
+    </div>
     <div id="sps-vit"></div>
   </section>
 
-  <section class="glass">
-    <h2>🔴 GALON VIT</h2>
+  <section class="glass-card" data-category="vit galon">
+    <div class="card-header">
+      <div class="card-icon vit-icon"><i class="fas fa-jug-water"></i></div>
+      <div>
+        <h2>GALON VIT</h2>
+        <span class="card-count" id="count-galon-vit">0 rute</span>
+      </div>
+      <button class="card-sort" data-target="galon-vit" title="Sort by price">
+        <i class="fas fa-sort"></i>
+      </button>
+    </div>
     <div id="galon-vit"></div>
   </section>
 </main>
 
-<section class="table-section">
-  <h2 class="table-title">DMS KODE PABRIK</h2>
+<!-- DMS SECTION -->
+<section class="dms-section">
+  <div class="section-header">
+    <h2 class="section-title">
+      <i class="fas fa-building"></i>
+      DMS KODE PABRIK
+    </h2>
+    <span class="section-count" id="dmsCount">23 pabrik</span>
+  </div>
 
-  <div class="table-wrapper">
-    <input type="text" id="searchInput" placeholder="Cari nama pabrik atau kode..." />
+  <div class="dms-wrapper">
+    <div class="search-bar">
+      <i class="fas fa-magnifying-glass"></i>
+      <input type="text" id="searchInput" placeholder="Cari kode atau nama pabrik...">
+      <button class="search-clear" id="searchClear" title="Clear">
+        <i class="fas fa-xmark"></i>
+      </button>
+    </div>
 
     <div class="table-container">
       <table id="dmsTable">
         <thead>
           <tr>
-            <th>KODE</th>
-            <th>NAMA PABRIK</th>
+            <th><i class="fas fa-hashtag"></i> KODE</th>
+            <th><i class="fas fa-industry"></i> NAMA PABRIK</th>
           </tr>
         </thead>
-       <tbody>
-  <tr><td>9101-9100</td><td>MEKARSARI PLANT AGM</td></tr>
-  <tr><td>9009-9000</td><td>SUBANG PLANT TIV</td></tr>
-  <tr><td>9017-9000</td><td>CIANJUR PLANT TIV</td></tr>
-  <tr><td>9013-9000</td><td>CITEUREUP PLANT TIV</td></tr>
-  <tr><td>9042-9000</td><td>TIRTA MAS PERKASA</td></tr>
-  <tr><td>9036-9000</td><td>TIV XWH KEDEP</td></tr>
-  <tr><td>9051-9000</td><td>GRAHAMAS INTITIRTA</td></tr>
-  <tr><td>90A2-9000</td><td>TGSM</td></tr>
-  <tr><td>9076-9000</td><td>SENTUL PLANT TIV</td></tr>
-  <tr><td>9039-9000</td><td>BUANA TIRTA ABADI</td></tr>
-  <tr><td>90A3-9000</td><td>SUMBER SUKSES SENTOSA 2</td></tr>
-  <tr><td>90A0-9000</td><td>CARINGIN PLANT TIV</td></tr>
-  <tr><td>9105-9100</td><td>BABAKANPARI PLANT AGM</td></tr>
-  <tr><td>9018-9000</td><td>CIHERANG PLANT TIV</td></tr>
-  <tr><td>9059-9000</td><td>TIV XWH CIMANGGIS</td></tr>
-  <tr><td>9056-9000</td><td>TML CICURUG</td></tr>
-  <tr><td>9077-9000</td><td>XWH PETUNG SARI</td></tr>
-  <tr><td>9027-9000</td><td>CIBINONG DC TIV</td></tr>
-  <tr><td>9015-9000</td><td>KLATEN PLANT TIV</td></tr>
-  <tr><td>9010-9000</td><td>WONOSOBO PLANT TIV</td></tr>
-  <tr><td>90A8-9000</td><td>BANYUWANGI PLANT TIV</td></tr>
-  <tr><td>90AD-9000</td><td>TIRTA MAS PERKASA BAWEN</td></tr>
-  <tr><td>90A5-9000</td><td>XWH SENTUL</td></tr>
-</tbody>
+        <tbody>
+          <tr><td>9101-9100</td><td>MEKARSARI PLANT AGM</td></tr>
+          <tr><td>9009-9000</td><td>SUBANG PLANT TIV</td></tr>
+          <tr><td>9017-9000</td><td>CIANJUR PLANT TIV</td></tr>
+          <tr><td>9013-9000</td><td>CITEUREUP PLANT TIV</td></tr>
+          <tr><td>9042-9000</td><td>TIRTA MAS PERKASA</td></tr>
+          <tr><td>9036-9000</td><td>TIV XWH KEDEP</td></tr>
+          <tr><td>9051-9000</td><td>GRAHAMAS INTITIRTA</td></tr>
+          <tr><td>90A2-9000</td><td>TGSM</td></tr>
+          <tr><td>9076-9000</td><td>SENTUL PLANT TIV</td></tr>
+          <tr><td>9039-9000</td><td>BUANA TIRTA ABADI</td></tr>
+          <tr><td>90A3-9000</td><td>SUMBER SUKSES SENTOSA 2</td></tr>
+          <tr><td>90A0-9000</td><td>CARINGIN PLANT TIV</td></tr>
+          <tr><td>9105-9100</td><td>BABAKANPARI PLANT AGM</td></tr>
+          <tr><td>9018-9000</td><td>CIHERANG PLANT TIV</td></tr>
+          <tr><td>9059-9000</td><td>TIV XWH CIMANGGIS</td></tr>
+          <tr><td>9056-9000</td><td>TML CICURUG</td></tr>
+          <tr><td>9077-9000</td><td>XWH PETUNG SARI</td></tr>
+          <tr><td>9027-9000</td><td>CIBINONG DC TIV</td></tr>
+          <tr><td>9015-9000</td><td>KLATEN PLANT TIV</td></tr>
+          <tr><td>9010-9000</td><td>WONOSOBO PLANT TIV</td></tr>
+          <tr><td>90A8-9000</td><td>BANYUWANGI PLANT TIV</td></tr>
+          <tr><td>90AD-9000</td><td>TIRTA MAS PERKASA BAWEN</td></tr>
+          <tr><td>90A5-9000</td><td>XWH SENTUL</td></tr>
+        </tbody>
       </table>
+    </div>
+
+    <div class="no-result hidden" id="noResult">
+      <i class="fas fa-magnifying-glass"></i>
+      <p>Tidak ada hasil untuk "<span id="noResultQuery"></span>"</p>
     </div>
   </div>
 </section>
 
+<!-- FOOTER -->
 <footer class="footer">
-  <span>© 2026 • Powered by</span>
+  <div class="footer-inner">
+    <p class="footer-copy">© 2026 UangRitase · Powered by @benyoriki</p>
 
-  <!-- SOSIAL MEDIA ICON -->
-  <div class="social" style="margin-top:10px; display:flex; justify-content:center; gap:14px;">
+    <div class="social-row">
+      <!-- ADMIN BUTTON -->
+      <button class="icon-btn admin-btn" id="adminBtn" title="Admin Login">
+        <i class="fas fa-lock"></i>
+      </button>
 
-  <!-- ADMIN BUTTON -->
-  <button class="admin-btn" id="adminBtn">🔒</button>
+      <a class="icon-btn" href="https://www.instagram.com/benyoriki?igsh=cGZkOXpuN2JyYjAy" target="_blank" title="Instagram">
+        <i class="fab fa-instagram"></i>
+      </a>
+      <a class="icon-btn" href="https://www.youtube.com/@rikihermawan8103" target="_blank" title="YouTube">
+        <i class="fab fa-youtube"></i>
+      </a>
+      <a class="icon-btn" href="https://www.tiktok.com/@benyoriki" target="_blank" title="TikTok">
+        <i class="fab fa-tiktok"></i>
+      </a>
+      <a class="icon-btn" href="https://web.facebook.com/benyo.hermawan" target="_blank" title="Facebook">
+        <i class="fab fa-facebook"></i>
+      </a>
+    </div>
 
-  <a href="https://www.instagram.com/benyoriki?igsh=cGZkOXpuN2JyYjAy" target="_blank">
-    <img src="img/ig.png" alt="Instagram" width="28">
-  </a>
+    <a class="download-btn"
+       href="https://drive.google.com/file/d/1GPUQjbJoQtPdTrBBLc_vOV96L4wnJwtl/view?usp=drive_link"
+       target="_blank">
+      <i class="fas fa-download"></i>
+      Download DMS.v06
+    </a>
 
-  <a href="https://www.youtube.com/@rikihermawan8103" target="_blank">
-    <img src="img/yt.png" alt="YouTube" width="28">
-  </a>
-
-  <a href="https://www.tiktok.com/@benyoriki" target="_blank">
-    <img src="img/tiktok.png" alt="TikTok" width="28">
-  </a>
-
-  <a href="https://web.facebook.com/benyo.hermawan" target="_blank">
-    <img src="img/fb.png" alt="Facebook" width="28">
-  </a>
-</div>
-
-
-  <div style="margin:10px 0;">__________________________________________</div>
-
-<div class="download-wrap">
-  
-
-  <a class="download-btn"
-     href="https://drive.google.com/file/d/1GPUQjbJoQtPdTrBBLc_vOV96L4wnJwtl/view?usp=drive_link">
-    ⬇ Download DMS.v06
-  </a>
-</div>
-
-
-<div></div>
-<div></div>
-<div class="mini-player" id="miniPlayer">
-  <div class="mini-info">
-    <span class="mini-icon">🎧</span>
-    <div class="mini-title" id="musicTitle">Tidak ada lagu</div>
+    <!-- MINI PLAYER -->
+    <div class="mini-player" id="miniPlayer">
+      <div class="mini-info">
+        <div class="mini-icon-wrap"><i class="fas fa-headphones"></i></div>
+        <div class="mini-title" id="musicTitle">Tidak ada lagu</div>
+      </div>
+      <audio id="audioPlayer" preload="auto"></audio>
+    </div>
   </div>
-
-
-
-  <audio id="audioPlayer" preload="auto"></audio>
 </footer>
 
-
 <!-- CHAT TOGGLE BUTTON -->
-<button class="chat-toggle" id="chatToggle">
-  <i class="fas fa-comments"></i>
+<button class="chat-toggle" id="chatToggle" title="Chat dengan kami">
+  <i class="fab fa-whatsapp"></i>
+  <span class="chat-notif">1</span>
 </button>
 
+<!-- CHAT BOX -->
 <div class="chat-box" id="chatBox">
-
   <div class="chat-header">
     <div class="chat-header-left">
-      <div class="chat-avatar">CS</div>
+      <div class="chat-avatar">
+        <i class="fas fa-headset"></i>
+      </div>
       <div>
         <div class="chat-title">Logistik Pusat</div>
-        <div class="chat-status">Online</div>
+        <div class="chat-status">
+          <span class="online-dot"></span> Online sekarang
+        </div>
       </div>
     </div>
-    <span class="chat-close" id="chatClose">✖</span>
+    <button class="chat-close-btn" id="chatClose">
+      <i class="fas fa-xmark"></i>
+    </button>
   </div>
 
   <div class="chat-body" id="chatBody">
-  <div class="bubble bot hidden">Halo 👋</div>
-  <div class="bubble bot hidden">Ada yang bisa kami bantu?</div>
-  <div class="bubble bot hidden">Silakan klik WhatsApp di bawah ya 📲</div>
-  <div class="typing hidden" id="typing">...</div>
-</div>
+    <div class="chat-date-divider">Hari ini</div>
+    <div class="bubble bot hidden" id="b1">Halo 👋 Selamat datang!</div>
+    <div class="bubble bot hidden" id="b2">Ada yang bisa kami bantu terkait ritase?</div>
+    <div class="bubble bot hidden" id="b3">Silakan hubungi kami via WhatsApp di bawah 📲</div>
+    <div class="typing hidden" id="typing">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
 
   <div class="chat-footer">
     <a class="chat-wa hidden" id="chatWA"
        href="https://wa.me/6282127700502" target="_blank">
-       💬 Chat WhatsApp
+      <i class="fab fa-whatsapp"></i>
+      Chat WhatsApp Sekarang
+    </a>
+    <a class="admin-link"
+       href="https://web189.github.io/Jadwal-Admin/"
+       target="_blank">
+      <i class="fas fa-calendar-days"></i> Jadwal Admin
     </a>
   </div>
-  
-  <a class="admin-link"
-   href="https://web189.github.io/Jadwal-Admin/"
-   target="_blank">
-   📅 Jadwal Admin
-</a>
-
 </div>
 
+<!-- ADMIN MODAL -->
+<div class="modal-overlay hidden" id="adminModal">
+  <div class="modal-box">
+    <div class="modal-icon"><i class="fas fa-shield-halved"></i></div>
+    <h3>Admin Login</h3>
+    <p>Masukkan password untuk mode edit</p>
+    <div class="modal-input-wrap">
+      <input type="password" id="adminPassInput" placeholder="Password..." maxlength="20">
+      <button id="adminPassToggle"><i class="fas fa-eye"></i></button>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" id="adminCancel">Batal</button>
+      <button class="modal-btn confirm" id="adminConfirm">Masuk</button>
+    </div>
+  </div>
+</div>
 
+<!-- EDIT MODAL -->
+<div class="modal-overlay hidden" id="editModal">
+  <div class="modal-box">
+    <div class="modal-icon edit-icon"><i class="fas fa-pen-to-square"></i></div>
+    <h3>Edit Harga Ritase</h3>
+    <p id="editModalDesc">Pabrik: —</p>
+    <div class="modal-input-wrap">
+      <span class="input-prefix">Rp</span>
+      <input type="number" id="editPriceInput" placeholder="Masukkan nominal...">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" id="editCancel">Batal</button>
+      <button class="modal-btn confirm" id="editConfirm">Simpan</button>
+    </div>
+  </div>
+</div>
 
+<!-- AUDIO -->
 <audio id="chatSound">
   <source src="https://assets.mixkit.co/sfx/preview/mixkit-click-pop-1114.mp3" type="audio/mpeg">
 </audio>
-
-
 
 <script src="app.js"></script>
 </body>
