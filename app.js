@@ -150,9 +150,10 @@ function render(target, rows) {
         <tbody>`;
 
   rows.forEach((r, i) => {
+    const isVitRow = isVit ? " vit-row" : "";
     const editClass = isAdmin ? " editable" : "";
     html += `
-      <tr>
+      <tr class="${isVitRow.trim()}">
         <td class="td-pabrik">${escHtml(r[0])}</td>
         <td class="td-muatan">${escHtml(r[1])}</td>
         <td class="${priceClass}${editClass}"
@@ -171,6 +172,7 @@ function render(target, rows) {
   if (countEl) countEl.textContent = `${rows.length} rute`;
 
   if (isAdmin) attachEditEvents(container);
+  attachRowZoom(container);
 }
 
 // Minimal HTML escape to prevent XSS in data
@@ -179,6 +181,28 @@ function escHtml(str) {
     .replace(/&/g,"&amp;")
     .replace(/</g,"&lt;")
     .replace(/>/g,"&gt;");
+}
+
+/* ── ROW ZOOM ON CLICK ── */
+function attachRowZoom(container) {
+  const rows = container.querySelectorAll(".ritase-table tbody tr");
+  rows.forEach(row => {
+    row.addEventListener("click", (e) => {
+      // Don't trigger zoom if clicking editable price cell (admin mode)
+      if (e.target.classList.contains("editable")) return;
+
+      const isActive = row.classList.contains("row-active");
+
+      // Collapse all rows in this table first
+      const tbody = row.closest("tbody");
+      tbody.querySelectorAll("tr.row-active").forEach(r => r.classList.remove("row-active"));
+
+      // Toggle this row
+      if (!isActive) {
+        row.classList.add("row-active");
+      }
+    });
+  });
 }
 
 function renderAll() {
@@ -693,7 +717,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupAdmin();
   setupEditModal();
   setupChat();
-  initMesh();
+  // initMesh(); // disabled — video background aktif
 
   // Stagger card entrance
   document.querySelectorAll(".glass-card").forEach((card, i) => {

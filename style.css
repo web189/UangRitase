@@ -6,10 +6,10 @@
 
 /* ── TOKENS ── */
 :root {
-  --bg-base:      #040d1a;
-  --bg-surface:   rgba(8, 20, 45, 0.85);
-  --bg-card:      rgba(10, 26, 55, 0.75);
-  --bg-card-hov:  rgba(14, 35, 72, 0.9);
+  --bg-base:      transparent;
+  --bg-surface:   rgba(4, 13, 26, 0.55);
+  --bg-card:      rgba(4, 13, 26, 0.52);
+  --bg-card-hov:  rgba(8, 20, 45, 0.68);
 
   --aqua:         #00c8ff;
   --aqua-glow:    rgba(0, 200, 255, 0.18);
@@ -57,18 +57,14 @@ body {
   font-family: var(--font-body);
   font-size: 14px;
   color: var(--text-1);
-  background: var(--bg-base);
+  background: #040d1a;
   overflow-x: hidden;
   min-height: 100vh;
 }
 
-/* ── MESH CANVAS (animated bg) ── */
+/* ── MESH CANVAS (disabled - video bg aktif) ── */
 #meshCanvas {
-  position: fixed;
-  inset: 0;
-  z-index: -9;
-  pointer-events: none;
-  opacity: 0.5;
+  display: none;
 }
 
 /* ── VIDEO BG ── */
@@ -82,15 +78,12 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.12;
+  opacity: 1;
 }
 .overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg,
-    rgba(4, 13, 26, 0.6) 0%,
-    rgba(4, 13, 26, 0.3) 50%,
-    rgba(4, 13, 26, 0.8) 100%);
+  background: transparent;
 }
 
 /* ── DATETIME PILL ── */
@@ -496,6 +489,47 @@ body {
 }
 .ritase-table .vit-row:hover td {
   background: rgba(255, 69, 96, 0.05);
+}
+
+/* ── ROW CLICK EXPAND / ZOOM ── */
+.ritase-table tbody tr {
+  cursor: pointer;
+  transition: transform 0.25s var(--ease-spring),
+              box-shadow 0.25s,
+              background 0.15s;
+  position: relative;
+  z-index: 0;
+}
+.ritase-table tbody tr.row-active {
+  transform: scaleY(1.18) scaleX(1.015);
+  z-index: 10;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+}
+.ritase-table tbody tr.row-active td {
+  background: rgba(0, 200, 255, 0.13) !important;
+  border-color: rgba(0, 200, 255, 0.25) !important;
+  font-size: 14px !important;
+  font-weight: 600;
+}
+.ritase-table tbody tr.row-active .td-pabrik {
+  color: var(--aqua);
+  font-size: 14px !important;
+}
+.ritase-table tbody tr.row-active .td-muatan {
+  font-size: 13px !important;
+  color: var(--text-1);
+}
+.ritase-table tbody tr.row-active .uang {
+  font-size: 16px !important;
+  text-shadow: 0 0 12px rgba(0, 200, 255, 0.5);
+}
+.ritase-table .vit-row.row-active td {
+  background: rgba(255, 69, 96, 0.13) !important;
+  border-color: rgba(255, 69, 96, 0.25) !important;
+}
+.ritase-table .vit-row.row-active .td-pabrik { color: var(--vit); }
+.ritase-table .vit-row.row-active .uang {
+  text-shadow: 0 0 12px rgba(255, 69, 96, 0.5);
 }
 
 .td-pabrik {
