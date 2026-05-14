@@ -1,30 +1,24 @@
 /* ═══════════════════════════════════════════
-   UANG RITASE · app.js · 2026 EDITION
-   Fixes:
-   - Admin: prompt() → modal UI
-   - Chat: sequence resets on reopen
-   - Edit: proper key conversion
-   - Footer: unclosed HTML tags
-   New Features:
-   - Stats bar (total, avg, highest)
-   - Filter by category
-   - Sort by price (toggle)
-   - Toast notifications
-   - Animated mesh canvas
-   - Search clear button + no-result state
-   - DMS row copy on click
-   - Modal-based admin password
-   - Show/hide password toggle
-   - Admin timer visual display
+   UANG RITASE · app.js · 2026 EDITION v2
+   Improvements:
+   - Admin Login: Email + Password validation
+   - Ritase Tables: Add / Edit full row / Delete row
+   - DMS Table: Add / Edit / Delete row
+   - Persistent localStorage for all changes
 ═══════════════════════════════════════════ */
 
 /* ── STATE ── */
 let isAdmin        = false;
 let adminTimer     = null;
-let adminTimeLeft  = 30;
-let sortState      = {};   // { "sps-aqua": "none" | "asc" | "desc", ... }
-let pendingEdit    = null; // { key, index }
+let adminTimeLeft  = 300; // 5 menit
+let sortState      = {};
+let pendingEdit    = null; // { key, index } for price-only (legacy, now full row)
+let pendingRowEdit = null; // { key, index } for full row edit
 let chatOpened     = false;
+
+/* ── CREDENTIALS ── */
+const ADMIN_EMAIL    = "admin@uangritase.com";
+const ADMIN_PASSWORD = "Admin@2026";
 
 /* ── DATA ── */
 const defaultData = {
@@ -74,38 +68,78 @@ const defaultData = {
   ]
 };
 
-// Clone to working data, then merge saved overrides
+/* ── DMS DATA ── */
+const defaultDms = [
+  ["9101-9100", "MEKARSARI PLANT AGM"],
+  ["9009-9000", "SUBANG PLANT TIV"],
+  ["9017-9000", "CIANJUR PLANT TIV"],
+  ["9013-9000", "CITEUREUP PLANT TIV"],
+  ["9042-9000", "TIRTA MAS PERKASA"],
+  ["9036-9000", "TIV XWH KEDEP"],
+  ["9051-9000", "GRAHAMAS INTITIRTA"],
+  ["90A2-9000", "TGSM"],
+  ["9076-9000", "SENTUL PLANT TIV"],
+  ["9039-9000", "BUANA TIRTA ABADI"],
+  ["90A3-9000", "SUMBER SUKSES SENTOSA 2"],
+  ["90A0-9000", "CARINGIN PLANT TIV"],
+  ["9105-9100", "BABAKANPARI PLANT AGM"],
+  ["9018-9000", "CIHERANG PLANT TIV"],
+  ["9059-9000", "TIV XWH CIMANGGIS"],
+  ["9056-9000", "TML CICURUG"],
+  ["9077-9000", "XWH PETUNG SARI"],
+  ["9027-9000", "CIBINONG DC TIV"],
+  ["9015-9000", "KLATEN PLANT TIV"],
+  ["9010-9000", "WONOSOBO PLANT TIV"],
+  ["90A8-9000", "BANYUWANGI PLANT TIV"],
+  ["90AD-9000", "TIRTA MAS PERKASA BAWEN"],
+  ["90A5-9000", "XWH SENTUL"]
+];
+
+// Working data – merge with saved overrides
 const data = JSON.parse(JSON.stringify(defaultData));
 try {
   const saved = localStorage.getItem("ritaseData");
   if (saved) Object.assign(data, JSON.parse(saved));
-} catch(e) { /* ignore corrupt storage */ }
+} catch(e) {}
+
+let dmsData = JSON.parse(JSON.stringify(defaultDms));
+try {
+  const savedDms = localStorage.getItem("dmsData");
+  if (savedDms) dmsData = JSON.parse(savedDms);
+} catch(e) {}
 
 /* ── UTILS ── */
 function formatRupiah(n) {
   return "Rp\u00A0" + Number(n).toLocaleString("id-ID");
 }
-
-// Convert DOM target id → data key  e.g. "sps-aqua" → "spsAqua"
 function targetToKey(target) {
   return target.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
 }
-
 function isVitSection(target) {
   return target.includes("vit");
+}
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;");
+}
+function saveData() {
+  try { localStorage.setItem("ritaseData", JSON.stringify(data)); } catch(e) {}
+}
+function saveDms() {
+  try { localStorage.setItem("dmsData", JSON.stringify(dmsData)); } catch(e) {}
 }
 
 /* ── TOAST ── */
 function showToast(message, type = "info", duration = 3000) {
   const container = document.getElementById("toastContainer");
   if (!container) return;
-
   const icons = { success: "✅", error: "❌", info: "ℹ️" };
-  const toast  = document.createElement("div");
+  const toast = document.createElement("div");
   toast.className = `toast ${type}`;
   toast.innerHTML = `<span>${icons[type] || "ℹ️"}</span><span>${message}</span>`;
   container.appendChild(toast);
-
   setTimeout(() => {
     toast.style.animation = "toastOut 0.4s ease forwards";
     setTimeout(() => toast.remove(), 400);
@@ -114,15 +148,11 @@ function showToast(message, type = "info", duration = 3000) {
 
 /* ── STATS ── */
 function updateStats() {
-  const allRows = [
-    ...data.spsAqua, ...data.galonAqua,
-    ...data.spsVit,  ...data.galonVit
-  ];
-  const prices = allRows.map(r => r[2]);
-  const total  = allRows.length;
-  const avg    = Math.round(prices.reduce((a,b) => a+b, 0) / prices.length);
-  const high   = Math.max(...prices);
-
+  const allRows = [...data.spsAqua, ...data.galonAqua, ...data.spsVit, ...data.galonVit];
+  const prices  = allRows.map(r => r[2]);
+  const total   = allRows.length;
+  const avg     = prices.length ? Math.round(prices.reduce((a,b)=>a+b,0)/prices.length) : 0;
+  const high    = prices.length ? Math.max(...prices) : 0;
   const el = id => document.getElementById(id);
   if (el("statTotal")) el("statTotal").textContent = total;
   if (el("statAvg"))   el("statAvg").textContent   = formatRupiah(avg);
@@ -134,7 +164,7 @@ function render(target, rows) {
   const container = document.getElementById(target);
   if (!container) return;
 
-  const isVit   = isVitSection(target);
+  const isVit      = isVitSection(target);
   const priceClass = isVit ? "uang vit-price" : "uang";
 
   let html = `
@@ -145,62 +175,84 @@ function render(target, rows) {
             <th>Pabrik</th>
             <th>Muatan</th>
             <th style="text-align:right">Uang Ritase</th>
+            ${isAdmin ? '<th class="th-actions">Aksi</th>' : ''}
           </tr>
         </thead>
         <tbody>`;
 
   rows.forEach((r, i) => {
-    const isVitRow = isVit ? " vit-row" : "";
-    const editClass = isAdmin ? " editable" : "";
+    const isVitRow   = isVit ? " vit-row" : "";
     html += `
       <tr class="${isVitRow.trim()}">
         <td class="td-pabrik">${escHtml(r[0])}</td>
         <td class="td-muatan">${escHtml(r[1])}</td>
-        <td class="${priceClass}${editClass}"
-            data-target="${target}"
-            data-index="${i}">
+        <td class="${priceClass}" data-target="${target}" data-index="${i}">
           ${formatRupiah(r[2])}
         </td>
+        ${isAdmin ? `
+        <td class="td-actions">
+          <button class="row-btn edit-row-btn" data-target="${target}" data-index="${i}" title="Edit baris">
+            <i class="fas fa-pen"></i>
+          </button>
+          <button class="row-btn delete-row-btn" data-target="${target}" data-index="${i}" title="Hapus baris">
+            <i class="fas fa-trash"></i>
+          </button>
+        </td>` : ''}
       </tr>`;
   });
 
   html += `</tbody></table></div>`;
+
+  // Add row button (admin only)
+  if (isAdmin) {
+    html += `
+      <div class="add-row-wrap">
+        <button class="add-row-btn" data-target="${target}">
+          <i class="fas fa-plus"></i> Tambah Rute
+        </button>
+      </div>`;
+  }
+
   container.innerHTML = html;
 
-  // Update count badge
+  // Badge count
   const countEl = document.getElementById(`count-${target}`);
   if (countEl) countEl.textContent = `${rows.length} rute`;
 
-  if (isAdmin) attachEditEvents(container);
+  if (isAdmin) {
+    // Edit full row buttons
+    container.querySelectorAll(".edit-row-btn").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openRowEditModal(btn.dataset.target, parseInt(btn.dataset.index));
+      });
+    });
+    // Delete row buttons
+    container.querySelectorAll(".delete-row-btn").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        deleteRow(btn.dataset.target, parseInt(btn.dataset.index));
+      });
+    });
+    // Add row button
+    container.querySelectorAll(".add-row-btn").forEach(btn => {
+      btn.addEventListener("click", () => openRowEditModal(btn.dataset.target, -1));
+    });
+  }
+
   attachRowZoom(container);
 }
 
-// Minimal HTML escape to prevent XSS in data
-function escHtml(str) {
-  return String(str)
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;");
-}
-
-/* ── ROW ZOOM ON CLICK ── */
+/* ── ROW ZOOM ── */
 function attachRowZoom(container) {
   const rows = container.querySelectorAll(".ritase-table tbody tr");
   rows.forEach(row => {
     row.addEventListener("click", (e) => {
-      // Don't trigger zoom if clicking editable price cell (admin mode)
-      if (e.target.classList.contains("editable")) return;
-
+      if (e.target.closest(".row-btn")) return;
       const isActive = row.classList.contains("row-active");
-
-      // Collapse all rows in this table first
       const tbody = row.closest("tbody");
       tbody.querySelectorAll("tr.row-active").forEach(r => r.classList.remove("row-active"));
-
-      // Toggle this row
-      if (!isActive) {
-        row.classList.add("row-active");
-      }
+      if (!isActive) row.classList.add("row-active");
     });
   });
 }
@@ -213,32 +265,83 @@ function renderAll() {
   updateStats();
 }
 
+/* ── DELETE ROW (Ritase) ── */
+function deleteRow(target, index) {
+  const key  = targetToKey(target);
+  const row  = data[key][index];
+  if (!confirm(`Hapus rute "${row[0]} - ${row[1]}"?`)) return;
+  data[key].splice(index, 1);
+  saveData();
+  render(target, data[key]);
+  updateStats();
+  showToast(`Rute dihapus: ${row[0]}`, "info");
+}
+
+/* ── ROW EDIT MODAL (Tambah / Edit Ritase) ── */
+function openRowEditModal(target, index) {
+  const key       = targetToKey(target);
+  const isNew     = index === -1;
+  const row       = isNew ? ["", "", ""] : data[key][index];
+
+  pendingRowEdit  = { key, target, index };
+
+  // Populate modal
+  document.getElementById("rowEditTitle").textContent  = isNew ? "Tambah Rute" : "Edit Rute";
+  document.getElementById("rowEditPabrik").value       = isNew ? "" : row[0];
+  document.getElementById("rowEditMuatan").value       = isNew ? "" : row[1];
+  document.getElementById("rowEditHarga").value        = isNew ? "" : row[2];
+  document.getElementById("rowEditModal").classList.remove("hidden");
+  setTimeout(() => document.getElementById("rowEditPabrik").focus(), 100);
+}
+
+function saveRowEdit() {
+  const pabrik = document.getElementById("rowEditPabrik").value.trim();
+  const muatan = document.getElementById("rowEditMuatan").value.trim();
+  const harga  = parseInt(document.getElementById("rowEditHarga").value.trim());
+
+  if (!pabrik) { showToast("Nama pabrik wajib diisi", "error"); return; }
+  if (!muatan) { showToast("Muatan wajib diisi", "error"); return; }
+  if (!harga || harga <= 0) { showToast("Harga harus angka > 0", "error"); return; }
+
+  const { key, target, index } = pendingRowEdit;
+  const isNew = index === -1;
+
+  if (isNew) {
+    data[key].push([pabrik, muatan, harga]);
+    showToast(`Rute ditambahkan: ${pabrik}`, "success");
+  } else {
+    data[key][index] = [pabrik, muatan, harga];
+    showToast(`Rute diperbarui: ${pabrik}`, "success");
+  }
+
+  saveData();
+  document.getElementById("rowEditModal").classList.add("hidden");
+  pendingRowEdit = null;
+  render(target, data[key]);
+  updateStats();
+}
+
 /* ── SORT ── */
 function setupSort() {
   document.querySelectorAll(".card-sort").forEach(btn => {
     const target = btn.dataset.target;
     sortState[target] = "none";
-
     btn.addEventListener("click", () => {
-      const key    = targetToKey(target);
-      const rows   = data[key];
-      const state  = sortState[target];
-
+      const key   = targetToKey(target);
+      const rows  = data[key];
+      const state = sortState[target];
       if (state === "none" || state === "desc") {
-        rows.sort((a, b) => a[2] - b[2]);
+        rows.sort((a,b) => a[2]-b[2]);
         sortState[target] = "asc";
         btn.title = "Sorted: Terendah → Tertinggi";
-        btn.classList.add("asc");
-        btn.classList.remove("desc");
+        btn.classList.add("asc"); btn.classList.remove("desc");
       } else {
-        rows.sort((a, b) => b[2] - a[2]);
+        rows.sort((a,b) => b[2]-a[2]);
         sortState[target] = "desc";
         btn.title = "Sorted: Tertinggi → Terendah";
-        btn.classList.add("desc");
-        btn.classList.remove("asc");
+        btn.classList.add("desc"); btn.classList.remove("asc");
       }
       render(target, rows);
-      if (isAdmin) attachEditEvents(document.getElementById(target));
     });
   });
 }
@@ -247,17 +350,14 @@ function setupSort() {
 function setupFilter() {
   const btns  = document.querySelectorAll(".filter-btn");
   const cards = document.querySelectorAll(".glass-card");
-
   btns.forEach(btn => {
     btn.addEventListener("click", () => {
       btns.forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
-
       const filter = btn.dataset.filter;
       cards.forEach(card => {
-        if (filter === "all") {
-          card.style.display = "";
-        } else {
+        if (filter === "all") { card.style.display = ""; }
+        else {
           const cats = card.dataset.category || "";
           card.style.display = cats.includes(filter) ? "" : "none";
         }
@@ -266,43 +366,17 @@ function setupFilter() {
   });
 }
 
-/* ── ADMIN EDIT EVENTS ── */
-function attachEditEvents(scope) {
-  const container = scope || document;
-  container.querySelectorAll(".uang").forEach(cell => {
-    cell.classList.add("editable");
-    cell.onclick = () => openEditModal(cell);
-  });
-}
-
-function openEditModal(cell) {
-  if (!isAdmin) return;
-  const target = cell.dataset.target;
-  const index  = parseInt(cell.dataset.index);
-  const key    = targetToKey(target);
-  const row    = data[key][index];
-
-  pendingEdit = { key, index };
-
-  const desc = document.getElementById("editModalDesc");
-  const inp  = document.getElementById("editPriceInput");
-  if (desc) desc.textContent = `Pabrik: ${row[0]} · Muatan: ${row[1]}`;
-  if (inp)  inp.value = row[2];
-
-  document.getElementById("editModal").classList.remove("hidden");
-  setTimeout(() => inp && inp.focus(), 100);
-}
-
-/* ── ADMIN: MODAL-BASED ── */
+/* ── ADMIN MODAL ── */
 function setupAdmin() {
   const adminBtn     = document.getElementById("adminBtn");
   const adminModal   = document.getElementById("adminModal");
   const adminCancel  = document.getElementById("adminCancel");
   const adminConfirm = document.getElementById("adminConfirm");
   const passInput    = document.getElementById("adminPassInput");
+  const emailInput   = document.getElementById("adminEmailInput");
   const passToggle   = document.getElementById("adminPassToggle");
+  const errorMsg     = document.getElementById("adminError");
 
-  // Show/hide password toggle
   if (passToggle) {
     passToggle.addEventListener("click", () => {
       const isPass = passInput.type === "password";
@@ -315,32 +389,37 @@ function setupAdmin() {
 
   if (adminBtn) {
     adminBtn.addEventListener("click", () => {
-      if (isAdmin) return; // already active, do nothing
-      passInput.value = "";
+      if (isAdmin) {
+        // Logout
+        clearInterval(adminTimer);
+        isAdmin = false;
+        adminBtn.classList.remove("countdown");
+        adminBtn.innerHTML = '<i class="fas fa-lock"></i>';
+        renderAll();
+        renderDmsTable();
+        showToast("Keluar dari mode admin", "info");
+        return;
+      }
+      if (emailInput) emailInput.value = "";
+      if (passInput)  passInput.value  = "";
+      if (errorMsg)   errorMsg.textContent = "";
       adminModal.classList.remove("hidden");
-      setTimeout(() => passInput.focus(), 150);
+      setTimeout(() => emailInput && emailInput.focus(), 150);
     });
   }
 
   if (adminCancel) {
-    adminCancel.addEventListener("click", () => {
-      adminModal.classList.add("hidden");
-    });
+    adminCancel.addEventListener("click", () => adminModal.classList.add("hidden"));
   }
-
-  // Confirm via button
   if (adminConfirm) {
     adminConfirm.addEventListener("click", tryAdminLogin);
   }
 
-  // Confirm via Enter key
-  if (passInput) {
-    passInput.addEventListener("keydown", e => {
-      if (e.key === "Enter") tryAdminLogin();
-    });
-  }
+  // Enter key on any input
+  [emailInput, passInput].forEach(inp => {
+    if (inp) inp.addEventListener("keydown", e => { if (e.key === "Enter") tryAdminLogin(); });
+  });
 
-  // Close modal on overlay click
   if (adminModal) {
     adminModal.addEventListener("click", e => {
       if (e.target === adminModal) adminModal.classList.add("hidden");
@@ -349,149 +428,230 @@ function setupAdmin() {
 }
 
 function tryAdminLogin() {
+  const emailInput = document.getElementById("adminEmailInput");
   const passInput  = document.getElementById("adminPassInput");
   const adminModal = document.getElementById("adminModal");
   const adminBtn   = document.getElementById("adminBtn");
+  const errorMsg   = document.getElementById("adminError");
 
-  if (!passInput) return;
-  const pass = passInput.value.trim();
+  const email = (emailInput?.value || "").trim().toLowerCase();
+  const pass  = (passInput?.value  || "").trim();
 
-  if (pass === "123admin") {
+  // Validate
+  if (!email) {
+    if (errorMsg) errorMsg.textContent = "Email wajib diisi";
+    emailInput?.focus();
+    return;
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    if (errorMsg) errorMsg.textContent = "Format email tidak valid";
+    emailInput?.focus();
+    return;
+  }
+  if (!pass) {
+    if (errorMsg) errorMsg.textContent = "Password wajib diisi";
+    passInput?.focus();
+    return;
+  }
+
+  if (email === ADMIN_EMAIL.toLowerCase() && pass === ADMIN_PASSWORD) {
     isAdmin       = true;
-    adminTimeLeft = 30;
+    adminTimeLeft = 300;
     adminModal.classList.add("hidden");
     adminBtn.classList.add("countdown");
     adminBtn.classList.remove("active");
-    adminBtn.innerHTML = `<span>${adminTimeLeft}</span>`;
-
-    renderAll(); // re-render with edit mode
-
-    showToast("Mode Admin aktif · 30 detik", "success");
+    updateAdminBtnTimer();
+    renderAll();
+    renderDmsTable();
+    showToast("Mode Admin aktif · 5 menit", "success");
 
     adminTimer = setInterval(() => {
       adminTimeLeft--;
-      adminBtn.innerHTML = `<span>${adminTimeLeft}</span>`;
-
+      updateAdminBtnTimer();
       if (adminTimeLeft <= 0) {
         clearInterval(adminTimer);
         isAdmin = false;
         adminBtn.classList.remove("countdown");
         adminBtn.innerHTML = '<i class="fas fa-lock"></i>';
         renderAll();
+        renderDmsTable();
         showToast("Sesi admin berakhir", "info");
       }
     }, 1000);
 
   } else {
-    showToast("Password salah!", "error");
-    passInput.value = "";
-    passInput.focus();
+    if (errorMsg) errorMsg.textContent = "Email atau password salah!";
+    passInput && (passInput.value = "");
+    passInput?.focus();
+    showToast("Login gagal!", "error");
   }
 }
 
-/* ── EDIT MODAL ── */
-function setupEditModal() {
-  const editModal   = document.getElementById("editModal");
-  const editCancel  = document.getElementById("editCancel");
-  const editConfirm = document.getElementById("editConfirm");
-  const editInput   = document.getElementById("editPriceInput");
+function updateAdminBtnTimer() {
+  const adminBtn = document.getElementById("adminBtn");
+  if (!adminBtn) return;
+  const m = Math.floor(adminTimeLeft / 60);
+  const s = adminTimeLeft % 60;
+  adminBtn.innerHTML = `<span style="font-size:11px;font-weight:800">${m}:${s.toString().padStart(2,'0')}</span>`;
+}
 
-  if (editCancel) {
-    editCancel.addEventListener("click", () => {
-      editModal.classList.add("hidden");
-      pendingEdit = null;
-    });
-  }
+/* ── ROW EDIT MODAL SETUP ── */
+function setupRowEditModal() {
+  const modal   = document.getElementById("rowEditModal");
+  const cancel  = document.getElementById("rowEditCancel");
+  const confirm = document.getElementById("rowEditConfirm");
+  const inp     = document.getElementById("rowEditHarga");
 
-  if (editConfirm) {
-    editConfirm.addEventListener("click", saveEdit);
-  }
+  if (cancel)  cancel.addEventListener("click",  () => { modal.classList.add("hidden"); pendingRowEdit = null; });
+  if (confirm) confirm.addEventListener("click", saveRowEdit);
+  if (inp)     inp.addEventListener("keydown", e => { if (e.key === "Enter") saveRowEdit(); });
+  if (modal)   modal.addEventListener("click", e => { if (e.target === modal) { modal.classList.add("hidden"); pendingRowEdit = null; } });
+}
 
-  if (editInput) {
-    editInput.addEventListener("keydown", e => {
-      if (e.key === "Enter") saveEdit();
-      if (e.key === "Escape") {
-        editModal.classList.add("hidden");
-        pendingEdit = null;
+/* ── DMS TABLE ── */
+function renderDmsTable() {
+  const tbody   = document.querySelector("#dmsTable tbody");
+  const dmsCount = document.getElementById("dmsCount");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  dmsData.forEach((row, i) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escHtml(row[0])}</td>
+      <td>${escHtml(row[1])}</td>
+      ${isAdmin ? `
+      <td class="td-actions">
+        <button class="row-btn edit-row-btn" data-index="${i}" title="Edit">
+          <i class="fas fa-pen"></i>
+        </button>
+        <button class="row-btn delete-row-btn" data-index="${i}" title="Hapus">
+          <i class="fas fa-trash"></i>
+        </button>
+      </td>` : ''}
+    `;
+
+    // Copy on click (non-admin cells)
+    tr.addEventListener("click", (e) => {
+      if (e.target.closest(".row-btn")) return;
+      document.querySelectorAll("#dmsTable tbody tr.active-row").forEach(r => r.classList.remove("active-row"));
+      tr.classList.add("active-row");
+      const code = row[0];
+      const name = row[1];
+      if (code && navigator.clipboard) {
+        navigator.clipboard.writeText(code).then(() => {
+          showToast(`Disalin: ${code} · ${name}`, "info", 2500);
+        }).catch(() => {});
       }
     });
-  }
 
-  if (editModal) {
-    editModal.addEventListener("click", e => {
-      if (e.target === editModal) {
-        editModal.classList.add("hidden");
-        pendingEdit = null;
-      }
+    tbody.appendChild(tr);
+  });
+
+  // Attach admin buttons
+  if (isAdmin) {
+    tbody.querySelectorAll(".edit-row-btn").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openDmsEditModal(parseInt(btn.dataset.index));
+      });
+    });
+    tbody.querySelectorAll(".delete-row-btn").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        deleteDmsRow(parseInt(btn.dataset.index));
+      });
     });
   }
+
+  // Update count
+  if (dmsCount) dmsCount.textContent = `${dmsData.length} pabrik`;
+
+  // Update search
+  setupSearch();
+
+  // Add button for admin
+  const addWrap = document.getElementById("dmsAddWrap");
+  if (addWrap) addWrap.style.display = isAdmin ? "flex" : "none";
+
+  // Add action column header
+  const thead = document.querySelector("#dmsTable thead tr");
+  if (thead) {
+    const existing = thead.querySelector(".th-actions-dms");
+    if (isAdmin && !existing) {
+      const th = document.createElement("th");
+      th.className = "th-actions-dms";
+      th.textContent = "Aksi";
+      thead.appendChild(th);
+    } else if (!isAdmin && existing) {
+      existing.remove();
+    }
+  }
 }
 
-function saveEdit() {
-  const editModal = document.getElementById("editModal");
-  const editInput = document.getElementById("editPriceInput");
-  if (!pendingEdit || !editInput) return;
+function openDmsEditModal(index) {
+  const isNew = index === -1;
+  const row   = isNew ? ["", ""] : dmsData[index];
 
-  const val = editInput.value.trim();
-  if (!val || isNaN(val) || parseInt(val) <= 0) {
-    showToast("Masukkan nominal yang valid", "error");
-    editInput.focus();
-    return;
-  }
-
-  const { key, index } = pendingEdit;
-  const oldVal = data[key][index][2];
-  data[key][index][2] = parseInt(val);
-
-  try {
-    localStorage.setItem("ritaseData", JSON.stringify(data));
-  } catch(e) {
-    showToast("Gagal menyimpan data", "error");
-  }
-
-  editModal.classList.add("hidden");
-  pendingEdit = null;
-  renderAll();
-
-  showToast(`Harga diperbarui: ${formatRupiah(oldVal)} → ${formatRupiah(parseInt(val))}`, "success");
+  document.getElementById("dmsEditTitle").textContent  = isNew ? "Tambah Pabrik" : "Edit Pabrik";
+  document.getElementById("dmsEditKode").value         = isNew ? "" : row[0];
+  document.getElementById("dmsEditNama").value         = isNew ? "" : row[1];
+  document.getElementById("dmsEditIndex").value        = index;
+  document.getElementById("dmsEditModal").classList.remove("hidden");
+  setTimeout(() => document.getElementById("dmsEditKode").focus(), 100);
 }
 
-/* ── CLOCK ── */
-function startClock() {
-  function tick() {
-    const el = document.getElementById("datetime");
-    if (!el) return;
-    const d = new Date();
-    el.textContent = d.toLocaleString("id-ID", {
-      weekday: "short",
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit"
-    }) + " WIB";
+function saveDmsEdit() {
+  const kode  = document.getElementById("dmsEditKode").value.trim().toUpperCase();
+  const nama  = document.getElementById("dmsEditNama").value.trim().toUpperCase();
+  const index = parseInt(document.getElementById("dmsEditIndex").value);
+  const isNew = index === -1;
+
+  if (!kode) { showToast("Kode pabrik wajib diisi", "error"); return; }
+  if (!nama)  { showToast("Nama pabrik wajib diisi", "error"); return; }
+
+  if (isNew) {
+    dmsData.push([kode, nama]);
+    showToast(`Pabrik ditambahkan: ${kode}`, "success");
+  } else {
+    dmsData[index] = [kode, nama];
+    showToast(`Pabrik diperbarui: ${kode}`, "success");
   }
-  tick();
-  setInterval(tick, 1000);
+
+  saveDms();
+  document.getElementById("dmsEditModal").classList.add("hidden");
+  renderDmsTable();
 }
 
-/* ── VISITOR COUNTER ── */
-function initVisitor() {
-  let count = parseInt(localStorage.getItem("visCount") || "1540");
-  count++;
-  localStorage.setItem("visCount", count);
-  const el = document.getElementById("visitorNumber");
-  if (el) {
-    // Animate count up
-    let start = count - 20;
-    const step = () => {
-      start++;
-      el.textContent = start;
-      if (start < count) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  }
+function deleteDmsRow(index) {
+  const row = dmsData[index];
+  if (!confirm(`Hapus pabrik "${row[0]} - ${row[1]}"?`)) return;
+  dmsData.splice(index, 1);
+  saveDms();
+  renderDmsTable();
+  showToast(`Pabrik dihapus: ${row[0]}`, "info");
+}
+
+function setupDmsEditModal() {
+  const modal   = document.getElementById("dmsEditModal");
+  const cancel  = document.getElementById("dmsEditCancel");
+  const confirm = document.getElementById("dmsEditConfirm");
+
+  if (cancel)  cancel.addEventListener("click",  () => modal.classList.add("hidden"));
+  if (confirm) confirm.addEventListener("click", saveDmsEdit);
+  if (modal)   modal.addEventListener("click", e => { if (e.target === modal) modal.classList.add("hidden"); });
+
+  // Enter key
+  ["dmsEditKode","dmsEditNama"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("keydown", e => { if (e.key === "Enter") saveDmsEdit(); });
+  });
+
+  // Add button
+  const addBtn = document.getElementById("dmsAddBtn");
+  if (addBtn) addBtn.addEventListener("click", () => openDmsEditModal(-1));
 }
 
 /* ── SEARCH DMS ── */
@@ -506,25 +666,21 @@ function setupSearch() {
   if (!searchInput || !dmsTable) return;
 
   const allRows = Array.from(dmsTable.querySelectorAll("tbody tr"));
-  const total   = allRows.length;
+  const total   = dmsData.length;
 
   function doSearch() {
-    const filter  = searchInput.value.toUpperCase().trim();
-    let visible   = 0;
-
+    const filter = searchInput.value.toUpperCase().trim();
+    let visible  = 0;
     allRows.forEach(row => {
       const match = row.textContent.toUpperCase().includes(filter);
       row.style.display = match ? "" : "none";
       if (match) visible++;
     });
-
     if (searchClear) searchClear.style.display = filter ? "flex" : "none";
-
     if (noResult) {
       noResult.classList.toggle("hidden", visible > 0 || !filter);
       if (noResQ) noResQ.textContent = searchInput.value;
     }
-
     if (dmsCount) {
       dmsCount.textContent = filter
         ? `${visible} dari ${total} pabrik`
@@ -532,31 +688,16 @@ function setupSearch() {
     }
   }
 
-  searchInput.addEventListener("input", doSearch);
+  // Remove old listeners by cloning
+  const newInput = searchInput.cloneNode(true);
+  searchInput.parentNode.replaceChild(newInput, searchInput);
+  newInput.addEventListener("input", doSearch);
 
-  if (searchClear) {
-    searchClear.addEventListener("click", () => {
-      searchInput.value = "";
-      doSearch();
-      searchInput.focus();
-    });
+  const newClear = searchClear ? searchClear.cloneNode(true) : null;
+  if (searchClear && newClear) {
+    searchClear.parentNode.replaceChild(newClear, searchClear);
+    newClear.addEventListener("click", () => { newInput.value = ""; doSearch(); newInput.focus(); });
   }
-
-  // Row click: highlight + copy code to clipboard
-  allRows.forEach(row => {
-    row.addEventListener("click", () => {
-      allRows.forEach(r => r.classList.remove("active-row"));
-      row.classList.add("active-row");
-
-      const code = row.cells[0]?.textContent?.trim();
-      const name = row.cells[1]?.textContent?.trim();
-      if (code && navigator.clipboard) {
-        navigator.clipboard.writeText(code).then(() => {
-          showToast(`Disalin: ${code} · ${name}`, "info", 2500);
-        }).catch(() => {});
-      }
-    });
-  });
 }
 
 /* ── CHAT WIDGET ── */
@@ -585,44 +726,26 @@ function setupChat() {
         setTimeout(() => {
           if (typing) typing.classList.add("hidden");
           bubble.classList.remove("hidden");
-          if (chatSound) {
-            chatSound.currentTime = 0;
-            chatSound.play().catch(() => {});
-          }
+          if (chatSound) { chatSound.currentTime = 0; chatSound.play().catch(() => {}); }
         }, 700);
       }, delay);
       delay += 1400;
     });
-
-    setTimeout(() => {
-      if (chatWA) chatWA.classList.remove("hidden");
-    }, delay + 200);
+    setTimeout(() => { if (chatWA) chatWA.classList.remove("hidden"); }, delay + 200);
   }
 
   if (chatToggle) {
     chatToggle.addEventListener("click", () => {
       const isOpen = chatBox.classList.toggle("show");
-
       if (isOpen) {
-        // Hide notification badge
         if (chatNotif) chatNotif.style.display = "none";
-        if (!chatOpened) {
-          chatOpened = true;
-          showSequence();
-        }
+        if (!chatOpened) { chatOpened = true; showSequence(); }
       }
     });
   }
-
-  if (chatClose) {
-    chatClose.addEventListener("click", () => {
-      chatBox.classList.remove("show");
-    });
-  }
-
-  // Close on outside click
+  if (chatClose) chatClose.addEventListener("click", () => chatBox.classList.remove("show"));
   document.addEventListener("click", e => {
-    if (chatBox.classList.contains("show") &&
+    if (chatBox && chatBox.classList.contains("show") &&
         !chatBox.contains(e.target) &&
         !chatToggle.contains(e.target)) {
       chatBox.classList.remove("show");
@@ -630,102 +753,51 @@ function setupChat() {
   });
 }
 
-/* ── MESH CANVAS (animated particles) ── */
-function initMesh() {
-  const canvas = document.getElementById("meshCanvas");
-  if (!canvas) return;
-
-  const ctx  = canvas.getContext("2d");
-  let W, H;
-  const particles = [];
-  const COUNT     = 40;
-
-  function resize() {
-    W = canvas.width  = window.innerWidth;
-    H = canvas.height = window.innerHeight;
+/* ── CLOCK ── */
+function startClock() {
+  function tick() {
+    const el = document.getElementById("datetime");
+    if (!el) return;
+    const d = new Date();
+    el.textContent = d.toLocaleString("id-ID", {
+      weekday: "short", day: "2-digit", month: "short",
+      year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit"
+    }) + " WIB";
   }
-  resize();
-  window.addEventListener("resize", resize);
+  tick();
+  setInterval(tick, 1000);
+}
 
-  function rand(min, max) { return Math.random() * (max - min) + min; }
-
-  for (let i = 0; i < COUNT; i++) {
-    particles.push({
-      x: rand(0, window.innerWidth),
-      y: rand(0, window.innerHeight),
-      r: rand(1, 2.5),
-      vx: rand(-0.3, 0.3),
-      vy: rand(-0.2, 0.2),
-      alpha: rand(0.2, 0.6)
-    });
+/* ── VISITOR COUNTER ── */
+function initVisitor() {
+  let count = parseInt(localStorage.getItem("visCount") || "1540");
+  count++;
+  localStorage.setItem("visCount", count);
+  const el = document.getElementById("visitorNumber");
+  if (el) {
+    let start = count - 20;
+    const step = () => { start++; el.textContent = start; if (start < count) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
   }
-
-  const CONNECT_DIST = 150;
-
-  function draw() {
-    ctx.clearRect(0, 0, W, H);
-
-    // Update
-    particles.forEach(p => {
-      p.x += p.vx;
-      p.y += p.vy;
-      if (p.x < 0) p.x = W;
-      if (p.x > W) p.x = 0;
-      if (p.y < 0) p.y = H;
-      if (p.y > H) p.y = 0;
-    });
-
-    // Draw lines
-    for (let i = 0; i < particles.length; i++) {
-      for (let j = i + 1; j < particles.length; j++) {
-        const dx   = particles[i].x - particles[j].x;
-        const dy   = particles[i].y - particles[j].y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist < CONNECT_DIST) {
-          const alpha = (1 - dist / CONNECT_DIST) * 0.15;
-          ctx.beginPath();
-          ctx.moveTo(particles[i].x, particles[i].y);
-          ctx.lineTo(particles[j].x, particles[j].y);
-          ctx.strokeStyle = `rgba(0, 200, 255, ${alpha})`;
-          ctx.lineWidth   = 0.8;
-          ctx.stroke();
-        }
-      }
-    }
-
-    // Draw dots
-    particles.forEach(p => {
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(0, 200, 255, ${p.alpha})`;
-      ctx.fill();
-    });
-
-    requestAnimationFrame(draw);
-  }
-  draw();
 }
 
 /* ── INIT ── */
 document.addEventListener("DOMContentLoaded", () => {
   renderAll();
+  renderDmsTable();
   startClock();
   initVisitor();
   setupSort();
   setupFilter();
   setupSearch();
   setupAdmin();
-  setupEditModal();
+  setupRowEditModal();
+  setupDmsEditModal();
   setupChat();
-  // initMesh(); // disabled — video background aktif
 
-  // Stagger card entrance
   document.querySelectorAll(".glass-card").forEach((card, i) => {
     card.style.animationDelay = `${i * 0.07}s`;
   });
 
-  // Show welcome toast after brief delay
-  setTimeout(() => {
-    showToast("Data ritase berhasil dimuat", "success", 2500);
-  }, 800);
+  setTimeout(() => showToast("Data ritase berhasil dimuat", "success", 2500), 800);
 });

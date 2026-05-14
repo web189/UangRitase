@@ -206,6 +206,13 @@
       </button>
     </div>
 
+    <!-- DMS Add button (admin only, hidden by default) -->
+    <div id="dmsAddWrap" style="display:none;margin-bottom:12px">
+      <button class="add-row-btn" id="dmsAddBtn" style="width:100%">
+        <i class="fas fa-plus"></i> Tambah Pabrik
+      </button>
+    </div>
+
     <div class="table-container">
       <table id="dmsTable">
         <thead>
@@ -215,29 +222,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr><td>9101-9100</td><td>MEKARSARI PLANT AGM</td></tr>
-          <tr><td>9009-9000</td><td>SUBANG PLANT TIV</td></tr>
-          <tr><td>9017-9000</td><td>CIANJUR PLANT TIV</td></tr>
-          <tr><td>9013-9000</td><td>CITEUREUP PLANT TIV</td></tr>
-          <tr><td>9042-9000</td><td>TIRTA MAS PERKASA</td></tr>
-          <tr><td>9036-9000</td><td>TIV XWH KEDEP</td></tr>
-          <tr><td>9051-9000</td><td>GRAHAMAS INTITIRTA</td></tr>
-          <tr><td>90A2-9000</td><td>TGSM</td></tr>
-          <tr><td>9076-9000</td><td>SENTUL PLANT TIV</td></tr>
-          <tr><td>9039-9000</td><td>BUANA TIRTA ABADI</td></tr>
-          <tr><td>90A3-9000</td><td>SUMBER SUKSES SENTOSA 2</td></tr>
-          <tr><td>90A0-9000</td><td>CARINGIN PLANT TIV</td></tr>
-          <tr><td>9105-9100</td><td>BABAKANPARI PLANT AGM</td></tr>
-          <tr><td>9018-9000</td><td>CIHERANG PLANT TIV</td></tr>
-          <tr><td>9059-9000</td><td>TIV XWH CIMANGGIS</td></tr>
-          <tr><td>9056-9000</td><td>TML CICURUG</td></tr>
-          <tr><td>9077-9000</td><td>XWH PETUNG SARI</td></tr>
-          <tr><td>9027-9000</td><td>CIBINONG DC TIV</td></tr>
-          <tr><td>9015-9000</td><td>KLATEN PLANT TIV</td></tr>
-          <tr><td>9010-9000</td><td>WONOSOBO PLANT TIV</td></tr>
-          <tr><td>90A8-9000</td><td>BANYUWANGI PLANT TIV</td></tr>
-          <tr><td>90AD-9000</td><td>TIRTA MAS PERKASA BAWEN</td></tr>
-          <tr><td>90A5-9000</td><td>XWH SENTUL</td></tr>
+          <!-- Diisi oleh renderDmsTable() -->
         </tbody>
       </table>
     </div>
@@ -346,31 +331,71 @@
   <div class="modal-box">
     <div class="modal-icon"><i class="fas fa-shield-halved"></i></div>
     <h3>Admin Login</h3>
-    <p>Masukkan password untuk mode edit</p>
+    <p>Email: admin@uangritase.com & password: Admin@2026</p>
+    <div class="modal-input-wrap" style="margin-bottom:12px">
+      <span class="input-prefix"><i class="fas fa-envelope" style="font-size:11px"></i></span>
+      <input type="email" id="adminEmailInput" placeholder="Email admin..." style="padding-left:34px" autocomplete="email">
+    </div>
     <div class="modal-input-wrap">
-      <input type="password" id="adminPassInput" placeholder="Password..." maxlength="20">
+      <span class="input-prefix"><i class="fas fa-lock" style="font-size:11px"></i></span>
+      <input type="password" id="adminPassInput" placeholder="Password..." maxlength="30" style="padding-left:34px" autocomplete="current-password">
       <button id="adminPassToggle"><i class="fas fa-eye"></i></button>
     </div>
+    <div id="adminError" class="modal-error"></div>
     <div class="modal-actions">
       <button class="modal-btn cancel" id="adminCancel">Batal</button>
-      <button class="modal-btn confirm" id="adminConfirm">Masuk</button>
+      <button class="modal-btn confirm" id="adminConfirm"><i class="fas fa-right-to-bracket"></i> Masuk</button>
     </div>
   </div>
 </div>
 
-<!-- EDIT MODAL -->
-<div class="modal-overlay hidden" id="editModal">
+<!-- ROW EDIT MODAL (Ritase: Tambah/Edit baris penuh) -->
+<div class="modal-overlay hidden" id="rowEditModal">
   <div class="modal-box">
     <div class="modal-icon edit-icon"><i class="fas fa-pen-to-square"></i></div>
-    <h3>Edit Harga Ritase</h3>
-    <p id="editModalDesc">Pabrik: —</p>
-    <div class="modal-input-wrap">
-      <span class="input-prefix">Rp</span>
-      <input type="number" id="editPriceInput" placeholder="Masukkan nominal...">
+    <h3 id="rowEditTitle">Edit Rute</h3>
+    <p>Isi semua kolom dengan benar</p>
+    <div class="modal-field">
+      <label>Pabrik / Rute</label>
+      <input type="text" id="rowEditPabrik" placeholder="Contoh: CRG, KEDEP..." maxlength="60">
     </div>
-    <div class="modal-actions">
-      <button class="modal-btn cancel" id="editCancel">Batal</button>
-      <button class="modal-btn confirm" id="editConfirm">Simpan</button>
+    <div class="modal-field">
+      <label>Muatan / SKU</label>
+      <input type="text" id="rowEditMuatan" placeholder="Contoh: All SKU, AQ 600 ML..." maxlength="60">
+    </div>
+    <div class="modal-field">
+      <label>Uang Ritase (Rp)</label>
+      <div class="modal-input-wrap" style="margin-bottom:0">
+        <span class="input-prefix">Rp</span>
+        <input type="number" id="rowEditHarga" placeholder="Nominal..." min="1">
+      </div>
+    </div>
+    <div class="modal-actions" style="margin-top:20px">
+      <button class="modal-btn cancel" id="rowEditCancel">Batal</button>
+      <button class="modal-btn confirm" id="rowEditConfirm"><i class="fas fa-floppy-disk"></i> Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- DMS EDIT MODAL (Tambah/Edit pabrik) -->
+<div class="modal-overlay hidden" id="dmsEditModal">
+  <div class="modal-box">
+    <div class="modal-icon" style="background:rgba(255,193,7,0.1);border-color:rgba(255,193,7,0.3);color:var(--gold)">
+      <i class="fas fa-industry"></i>
+    </div>
+    <h3 id="dmsEditTitle">Edit Pabrik</h3>
+    <input type="hidden" id="dmsEditIndex">
+    <div class="modal-field">
+      <label>Kode DMS</label>
+      <input type="text" id="dmsEditKode" placeholder="Contoh: 9101-9100" maxlength="20" style="font-family:monospace;letter-spacing:0.05em">
+    </div>
+    <div class="modal-field">
+      <label>Nama Pabrik</label>
+      <input type="text" id="dmsEditNama" placeholder="Contoh: MEKARSARI PLANT AGM" maxlength="80">
+    </div>
+    <div class="modal-actions" style="margin-top:20px">
+      <button class="modal-btn cancel" id="dmsEditCancel">Batal</button>
+      <button class="modal-btn confirm" id="dmsEditConfirm"><i class="fas fa-floppy-disk"></i> Simpan</button>
     </div>
   </div>
 </div>
