@@ -605,3 +605,85 @@ body { font-family: var(--font-b); font-size: 14px; color: var(--text-1); backgr
 @media (hover: hover) { .glass-card:hover { transform: translateY(-5px); } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
 
+.benyo-link{
+  display:inline-block;
+  color:#ff355e;
+  text-decoration:none;
+  font-weight:800;
+  letter-spacing:.5px;
+  position:relative;
+
+  text-shadow:
+    0 0 5px #ff355e,
+    0 0 10px #ff355e,
+    0 0 20px #ff355e,
+    0 0 40px #ff355e;
+
+  animation: brokenLamp 1.2s infinite;
+}
+
+/* efek lampu rusak nyata */
+@keyframes brokenLamp{
+
+  0%{
+    opacity:1;
+  }
+
+  2%{
+    opacity:.1;
+  }
+
+  4%{
+    opacity:1;
+  }
+
+  8%{
+    opacity:.2;
+  }
+
+  9%{
+    opacity:1;
+  }
+
+  12%{
+    opacity:.05;
+  }
+
+  20%{
+    opacity:1;
+  }
+
+  30%{
+    opacity:.3;
+  }
+
+  31%{
+    opacity:1;
+  }
+
+  70%{
+    opacity:.8;
+  }
+
+  72%{
+    opacity:.2;
+  }
+
+  77%{
+    opacity:1;
+  }
+
+  100%{
+    opacity:1;
+  }
+}
+
+.benyo-link:hover{
+  color:#ffffff;
+
+  text-shadow:
+    0 0 10px #fff,
+    0 0 20px #ff355e,
+    0 0 40px #ff355e,
+    0 0 70px #ff355e;
+}
