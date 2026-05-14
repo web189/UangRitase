@@ -2,39 +2,21 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>UangRitase - Pabrik AQUA VIT</title>
-
-<!-- Primary Meta -->
-<meta name="title" content="UangRitase - Data DMS & Ritase Pabrik AQUA VIT">
-<meta name="description" content="Data DMS terbaru SPS & Galon AQUA dan VIT. Informasi ritase pabrik, SKU dan nominal harga terupdate. Tampilan modern, cepat dan mobile friendly.">
-
-<!-- Open Graph -->
-<meta property="og:type" content="website">
-<meta property="og:url" content="https://web189.github.io/UangRitase/">
-<meta property="og:title" content="UangRitase - Data DMS & Ritase Pabrik AQUA VIT">
-<meta property="og:description" content="Cek data DMS SPS & Galon AQUA VIT terbaru. Informasi ritase pabrik lengkap dan update.">
-<meta property="og:image" content="https://web189.github.io/UangRitase/img/preview.jpg">
-
-<!-- Twitter -->
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="UangRitase - Data DMS & Ritase Pabrik AQUA VIT">
-<meta name="twitter:description" content="Informasi DMS & ritase pabrik AQUA dan VIT terbaru. Mobile friendly & modern design.">
-
+<meta name="description" content="Data DMS terbaru SPS & Galon AQUA dan VIT. Informasi ritase pabrik, SKU dan nominal harga terupdate.">
 <meta name="robots" content="index, follow">
 <meta name="author" content="UangRitase">
-
 <link rel="icon" href="favicon.png">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
 </head>
-
 <body>
 
-<!-- BACKGROUND VIDEO -->
+<!-- VIDEO BG -->
 <div class="video-bg">
   <video autoplay muted loop playsinline>
     <source src="video/water.mp4" type="video/mp4">
@@ -42,32 +24,17 @@
   <div class="overlay"></div>
 </div>
 
-<!-- ANIMATED MESH BACKGROUND (fallback/overlay) -->
 <canvas id="meshCanvas"></canvas>
-
-<!-- DATETIME PILL -->
 <div class="datetime-pill" id="datetime"></div>
-
-<!-- NOTIFICATION TOAST -->
 <div class="toast-container" id="toastContainer"></div>
 
 <!-- HEADER -->
 <header class="header">
-  <div class="header-badge">
-    <span class="pulse-dot"></span>
-    <span>LIVE UPDATE</span>
-  </div>
-
-  <h1 class="header-title">
-    <span class="title-rp">Rp</span>UANG RITASE
-  </h1>
+  <div class="header-badge"><span class="pulse-dot"></span><span>LIVE UPDATE</span></div>
+  <h1 class="header-title"><span class="title-rp">Rp</span>UANG RITASE</h1>
   <p class="header-sub">Driver Tua · Depo Parung · <span id="updateTag">Update Manual</span></p>
-
   <div class="header-actions">
-    <!-- GOOGLE SHEET LINK -->
-    <a class="action-card sheet-link"
-       href="https://docs.google.com/spreadsheets/d/1PUt8ki9BXIfZfuwZp3SBa4uOmAvvppvezO8ToetUpT4/htmlview"
-       target="_blank">
+    <a class="action-card sheet-link" href="https://docs.google.com/spreadsheets/d/1PUt8ki9BXIfZfuwZp3SBa4uOmAvvppvezO8ToetUpT4/htmlview" target="_blank">
       <div class="sheet-logos">
         <img src="img/logo1.png" alt="AQUA" onerror="this.style.display='none'">
         <img src="img/logo2.png" alt="VIT" onerror="this.style.display='none'">
@@ -76,21 +43,12 @@
       <span>Cek Google Sheet</span>
       <i class="fas fa-arrow-up-right-from-square"></i>
     </a>
-
-    <!-- WA BUTTON -->
-    <a class="action-card wa-button"
-       href="https://wa.me/6282127700502"
-       target="_blank" rel="noopener">
+    <a class="action-card wa-button" href="https://wa.me/6282127700502" target="_blank" rel="noopener">
       <i class="fab fa-whatsapp"></i>
       <span>WA Logistik TUA</span>
-      <span class="visitor-badge">
-        <i class="fas fa-eye"></i>
-        <span id="visitorNumber">0</span>
-      </span>
+      <span class="visitor-badge"><i class="fas fa-eye"></i><span id="visitorNumber">0</span></span>
     </a>
   </div>
-
-  <!-- STATS BAR -->
   <div class="stats-bar">
     <div class="stat-item">
       <span class="stat-value" id="statTotal">—</span>
@@ -109,23 +67,13 @@
   </div>
 </header>
 
-<!-- QUICK FILTER NAV -->
+<!-- FILTER NAV -->
 <nav class="filter-nav">
-  <button class="filter-btn active" data-filter="all">
-    <i class="fas fa-border-all"></i> Semua
-  </button>
-  <button class="filter-btn" data-filter="aqua">
-    <i class="fas fa-droplet"></i> AQUA
-  </button>
-  <button class="filter-btn" data-filter="vit">
-    <i class="fas fa-circle"></i> VIT
-  </button>
-  <button class="filter-btn" data-filter="sps">
-    <i class="fas fa-truck"></i> SPS
-  </button>
-  <button class="filter-btn" data-filter="galon">
-    <i class="fas fa-jug-water"></i> Galon
-  </button>
+  <button class="filter-btn active" data-filter="all"><i class="fas fa-border-all"></i> Semua</button>
+  <button class="filter-btn" data-filter="aqua"><i class="fas fa-droplet"></i> AQUA</button>
+  <button class="filter-btn" data-filter="vit"><i class="fas fa-circle"></i> VIT</button>
+  <button class="filter-btn" data-filter="sps"><i class="fas fa-truck"></i> SPS</button>
+  <button class="filter-btn" data-filter="galon"><i class="fas fa-jug-water"></i> Galon</button>
 </nav>
 
 <!-- CONTENT GRID -->
@@ -133,13 +81,8 @@
   <section class="glass-card" data-category="aqua sps">
     <div class="card-header">
       <div class="card-icon aqua-icon"><i class="fas fa-droplet"></i></div>
-      <div>
-        <h2>SPS AQUA</h2>
-        <span class="card-count" id="count-sps-aqua">0 rute</span>
-      </div>
-      <button class="card-sort" data-target="sps-aqua" title="Sort by price">
-        <i class="fas fa-sort"></i>
-      </button>
+      <div class="card-header-text"><h2>SPS AQUA</h2><span class="card-count" id="count-sps-aqua">0 rute</span></div>
+      <button class="card-sort" data-target="sps-aqua" title="Sort harga"><i class="fas fa-sort"></i></button>
     </div>
     <div id="sps-aqua"></div>
   </section>
@@ -147,13 +90,8 @@
   <section class="glass-card" data-category="aqua galon">
     <div class="card-header">
       <div class="card-icon aqua-icon"><i class="fas fa-jug-water"></i></div>
-      <div>
-        <h2>GALON AQUA</h2>
-        <span class="card-count" id="count-galon-aqua">0 rute</span>
-      </div>
-      <button class="card-sort" data-target="galon-aqua" title="Sort by price">
-        <i class="fas fa-sort"></i>
-      </button>
+      <div class="card-header-text"><h2>GALON AQUA</h2><span class="card-count" id="count-galon-aqua">0 rute</span></div>
+      <button class="card-sort" data-target="galon-aqua" title="Sort harga"><i class="fas fa-sort"></i></button>
     </div>
     <div id="galon-aqua"></div>
   </section>
@@ -161,13 +99,8 @@
   <section class="glass-card" data-category="vit sps">
     <div class="card-header">
       <div class="card-icon vit-icon"><i class="fas fa-circle-dot"></i></div>
-      <div>
-        <h2>SPS VIT</h2>
-        <span class="card-count" id="count-sps-vit">0 rute</span>
-      </div>
-      <button class="card-sort" data-target="sps-vit" title="Sort by price">
-        <i class="fas fa-sort"></i>
-      </button>
+      <div class="card-header-text"><h2>SPS VIT</h2><span class="card-count" id="count-sps-vit">0 rute</span></div>
+      <button class="card-sort" data-target="sps-vit" title="Sort harga"><i class="fas fa-sort"></i></button>
     </div>
     <div id="sps-vit"></div>
   </section>
@@ -175,13 +108,8 @@
   <section class="glass-card" data-category="vit galon">
     <div class="card-header">
       <div class="card-icon vit-icon"><i class="fas fa-jug-water"></i></div>
-      <div>
-        <h2>GALON VIT</h2>
-        <span class="card-count" id="count-galon-vit">0 rute</span>
-      </div>
-      <button class="card-sort" data-target="galon-vit" title="Sort by price">
-        <i class="fas fa-sort"></i>
-      </button>
+      <div class="card-header-text"><h2>GALON VIT</h2><span class="card-count" id="count-galon-vit">0 rute</span></div>
+      <button class="card-sort" data-target="galon-vit" title="Sort harga"><i class="fas fa-sort"></i></button>
     </div>
     <div id="galon-vit"></div>
   </section>
@@ -190,27 +118,20 @@
 <!-- DMS SECTION -->
 <section class="dms-section">
   <div class="section-header">
-    <h2 class="section-title">
-      <i class="fas fa-building"></i>
-      DMS KODE PABRIK
-    </h2>
-    <span class="section-count" id="dmsCount">23 pabrik</span>
+    <div class="section-title-group">
+      <h2 class="section-title"><i class="fas fa-building"></i> DMS KODE PABRIK</h2>
+      <span class="section-count" id="dmsCount">23 pabrik</span>
+    </div>
+    <div id="dmsAddWrap" class="dms-add-wrap" style="display:none">
+      <button class="add-top-btn" id="dmsAddBtn"><i class="fas fa-plus"></i><span>Tambah</span></button>
+    </div>
   </div>
 
   <div class="dms-wrapper">
     <div class="search-bar">
-      <i class="fas fa-magnifying-glass"></i>
+      <i class="fas fa-magnifying-glass search-icon"></i>
       <input type="text" id="searchInput" placeholder="Cari kode atau nama pabrik...">
-      <button class="search-clear" id="searchClear" title="Clear">
-        <i class="fas fa-xmark"></i>
-      </button>
-    </div>
-
-    <!-- DMS Add button (admin only, hidden by default) -->
-    <div id="dmsAddWrap" style="display:none;margin-bottom:12px">
-      <button class="add-row-btn" id="dmsAddBtn" style="width:100%">
-        <i class="fas fa-plus"></i> Tambah Pabrik
-      </button>
+      <button class="search-clear" id="searchClear" title="Clear"><i class="fas fa-xmark"></i></button>
     </div>
 
     <div class="table-container">
@@ -221,9 +142,7 @@
             <th><i class="fas fa-industry"></i> NAMA PABRIK</th>
           </tr>
         </thead>
-        <tbody>
-          <!-- Diisi oleh renderDmsTable() -->
-        </tbody>
+        <tbody></tbody>
       </table>
     </div>
 
@@ -237,36 +156,23 @@
 <!-- FOOTER -->
 <footer class="footer">
   <div class="footer-inner">
-    <p class="footer-copy">© 2026 UangRitase · Powered by @benyoriki</p>
-
+    <p class="footer-copy">
+  © 2026 UangRitase · 
+  Powered by 
+  <a href="https://benyoriki.com/" target="_blank" class="benyo-link">
+    @benyoriki
+  </a>
+</p>
     <div class="social-row">
-      <!-- ADMIN BUTTON -->
-      <button class="icon-btn admin-btn" id="adminBtn" title="Admin Login">
-        <i class="fas fa-lock"></i>
-      </button>
-
-      <a class="icon-btn" href="https://www.instagram.com/benyoriki?igsh=cGZkOXpuN2JyYjAy" target="_blank" title="Instagram">
-        <i class="fab fa-instagram"></i>
-      </a>
-      <a class="icon-btn" href="https://www.youtube.com/@rikihermawan8103" target="_blank" title="YouTube">
-        <i class="fab fa-youtube"></i>
-      </a>
-      <a class="icon-btn" href="https://www.tiktok.com/@benyoriki" target="_blank" title="TikTok">
-        <i class="fab fa-tiktok"></i>
-      </a>
-      <a class="icon-btn" href="https://web.facebook.com/benyo.hermawan" target="_blank" title="Facebook">
-        <i class="fab fa-facebook"></i>
-      </a>
+      <button class="icon-btn admin-btn" id="adminBtn" title="Admin Login"><i class="fas fa-lock"></i></button>
+      <a class="icon-btn" href="https://www.instagram.com/benyoriki?igsh=cGZkOXpuN2JyYjAy" target="_blank"><i class="fab fa-instagram"></i></a>
+      <a class="icon-btn" href="https://www.youtube.com/@rikihermawan8103" target="_blank"><i class="fab fa-youtube"></i></a>
+      <a class="icon-btn" href="https://www.tiktok.com/@benyoriki" target="_blank"><i class="fab fa-tiktok"></i></a>
+      <a class="icon-btn" href="https://web.facebook.com/benyo.hermawan" target="_blank"><i class="fab fa-facebook"></i></a>
     </div>
-
-    <a class="download-btn"
-       href="https://drive.google.com/file/d/1GPUQjbJoQtPdTrBBLc_vOV96L4wnJwtl/view?usp=drive_link"
-       target="_blank">
-      <i class="fas fa-download"></i>
-      Download DMS.v06
+    <a class="download-btn" href="https://drive.google.com/file/d/1GPUQjbJoQtPdTrBBLc_vOV96L4wnJwtl/view?usp=drive_link" target="_blank">
+      <i class="fas fa-download"></i> Download DMS.v06
     </a>
-
-    <!-- MINI PLAYER -->
     <div class="mini-player" id="miniPlayer">
       <div class="mini-info">
         <div class="mini-icon-wrap"><i class="fas fa-headphones"></i></div>
@@ -277,130 +183,162 @@
   </div>
 </footer>
 
-<!-- CHAT TOGGLE BUTTON -->
-<button class="chat-toggle" id="chatToggle" title="Chat dengan kami">
-  <i class="fab fa-whatsapp"></i>
-  <span class="chat-notif">1</span>
-</button>
+<!-- CHAT TOGGLE -->
+<button class="chat-toggle" id="chatToggle"><i class="fab fa-whatsapp"></i><span class="chat-notif">1</span></button>
 
 <!-- CHAT BOX -->
 <div class="chat-box" id="chatBox">
   <div class="chat-header">
     <div class="chat-header-left">
-      <div class="chat-avatar">
-        <i class="fas fa-headset"></i>
-      </div>
+      <div class="chat-avatar"><i class="fas fa-headset"></i></div>
       <div>
         <div class="chat-title">Logistik Pusat</div>
-        <div class="chat-status">
-          <span class="online-dot"></span> Online sekarang
-        </div>
+        <div class="chat-status"><span class="online-dot"></span> Online sekarang</div>
       </div>
     </div>
-    <button class="chat-close-btn" id="chatClose">
-      <i class="fas fa-xmark"></i>
-    </button>
+    <button class="chat-close-btn" id="chatClose"><i class="fas fa-xmark"></i></button>
   </div>
-
   <div class="chat-body" id="chatBody">
     <div class="chat-date-divider">Hari ini</div>
     <div class="bubble bot hidden" id="b1">Halo 👋 Selamat datang!</div>
     <div class="bubble bot hidden" id="b2">Ada yang bisa kami bantu terkait ritase?</div>
     <div class="bubble bot hidden" id="b3">Silakan hubungi kami via WhatsApp di bawah 📲</div>
-    <div class="typing hidden" id="typing">
-      <span></span><span></span><span></span>
-    </div>
+    <div class="typing hidden" id="typing"><span></span><span></span><span></span></div>
   </div>
-
   <div class="chat-footer">
-    <a class="chat-wa hidden" id="chatWA"
-       href="https://wa.me/6282127700502" target="_blank">
-      <i class="fab fa-whatsapp"></i>
-      Chat WhatsApp Sekarang
+    <a class="chat-wa hidden" id="chatWA" href="https://wa.me/6282127700502" target="_blank">
+      <i class="fab fa-whatsapp"></i> Chat WhatsApp Sekarang
     </a>
-    <a class="admin-link"
-       href="https://web189.github.io/Jadwal-Admin/"
-       target="_blank">
+    <a class="admin-link" href="https://web189.github.io/Jadwal-Admin/" target="_blank">
       <i class="fas fa-calendar-days"></i> Jadwal Admin
     </a>
   </div>
 </div>
 
-<!-- ADMIN MODAL -->
-<div class="modal-overlay hidden" id="adminModal">
-  <div class="modal-box">
-    <div class="modal-icon"><i class="fas fa-shield-halved"></i></div>
-    <h3>Admin Login</h3>
-    <p>Email: admin@uangritase.com & password: Admin@2026</p>
-    <div class="modal-input-wrap" style="margin-bottom:12px">
-      <span class="input-prefix"><i class="fas fa-envelope" style="font-size:11px"></i></span>
-      <input type="email" id="adminEmailInput" placeholder="Email admin..." style="padding-left:34px" autocomplete="email">
-    </div>
-    <div class="modal-input-wrap">
-      <span class="input-prefix"><i class="fas fa-lock" style="font-size:11px"></i></span>
-      <input type="password" id="adminPassInput" placeholder="Password..." maxlength="30" style="padding-left:34px" autocomplete="current-password">
-      <button id="adminPassToggle"><i class="fas fa-eye"></i></button>
-    </div>
-    <div id="adminError" class="modal-error"></div>
-    <div class="modal-actions">
-      <button class="modal-btn cancel" id="adminCancel">Batal</button>
-      <button class="modal-btn confirm" id="adminConfirm"><i class="fas fa-right-to-bracket"></i> Masuk</button>
-    </div>
-  </div>
-</div>
+<!-- ══════════ MODALS ══════════ -->
 
-<!-- ROW EDIT MODAL (Ritase: Tambah/Edit baris penuh) -->
-<div class="modal-overlay hidden" id="rowEditModal">
-  <div class="modal-box">
-    <div class="modal-icon edit-icon"><i class="fas fa-pen-to-square"></i></div>
-    <h3 id="rowEditTitle">Edit Rute</h3>
-    <p>Isi semua kolom dengan benar</p>
-    <div class="modal-field">
-      <label>Pabrik / Rute</label>
-      <input type="text" id="rowEditPabrik" placeholder="Contoh: CRG, KEDEP..." maxlength="60">
-    </div>
-    <div class="modal-field">
-      <label>Muatan / SKU</label>
-      <input type="text" id="rowEditMuatan" placeholder="Contoh: All SKU, AQ 600 ML..." maxlength="60">
-    </div>
-    <div class="modal-field">
-      <label>Uang Ritase (Rp)</label>
-      <div class="modal-input-wrap" style="margin-bottom:0">
-        <span class="input-prefix">Rp</span>
-        <input type="number" id="rowEditHarga" placeholder="Nominal..." min="1">
+<!-- ADMIN LOGIN -->
+<div class="modal-overlay hidden" id="adminModal">
+  <div class="modal-box admin-modal-box">
+    <button class="modal-x-btn" id="adminXClose"><i class="fas fa-xmark"></i></button>
+    <div class="modal-hero">
+      <div class="modal-hero-ring">
+        <div class="modal-hero-icon"><i class="fas fa-shield-halved"></i></div>
       </div>
     </div>
-    <div class="modal-actions" style="margin-top:20px">
-      <button class="modal-btn cancel" id="rowEditCancel">Batal</button>
-      <button class="modal-btn confirm" id="rowEditConfirm"><i class="fas fa-floppy-disk"></i> Simpan</button>
+    <h3 class="modal-heading">Admin Login</h3>
+    <p class="modal-desc">Masukkan kredensial untuk mode edit</p>
+    <div class="field-group">
+      <div class="field-item" id="fwEmail">
+        <label class="flabel"><i class="fas fa-envelope"></i> Email</label>
+        <input class="finput" type="email" id="adminEmailInput" placeholder="admin@uangritase.com" autocomplete="email">
+        <span class="ferr" id="ferrEmail"></span>
+      </div>
+      <div class="field-item" id="fwPass">
+        <label class="flabel"><i class="fas fa-lock"></i> Password</label>
+        <div class="finput-row">
+          <input class="finput" type="password" id="adminPassInput" placeholder="••••••••••" maxlength="30" autocomplete="current-password">
+          <button class="eye-btn" id="adminPassToggle" type="button"><i class="fas fa-eye"></i></button>
+        </div>
+        <span class="ferr" id="ferrPass"></span>
+      </div>
+    </div>
+    <div class="modal-err-global" id="adminError"></div>
+    <div class="modal-btns">
+      <button class="mbt mbt-ghost" id="adminCancel">Batal</button>
+      <button class="mbt mbt-primary" id="adminConfirm"><i class="fas fa-right-to-bracket"></i> Masuk</button>
+    </div>
+    <div class="modal-hint-box">
+      <i class="fas fa-circle-info"></i>
+      <span>Demo: admin@uangritase.com / Admin@2026</span>
     </div>
   </div>
 </div>
 
-<!-- DMS EDIT MODAL (Tambah/Edit pabrik) -->
+<!-- ROW EDIT MODAL -->
+<div class="modal-overlay hidden" id="rowEditModal">
+  <div class="modal-box edit-modal-box">
+    <button class="modal-x-btn" id="rowEditX"><i class="fas fa-xmark"></i></button>
+    <div class="modal-edit-header">
+      <div class="edit-icon-circle" id="editIconCircle"><i class="fas fa-pen-to-square"></i></div>
+      <div>
+        <h3 class="modal-heading-sm" id="rowEditTitle">Edit Rute</h3>
+        <span class="section-pill" id="rowEditSection"></span>
+      </div>
+    </div>
+    <div class="field-group">
+      <div class="field-item" id="fwPabrik">
+        <label class="flabel"><i class="fas fa-industry"></i> Pabrik / Rute</label>
+        <input class="finput" type="text" id="rowEditPabrik" placeholder="Contoh: CRG, KEDEP, DEPO JONGGOL" maxlength="60" autocomplete="off">
+        <span class="ferr" id="ferrPabrik"></span>
+      </div>
+      <div class="field-item" id="fwMuatan">
+        <label class="flabel"><i class="fas fa-box-open"></i> Muatan / SKU</label>
+        <input class="finput" type="text" id="rowEditMuatan" placeholder="Contoh: All SKU, AQ 600 ML, 528" maxlength="60" autocomplete="off">
+        <span class="ferr" id="ferrMuatan"></span>
+      </div>
+      <div class="field-item" id="fwHarga">
+        <label class="flabel"><i class="fas fa-coins"></i> Uang Ritase (Rp)</label>
+        <div class="finput-prefix-wrap">
+          <span class="finput-pfx">Rp</span>
+          <input class="finput with-pfx" type="number" id="rowEditHarga" placeholder="0" min="1" autocomplete="off">
+        </div>
+        <span class="ferr" id="ferrHarga"></span>
+      </div>
+    </div>
+    <div class="modal-btns" style="margin-top:24px">
+      <button class="mbt mbt-ghost" id="rowEditCancel">Batal</button>
+      <button class="mbt mbt-gold" id="rowEditConfirm"><i class="fas fa-floppy-disk"></i> Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- DMS EDIT MODAL -->
 <div class="modal-overlay hidden" id="dmsEditModal">
-  <div class="modal-box">
-    <div class="modal-icon" style="background:rgba(255,193,7,0.1);border-color:rgba(255,193,7,0.3);color:var(--gold)">
-      <i class="fas fa-industry"></i>
+  <div class="modal-box edit-modal-box">
+    <button class="modal-x-btn" id="dmsEditX"><i class="fas fa-xmark"></i></button>
+    <div class="modal-edit-header">
+      <div class="edit-icon-circle dms-icon-circle"><i class="fas fa-building"></i></div>
+      <div>
+        <h3 class="modal-heading-sm" id="dmsEditTitle">Edit Pabrik</h3>
+        <span class="section-pill badge-dms">DMS PABRIK</span>
+      </div>
     </div>
-    <h3 id="dmsEditTitle">Edit Pabrik</h3>
     <input type="hidden" id="dmsEditIndex">
-    <div class="modal-field">
-      <label>Kode DMS</label>
-      <input type="text" id="dmsEditKode" placeholder="Contoh: 9101-9100" maxlength="20" style="font-family:monospace;letter-spacing:0.05em">
+    <div class="field-group">
+      <div class="field-item" id="fwKode">
+        <label class="flabel"><i class="fas fa-hashtag"></i> Kode DMS</label>
+        <input class="finput monofont" type="text" id="dmsEditKode" placeholder="Contoh: 9101-9100" maxlength="20" autocomplete="off">
+        <span class="ferr" id="ferrKode"></span>
+      </div>
+      <div class="field-item" id="fwNama">
+        <label class="flabel"><i class="fas fa-industry"></i> Nama Pabrik</label>
+        <input class="finput" type="text" id="dmsEditNama" placeholder="Contoh: MEKARSARI PLANT AGM" maxlength="80" autocomplete="off">
+        <span class="ferr" id="ferrNama"></span>
+      </div>
     </div>
-    <div class="modal-field">
-      <label>Nama Pabrik</label>
-      <input type="text" id="dmsEditNama" placeholder="Contoh: MEKARSARI PLANT AGM" maxlength="80">
-    </div>
-    <div class="modal-actions" style="margin-top:20px">
-      <button class="modal-btn cancel" id="dmsEditCancel">Batal</button>
-      <button class="modal-btn confirm" id="dmsEditConfirm"><i class="fas fa-floppy-disk"></i> Simpan</button>
+    <div class="modal-btns" style="margin-top:24px">
+      <button class="mbt mbt-ghost" id="dmsEditCancel">Batal</button>
+      <button class="mbt mbt-gold" id="dmsEditConfirm"><i class="fas fa-floppy-disk"></i> Simpan</button>
     </div>
   </div>
 </div>
 
-<!-- AUDIO -->
+<!-- DELETE CONFIRM MODAL -->
+<div class="modal-overlay hidden" id="deleteModal">
+  <div class="modal-box delete-modal-box">
+    <div class="del-icon-wrap"><div class="del-icon"><i class="fas fa-triangle-exclamation"></i></div><div class="del-ring"></div></div>
+    <h3 class="modal-heading">Hapus Data?</h3>
+    <p class="modal-desc">Data berikut akan dihapus:</p>
+    <div class="del-label" id="deleteLabel">—</div>
+    <p class="del-undo-hint"><i class="fas fa-rotate-left"></i> Masih bisa dipulihkan dalam 5 detik</p>
+    <div class="modal-btns">
+      <button class="mbt mbt-ghost" id="deleteCancel">Batal</button>
+      <button class="mbt mbt-danger" id="deleteConfirm"><i class="fas fa-trash-can"></i> Hapus</button>
+    </div>
+  </div>
+</div>
+
 <audio id="chatSound">
   <source src="https://assets.mixkit.co/sfx/preview/mixkit-click-pop-1114.mp3" type="audio/mpeg">
 </audio>
