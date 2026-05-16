@@ -368,14 +368,14 @@
   <source src="https://assets.mixkit.co/sfx/preview/mixkit-click-pop-1114.mp3" type="audio/mpeg">
 </audio>
 
-<!-- ══════════ FIREBASE + APP (single module) ══════════ -->
+<!-- ══════════ FIREBASE + APP ══════════ -->
 <script type="module">
-  import { initializeApp }                        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, set, push, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { initializeApp }                        from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+  import { getDatabase, ref, set, push, get,
+           onValue, child }                       from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
   import { getAuth, signInWithEmailAndPassword,
-           signOut, onAuthStateChanged }           from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+           signOut, onAuthStateChanged }           from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
 
-  /* ── Firebase Config ── */
   const firebaseConfig = {
     apiKey:            "AIzaSyDth7CHrLlloGLKegjEzkU-jcUiWxCq828",
     authDomain:        "uangritase.firebaseapp.com",
@@ -391,22 +391,12 @@
   const auth = getAuth(app);
 
   /* ══ STATE ══ */
-  let isAdmin        = false;
-  let adminTimer     = null;
-  let adminTimeLeft  = 300;
-  let sortState      = {};
-  let pendingRowEdit = null;
-  let pendingDelete  = null;
-  let undoStack      = [];
-  let chatOpened     = false;
-  let undoBarTimer   = null;
-  let historyData    = [];
-  /* localWrite: timestamp terakhir kita write ke Firebase.
-     Listener akan skip snapshot yg datang dalam 4 detik setelah write
-     karena itu adalah echo dari write kita sendiri. */
-  let localWriteTs   = 0;
+  let isAdmin = false, adminTimer = null, adminTimeLeft = 300;
+  let sortState = {}, pendingRowEdit = null, pendingDelete = null;
+  let undoStack = [], chatOpened = false, undoBarTimer = null;
+  let historyData = [];
 
-  /* ── Default Data ── */
+  /* ══ DEFAULT DATA ══ */
   const defaultData = {
     spsAqua: [
       ["CRG","All SKU",652000],["CTR","All SKU",532000],["MKS","All SKU",767000],
@@ -433,7 +423,6 @@
       ["SSS","528",457000],["SSS","768",568000]
     ]
   };
-
   const defaultDms = [
     ["9101-9100","MEKARSARI PLANT AGM"],["9009-9000","SUBANG PLANT TIV"],
     ["9017-9000","CIANJUR PLANT TIV"],["9013-9000","CITEUREUP PLANT TIV"],
@@ -449,9 +438,9 @@
     ["90A5-9000","XWH SENTUL"]
   ];
 
-  /* Data aktif */
-  const data = JSON.parse(JSON.stringify(defaultData));
-  let dmsData = JSON.parse(JSON.stringify(defaultDms));
+  /* Data aktif — diisi dari Firebase */
+  const data = { spsAqua:[], galonAqua:[], spsVit:[], galonVit:[] };
+  let dmsData = [];
 
   /* ══ UTILS ══ */
   const $     = id => document.getElementById(id);
@@ -460,132 +449,96 @@
   const toKey = t  => t.replace(/-([a-z])/g, (_,c) => c.toUpperCase());
   const isVit = t  => t.includes("vit");
 
-  /* ══════════════════════════════════════════════════════
-     KONVERSI FIREBASE ↔ JS ARRAY
-     Firebase tidak bisa simpan nested array JS langsung.
-     Kita simpan sebagai plain object {0:{0,1,2}, 1:{0,1,2}}
-     dan konversi kembali saat membaca.
-  ══════════════════════════════════════════════════════ */
+  /* ══════════════════════════════════════════════════
+     KONVERSI ARRAY ↔ FIREBASE
+     Masalah: Firebase tidak bisa simpan nested array JS.
+     Solusi: Setiap row disimpan sebagai JSON string.
+     Format di Firebase: { r0: "[\"CRG\",\"All SKU\",652000]", r1: "..." }
+  ══════════════════════════════════════════════════ */
 
-  /* JS array rows → plain object untuk Firebase */
-  function toFbObj(rows, cols) {
+  function arrToFb(rows) {
     const out = {};
-    rows.forEach((row, i) => {
-      out[i] = {};
-      for (let c = 0; c < cols; c++) out[i][c] = (row[c] !== undefined ? row[c] : null);
-    });
+    rows.forEach((row, i) => { out["r" + i] = JSON.stringify(row); });
     return out;
   }
 
-  /* Firebase plain object / array → JS array of arrays */
-  function fromFbObj(val) {
-    if (!val) return [];
-    const top = Array.isArray(val)
-      ? val
-      : Object.keys(val).sort((a,b) => +a - +b).map(k => val[k]);
-    return top.map(item => {
-      if (!item) return [];
-      if (Array.isArray(item)) return item;
-      return Object.keys(item).sort((a,b) => +a - +b).map(k => item[k]);
+  function fbToArr(val) {
+    if (!val || typeof val !== "object") return [];
+    return Object.keys(val)
+      .filter(k => k.startsWith("r"))
+      .sort((a, b) => parseInt(a.slice(1)) - parseInt(b.slice(1)))
+      .map(k => { try { return JSON.parse(val[k]); } catch { return null; } })
+      .filter(Boolean);
+  }
+
+  /* ══ FIREBASE SAVE ══ */
+  function saveRitaseToFirebase() {
+    if (!auth.currentUser) { toast("⚠️ Login admin dulu!", "warn"); return; }
+    set(ref(db, "ritase"), {
+      spsAqua:   arrToFb(data.spsAqua),
+      galonAqua: arrToFb(data.galonAqua),
+      spsVit:    arrToFb(data.spsVit),
+      galonVit:  arrToFb(data.galonVit)
+    })
+    .then(() => toast("✅ Data tersimpan!", "success", 2000))
+    .catch(e => {
+      console.error("Firebase error:", e.code, e.message);
+      toast(e.code === "PERMISSION_DENIED"
+        ? "❌ Permission denied! Cek Firebase Rules"
+        : "❌ Error: " + e.message, "error", 6000);
     });
   }
 
-  /* ══════════════════════════════════════════════════════
-     FIREBASE SAVE  — tulis ke DB lalu update lokal
-  ══════════════════════════════════════════════════════ */
-
-  function saveRitaseToFirebase() {
-    if (!auth.currentUser) {
-      toast("⚠️ Login admin dulu!", "warn"); return;
-    }
-    const payload = {
-      spsAqua:   toFbObj(data.spsAqua,   3),
-      galonAqua: toFbObj(data.galonAqua, 3),
-      spsVit:    toFbObj(data.spsVit,    3),
-      galonVit:  toFbObj(data.galonVit,  3)
-    };
-    localWriteTs = Date.now();                // catat waktu write
-    set(ref(db, "ritase"), payload)
-      .then(() => toast("✅ Tersimpan!", "success", 1800))
-      .catch(err => {
-        localWriteTs = 0;
-        console.error("FB ritase error:", err.code, err.message);
-        toast(err.code === "PERMISSION_DENIED"
-          ? "❌ Permission denied — cek Firebase Rules!"
-          : "❌ Gagal simpan: " + err.message, "error", 6000);
-      });
-  }
-
   function saveDmsToFirebase() {
-    if (!auth.currentUser) {
-      toast("⚠️ Login admin dulu!", "warn"); return;
-    }
-    const payload = toFbObj(dmsData, 2);
-    localWriteTs = Date.now();
-    set(ref(db, "dms"), payload)
-      .then(() => toast("✅ DMS Tersimpan!", "success", 1800))
-      .catch(err => {
-        localWriteTs = 0;
-        console.error("FB dms error:", err.code, err.message);
-        toast(err.code === "PERMISSION_DENIED"
-          ? "❌ Permission denied — cek Firebase Rules!"
-          : "❌ Gagal simpan DMS: " + err.message, "error", 6000);
-      });
+    if (!auth.currentUser) { toast("⚠️ Login admin dulu!", "warn"); return; }
+    set(ref(db, "dms"), arrToFb(dmsData))
+    .then(() => toast("✅ DMS tersimpan!", "success", 2000))
+    .catch(e => {
+      console.error("Firebase DMS error:", e.code, e.message);
+      toast(e.code === "PERMISSION_DENIED"
+        ? "❌ Permission denied! Cek Firebase Rules"
+        : "❌ Error DMS: " + e.message, "error", 6000);
+    });
   }
 
-  /* ══ SIMPAN HISTORI ══ */
   function saveHistory(action, section, detail) {
-    const user = auth.currentUser;
-    if (!user) return;
+    if (!auth.currentUser) return;
     push(ref(db, "history"), {
       action, section, detail,
-      email: user.email,
-      ts: Date.now()
+      email: auth.currentUser.email, ts: Date.now()
     }).catch(() => {});
   }
 
-  /* ══════════════════════════════════════════════════════
-     FIREBASE LISTENERS  — terima data dari DB
-     Skip jika snapshot datang < 4 detik setelah kita write
-     (itu echo write sendiri, data lokal sudah benar)
-  ══════════════════════════════════════════════════════ */
-
+  /* ══ FIREBASE LISTENERS ══ */
   onValue(ref(db, "ritase"), snap => {
-    if (Date.now() - localWriteTs < 4000) return;  // abaikan echo write sendiri
     const fb = snap.val();
     if (fb) {
-      const sa = fromFbObj(fb.spsAqua);
-      const ga = fromFbObj(fb.galonAqua);
-      const sv = fromFbObj(fb.spsVit);
-      const gv = fromFbObj(fb.galonVit);
-      data.spsAqua   = sa.length ? sa : defaultData.spsAqua;
-      data.galonAqua = ga.length ? ga : defaultData.galonAqua;
-      data.spsVit    = sv.length ? sv : defaultData.spsVit;
-      data.galonVit  = gv.length ? gv : defaultData.galonVit;
+      const sa = fbToArr(fb.spsAqua),   ga = fbToArr(fb.galonAqua);
+      const sv = fbToArr(fb.spsVit),    gv = fbToArr(fb.galonVit);
+      data.spsAqua   = sa.length ? sa : defaultData.spsAqua.map(r=>[...r]);
+      data.galonAqua = ga.length ? ga : defaultData.galonAqua.map(r=>[...r]);
+      data.spsVit    = sv.length ? sv : defaultData.spsVit.map(r=>[...r]);
+      data.galonVit  = gv.length ? gv : defaultData.galonVit.map(r=>[...r]);
+    } else {
+      data.spsAqua   = defaultData.spsAqua.map(r=>[...r]);
+      data.galonAqua = defaultData.galonAqua.map(r=>[...r]);
+      data.spsVit    = defaultData.spsVit.map(r=>[...r]);
+      data.galonVit  = defaultData.galonVit.map(r=>[...r]);
     }
     renderAll();
   });
 
   onValue(ref(db, "dms"), snap => {
-    if (Date.now() - localWriteTs < 4000) return;
-    const val = snap.val();
-    if (val) {
-      const arr = fromFbObj(val);
-      dmsData = arr.length ? arr : JSON.parse(JSON.stringify(defaultDms));
-    }
+    const arr = fbToArr(snap.val());
+    dmsData = arr.length ? arr : defaultDms.map(r=>[...r]);
     renderDmsTable();
   });
 
   onValue(ref(db, "history"), snap => {
     const val = snap.val();
-    if (val && typeof val === "object") {
-      historyData = Object.entries(val)
-        .map(([k,v]) => ({ id: k, ...v }))
-        .sort((a,b) => b.ts - a.ts)
-        .slice(0, 50);
-    } else {
-      historyData = [];
-    }
+    historyData = val
+      ? Object.entries(val).map(([k,v])=>({id:k,...v})).sort((a,b)=>b.ts-a.ts).slice(0,50)
+      : [];
     renderHistory();
   });
 
@@ -598,97 +551,66 @@
     el.innerHTML = `<span class="toast-icon">${icons[type]||"ℹ️"}</span><span class="toast-msg">${msg}</span>`;
     c.appendChild(el);
     requestAnimationFrame(() => el.classList.add("toast-show"));
-    setTimeout(() => {
-      el.classList.remove("toast-show");
-      el.classList.add("toast-hide");
-      setTimeout(() => el.remove(), 420);
-    }, dur);
+    setTimeout(() => { el.classList.remove("toast-show"); el.classList.add("toast-hide"); setTimeout(() => el.remove(), 420); }, dur);
   }
 
   /* ══ STATS ══ */
   function updateStats() {
-    const all    = [...data.spsAqua, ...data.galonAqua, ...data.spsVit, ...data.galonVit];
-    const prices = all.map(r => r[2]);
-    const total  = all.length;
-    const avg    = prices.length ? Math.round(prices.reduce((a,b) => a+b, 0) / prices.length) : 0;
-    const high   = prices.length ? Math.max(...prices) : 0;
+    const all = [...data.spsAqua,...data.galonAqua,...data.spsVit,...data.galonVit];
+    const prices = all.map(r => Number(r[2]));
+    const total = all.length;
+    const avg  = prices.length ? Math.round(prices.reduce((a,b)=>a+b,0)/prices.length) : 0;
+    const high = prices.length ? Math.max(...prices) : 0;
     animCount($("statTotal"), total);
     if ($("statAvg"))  $("statAvg").textContent  = fmt(avg);
     if ($("statHigh")) $("statHigh").textContent = fmt(high);
   }
-
   function animCount(el, target) {
     if (!el) return;
-    const start = parseInt(el.textContent) || 0;
-    if (start === target) { el.textContent = target; return; }
-    let f = 0, frames = 20;
-    const step = () => { f++; el.textContent = Math.round(start + (target - start) * (f/frames)); if (f < frames) requestAnimationFrame(step); };
+    const start = parseInt(el.textContent)||0;
+    if (start===target) { el.textContent=target; return; }
+    let f=0, frames=20;
+    const step=()=>{ f++; el.textContent=Math.round(start+(target-start)*(f/frames)); if(f<frames)requestAnimationFrame(step); };
     requestAnimationFrame(step);
   }
 
   /* ══ RENDER RITASE TABLE ══ */
   function render(target, rows) {
-    const container = $(target);
-    if (!container) return;
+    const container = $(target); if (!container) return;
     const vit = isVit(target);
     const priceCls = vit ? "uang vit-price" : "uang";
-    const labels = { "sps-aqua":"SPS AQUA","galon-aqua":"GALON AQUA","sps-vit":"SPS VIT","galon-vit":"GALON VIT" };
-
-    let html = `<div class="rtw"><table class="ritase-table">
-      <thead><tr>
-        <th class="th-no">#</th>
-        <th>Pabrik</th>
-        <th>Muatan</th>
-        <th class="th-price">Uang Ritase</th>
-        ${isAdmin ? '<th class="th-act"><i class="fas fa-sliders"></i></th>' : ''}
-      </tr></thead><tbody>`;
-
+    const labels = {"sps-aqua":"SPS AQUA","galon-aqua":"GALON AQUA","sps-vit":"SPS VIT","galon-vit":"GALON VIT"};
+    let html = `<div class="rtw"><table class="ritase-table"><thead><tr>
+      <th class="th-no">#</th><th>Pabrik</th><th>Muatan</th>
+      <th class="th-price">Uang Ritase</th>
+      ${isAdmin?'<th class="th-act"><i class="fas fa-sliders"></i></th>':''}
+    </tr></thead><tbody>`;
     rows.forEach((r, i) => {
-      html += `<tr class="rtr${vit ? " vit-row" : ""}" data-i="${i}">
+      html += `<tr class="rtr${vit?" vit-row":""}" data-i="${i}">
         <td class="td-no">${i+1}</td>
         <td class="td-pabrik">${esc(r[0])}</td>
         <td class="td-muatan"><span class="muatan-chip">${esc(r[1])}</span></td>
         <td class="${priceCls}">${fmt(r[2])}</td>
-        ${isAdmin ? `<td class="td-act"><div class="act-group">
-          <button class="act-btn act-edit" data-target="${target}" data-i="${i}" title="Edit baris"><i class="fas fa-pen-to-square"></i></button>
-          <button class="act-btn act-del"  data-target="${target}" data-i="${i}" title="Hapus baris"><i class="fas fa-trash-can"></i></button>
-        </div></td>` : ''}
+        ${isAdmin?`<td class="td-act"><div class="act-group">
+          <button class="act-btn act-edit" data-target="${target}" data-i="${i}"><i class="fas fa-pen-to-square"></i></button>
+          <button class="act-btn act-del"  data-target="${target}" data-i="${i}"><i class="fas fa-trash-can"></i></button>
+        </div></td>`:''}
       </tr>`;
     });
-
     html += `</tbody></table></div>`;
-    if (isAdmin) {
-      html += `<button class="add-fab-btn" data-target="${target}">
-        <i class="fas fa-plus-circle"></i><span>Tambah Rute ${labels[target]||""}</span>
-      </button>`;
-    }
-
+    if (isAdmin) html += `<button class="add-fab-btn" data-target="${target}"><i class="fas fa-plus-circle"></i><span>Tambah Rute ${labels[target]||""}</span></button>`;
     container.innerHTML = html;
-
-    container.querySelectorAll(".rtr").forEach((tr, i) => {
-      tr.style.animationDelay = `${i * 22}ms`;
-      tr.classList.add("row-in");
-    });
-
-    const cEl = $(`count-${target}`);
-    if (cEl) cEl.textContent = `${rows.length} rute`;
-
+    container.querySelectorAll(".rtr").forEach((tr,i)=>{ tr.style.animationDelay=`${i*22}ms`; tr.classList.add("row-in"); });
+    const cEl = $(`count-${target}`); if (cEl) cEl.textContent = `${rows.length} rute`;
     if (isAdmin) {
-      container.querySelectorAll(".act-edit").forEach(b =>
-        b.addEventListener("click", e => { e.stopPropagation(); openRowEdit(b.dataset.target, +b.dataset.i); })
-      );
-      container.querySelectorAll(".act-del").forEach(b =>
-        b.addEventListener("click", e => { e.stopPropagation(); confirmDelete("ritase", b.dataset.target, +b.dataset.i); })
-      );
-      container.querySelectorAll(".add-fab-btn").forEach(b =>
-        b.addEventListener("click", () => openRowEdit(b.dataset.target, -1))
-      );
+      container.querySelectorAll(".act-edit").forEach(b => b.addEventListener("click", e=>{e.stopPropagation();openRowEdit(b.dataset.target,+b.dataset.i);}));
+      container.querySelectorAll(".act-del").forEach(b => b.addEventListener("click", e=>{e.stopPropagation();confirmDelete("ritase",b.dataset.target,+b.dataset.i);}));
+      container.querySelectorAll(".add-fab-btn").forEach(b => b.addEventListener("click", ()=>openRowEdit(b.dataset.target,-1)));
       attachSwipe(container);
     }
     attachRowZoom(container);
   }
 
-  /* ── renderAll ── */
   function renderAll() {
     render("sps-aqua",   data.spsAqua);
     render("galon-aqua", data.galonAqua);
@@ -698,503 +620,198 @@
     updateAdminBtn();
   }
 
-  /* ── Swipe-to-delete ── */
   function attachSwipe(container) {
-    container.querySelectorAll(".rtr").forEach(tr => {
-      let sx = 0, dx = 0, swiping = false;
-      tr.addEventListener("touchstart", e => { sx = e.touches[0].clientX; dx = 0; swiping = true; }, { passive: true });
-      tr.addEventListener("touchmove", e => {
-        if (!swiping) return;
-        dx = e.touches[0].clientX - sx;
-        if (dx < 0) {
-          tr.style.transform = `translateX(${Math.max(dx, -110)}px)`;
-          tr.style.opacity   = `${1 + dx / 220}`;
-        }
-      }, { passive: true });
-      tr.addEventListener("touchend", () => {
-        swiping = false;
-        if (dx < -75) {
-          tr.style.transition = "transform 0.22s, opacity 0.22s";
-          tr.style.transform  = "translateX(-120%)";
-          tr.style.opacity    = "0";
-          const tgt = tr.closest("[id]")?.id, i = +tr.dataset.i;
-          setTimeout(() => confirmDelete("ritase", tgt, i), 200);
-        } else {
-          tr.style.transition = "transform 0.3s, opacity 0.3s";
-          tr.style.transform  = "";
-          tr.style.opacity    = "";
-          setTimeout(() => { tr.style.transition = ""; }, 320);
-        }
-      });
+    container.querySelectorAll(".rtr").forEach(tr=>{
+      let sx=0,dx=0,sw=false;
+      tr.addEventListener("touchstart",e=>{sx=e.touches[0].clientX;dx=0;sw=true;},{passive:true});
+      tr.addEventListener("touchmove",e=>{if(!sw)return;dx=e.touches[0].clientX-sx;if(dx<0){tr.style.transform=`translateX(${Math.max(dx,-110)}px)`;tr.style.opacity=`${1+dx/220}`;}},{passive:true});
+      tr.addEventListener("touchend",()=>{sw=false;if(dx<-75){tr.style.transition="transform .22s,opacity .22s";tr.style.transform="translateX(-120%)";tr.style.opacity="0";const tgt=tr.closest("[id]")?.id,i=+tr.dataset.i;setTimeout(()=>confirmDelete("ritase",tgt,i),200);}else{tr.style.transition="transform .3s,opacity .3s";tr.style.transform="";tr.style.opacity="";setTimeout(()=>{tr.style.transition="";},320);}});
     });
   }
-
-  /* ── Row expand on tap ── */
   function attachRowZoom(container) {
-    container.querySelectorAll(".rtr").forEach(tr => {
-      tr.addEventListener("click", e => {
-        if (e.target.closest(".act-btn") || e.target.closest(".add-fab-btn")) return;
-        const was = tr.classList.contains("row-active");
-        tr.closest("tbody").querySelectorAll(".row-active").forEach(r => r.classList.remove("row-active"));
-        if (!was) tr.classList.add("row-active");
-      });
+    container.querySelectorAll(".rtr").forEach(tr=>{
+      tr.addEventListener("click",e=>{if(e.target.closest(".act-btn,.add-fab-btn"))return;const was=tr.classList.contains("row-active");tr.closest("tbody").querySelectorAll(".row-active").forEach(r=>r.classList.remove("row-active"));if(!was)tr.classList.add("row-active");});
     });
   }
 
-  /* ══ ROW EDIT MODAL ══ */
+  /* ══ ROW EDIT ══ */
   function openRowEdit(target, index) {
-    const key   = toKey(target);
-    const isNew = index === -1;
-    const row   = isNew ? ["", "", ""] : data[key][index];
-
-    pendingRowEdit = { key, target, index };
-
-    const labels = { "sps-aqua":"SPS AQUA", "galon-aqua":"GALON AQUA", "sps-vit":"SPS VIT", "galon-vit":"GALON VIT" };
-    const titleEl = $("rowEditTitle");
-    if (titleEl) titleEl.innerHTML = isNew
-      ? '<i class="fas fa-circle-plus"></i> Tambah Rute'
-      : '<i class="fas fa-pen-to-square"></i> Edit Rute';
-
-    const secEl = $("rowEditSection");
-    if (secEl) {
-      secEl.textContent = labels[target] || target;
-      secEl.className   = "section-pill " + (isVit(target) ? "badge-vit" : "badge-aqua");
-    }
-
-    const iconEl = $("editIconCircle");
-    if (iconEl) {
-      iconEl.style.background  = isVit(target) ? "rgba(255,69,96,0.12)" : "";
-      iconEl.style.color       = isVit(target) ? "var(--vit)" : "";
-      iconEl.style.borderColor = isVit(target) ? "rgba(255,69,96,0.25)" : "";
-    }
-
-    $("rowEditPabrik").value = row[0];
-    $("rowEditMuatan").value = row[1];
-    $("rowEditHarga").value  = row[2] || "";
-    clearFieldErrors();
-    openModal("rowEditModal");
-    setTimeout(() => $("rowEditPabrik")?.focus(), 230);
+    const key=toKey(target), isNew=index===-1;
+    const row=isNew?["","",""]:data[key][index];
+    pendingRowEdit={key,target,index};
+    const labels={"sps-aqua":"SPS AQUA","galon-aqua":"GALON AQUA","sps-vit":"SPS VIT","galon-vit":"GALON VIT"};
+    const titleEl=$("rowEditTitle");
+    if(titleEl) titleEl.innerHTML=isNew?'<i class="fas fa-circle-plus"></i> Tambah Rute':'<i class="fas fa-pen-to-square"></i> Edit Rute';
+    const secEl=$("rowEditSection");
+    if(secEl){secEl.textContent=labels[target]||target;secEl.className="section-pill "+(isVit(target)?"badge-vit":"badge-aqua");}
+    const iconEl=$("editIconCircle");
+    if(iconEl){iconEl.style.background=isVit(target)?"rgba(255,69,96,0.12)":"";iconEl.style.color=isVit(target)?"var(--vit)":"";iconEl.style.borderColor=isVit(target)?"rgba(255,69,96,0.25)":"";}
+    $("rowEditPabrik").value=row[0]; $("rowEditMuatan").value=row[1]; $("rowEditHarga").value=row[2]||"";
+    clearFieldErrors(); openModal("rowEditModal"); setTimeout(()=>$("rowEditPabrik")?.focus(),230);
   }
 
   function saveRowEdit() {
-    const pabrik = $("rowEditPabrik").value.trim().toUpperCase();
-    const muatan = $("rowEditMuatan").value.trim().toUpperCase();
-    const harga  = parseInt($("rowEditHarga").value.trim());
-    clearFieldErrors();
-    let ok = true;
-    if (!pabrik)          { setFerr("ferrPabrik", "Nama pabrik wajib diisi"); ok = false; }
-    if (!muatan)          { setFerr("ferrMuatan", "Muatan wajib diisi"); ok = false; }
-    if (!harga || harga <= 0) { setFerr("ferrHarga", "Harga harus angka lebih dari 0"); ok = false; }
-    if (!ok) return;
-
-    const { key, target, index } = pendingRowEdit;
-    const isNew = index === -1;
-
-    if (isNew) { data[key].push([pabrik, muatan, harga]); toast(`✦ Rute ditambahkan: ${pabrik}`, "success"); }
-    else       { data[key][index] = [pabrik, muatan, harga]; toast(`✦ Rute diperbarui: ${pabrik}`, "success"); }
-
-    const sectionLabel = { "spsAqua":"SPS AQUA","galonAqua":"GALON AQUA","spsVit":"SPS VIT","galonVit":"GALON VIT" }[key] || key;
-    saveHistory(isNew ? "tambah" : "edit", sectionLabel, `${pabrik} · ${muatan} · Rp${harga.toLocaleString("id-ID")}`);
-
-    /* Simpan ke Firebase Realtime Database */
+    const pabrik=$("rowEditPabrik").value.trim().toUpperCase();
+    const muatan=$("rowEditMuatan").value.trim().toUpperCase();
+    const harga=parseInt($("rowEditHarga").value.trim());
+    clearFieldErrors(); let ok=true;
+    if(!pabrik){setFerr("ferrPabrik","Nama pabrik wajib diisi");ok=false;}
+    if(!muatan){setFerr("ferrMuatan","Muatan wajib diisi");ok=false;}
+    if(!harga||harga<=0){setFerr("ferrHarga","Harga harus angka > 0");ok=false;}
+    if(!ok) return;
+    const {key,target,index}=pendingRowEdit, isNew=index===-1;
+    const sectionLabel={"spsAqua":"SPS AQUA","galonAqua":"GALON AQUA","spsVit":"SPS VIT","galonVit":"GALON VIT"}[key]||key;
+    if(isNew){ data[key].push([pabrik,muatan,harga]); toast(`✦ Rute ditambahkan: ${pabrik}`,"success"); }
+    else     { data[key][index]=[pabrik,muatan,harga]; toast(`✦ Rute diperbarui: ${pabrik}`,"success"); }
+    saveHistory(isNew?"tambah":"edit", sectionLabel, `${pabrik} · ${muatan} · ${fmt(harga)}`);
     saveRitaseToFirebase();
-
     closeModal("rowEditModal");
-    render(target, data[key]);
-    updateStats();
-
-    /* Highlight baris baru/diedit */
-    setTimeout(() => {
-      const rows = document.querySelectorAll(`#${target} .rtr`);
-      const idx  = isNew ? rows.length - 1 : index;
-      if (rows[idx]) {
-        rows[idx].classList.add("row-highlight");
-        setTimeout(() => rows[idx]?.classList.remove("row-highlight"), 2500);
-      }
-    }, 140);
+    render(target, data[key]); updateStats();
+    setTimeout(()=>{
+      const rows=document.querySelectorAll(`#${target} .rtr`);
+      const idx=isNew?rows.length-1:index;
+      if(rows[idx]){rows[idx].classList.add("row-highlight");setTimeout(()=>rows[idx]?.classList.remove("row-highlight"),2500);}
+    },140);
   }
 
-  /* ══ DELETE CONFIRM ══ */
+  /* ══ DELETE ══ */
   function confirmDelete(type, target, index) {
-    let label = "";
-    if (type === "ritase") {
-      const key = toKey(target), row = data[key]?.[index];
-      if (!row) return;
-      label = `${row[0]} · ${row[1]}`;
-      pendingDelete = { type, key, target, index, row: [...row] };
-    } else {
-      const row = dmsData[index];
-      if (!row) return;
-      label = `${row[0]} · ${row[1]}`;
-      pendingDelete = { type, index, row: [...row] };
-    }
-    const lEl = $("deleteLabel");
-    if (lEl) lEl.textContent = label;
+    let label="";
+    if(type==="ritase"){const key=toKey(target),row=data[key]?.[index];if(!row)return;label=`${row[0]} · ${row[1]}`;pendingDelete={type,key,target,index,row:[...row]};}
+    else{const row=dmsData[index];if(!row)return;label=`${row[0]} · ${row[1]}`;pendingDelete={type,index,row:[...row]};}
+    const lEl=$("deleteLabel"); if(lEl)lEl.textContent=label;
     openModal("deleteModal");
   }
 
   function doDelete() {
-    if (!pendingDelete) return;
-    const { type, key, target, index, row } = pendingDelete;
-    undoStack.push({ ...pendingDelete, ts: Date.now() });
-    pendingDelete = null;
-    closeModal("deleteModal");
-
-    if (type === "ritase") {
-      data[key].splice(index, 1);
-      saveHistory("hapus", { "spsAqua":"SPS AQUA","galonAqua":"GALON AQUA","spsVit":"SPS VIT","galonVit":"GALON VIT" }[key] || key, `${row[0]} · ${row[1]}`);
-      saveRitaseToFirebase();
-      render(target, data[key]);
-      updateStats();
+    if(!pendingDelete) return;
+    const{type,key,target,index,row}=pendingDelete;
+    undoStack.push({...pendingDelete, ts:Date.now()});
+    pendingDelete=null; closeModal("deleteModal");
+    if(type==="ritase"){
+      data[key].splice(index,1);
+      saveHistory("hapus",{"spsAqua":"SPS AQUA","galonAqua":"GALON AQUA","spsVit":"SPS VIT","galonVit":"GALON VIT"}[key]||key,`${row[0]} · ${row[1]}`);
+      saveRitaseToFirebase(); render(target,data[key]); updateStats();
     } else {
-      dmsData.splice(index, 1);
-      saveHistory("hapus", "DMS", `${row[0]} · ${row[1]}`);
-      saveDmsToFirebase();
-      renderDmsTable();
+      dmsData.splice(index,1);
+      saveHistory("hapus","DMS",`${row[0]} · ${row[1]}`);
+      saveDmsToFirebase(); renderDmsTable();
     }
-
     showUndoBar(`${row[0]} dihapus`);
   }
 
-  /* ── Undo bar ── */
   function showUndoBar(msg) {
-    let bar = $("undoBar");
-    if (!bar) {
-      bar = document.createElement("div");
-      bar.id = "undoBar";
-      bar.innerHTML = `<span id="undoMsg"></span><button id="undoBtn"><i class="fas fa-rotate-left"></i> Pulihkan</button>`;
-      document.body.appendChild(bar);
-      $("undoBtn").addEventListener("click", doUndo);
-    }
-    $("undoMsg").textContent = msg;
-    bar.classList.add("undo-show");
-    clearTimeout(undoBarTimer);
-    undoBarTimer = setTimeout(() => bar.classList.remove("undo-show"), 5000);
+    let bar=$("undoBar");
+    if(!bar){bar=document.createElement("div");bar.id="undoBar";bar.innerHTML=`<span id="undoMsg"></span><button id="undoBtn"><i class="fas fa-rotate-left"></i> Pulihkan</button>`;document.body.appendChild(bar);$("undoBtn").addEventListener("click",doUndo);}
+    $("undoMsg").textContent=msg; bar.classList.add("undo-show");
+    clearTimeout(undoBarTimer); undoBarTimer=setTimeout(()=>bar.classList.remove("undo-show"),5000);
   }
 
   function doUndo() {
-    const entry = undoStack.pop();
-    if (!entry) return;
-    clearTimeout(undoBarTimer);
-    $("undoBar")?.classList.remove("undo-show");
-    if (entry.type === "ritase") {
-      data[entry.key].splice(entry.index, 0, entry.row);
-      saveRitaseToFirebase();
-      render(entry.target, data[entry.key]);
-      updateStats();
-    } else {
-      dmsData.splice(entry.index, 0, entry.row);
-      saveDmsToFirebase();
-      renderDmsTable();
-    }
-    toast("✦ Data berhasil dipulihkan", "success");
+    const entry=undoStack.pop(); if(!entry)return;
+    clearTimeout(undoBarTimer); $("undoBar")?.classList.remove("undo-show");
+    if(entry.type==="ritase"){data[entry.key].splice(entry.index,0,entry.row);saveRitaseToFirebase();render(entry.target,data[entry.key]);updateStats();}
+    else{dmsData.splice(entry.index,0,entry.row);saveDmsToFirebase();renderDmsTable();}
+    toast("✦ Data berhasil dipulihkan","success");
   }
 
   /* ══ MODAL HELPERS ══ */
-  function openModal(id) {
-    const m = $(id); if (!m) return;
-    m.classList.remove("hidden");
-    requestAnimationFrame(() => m.classList.add("modal-open"));
-    document.body.style.overflow = "hidden";
-  }
-  function closeModal(id) {
-    const m = $(id); if (!m) return;
-    m.classList.remove("modal-open");
-    setTimeout(() => { m.classList.add("hidden"); document.body.style.overflow = ""; }, 300);
-  }
-
-  function setFerr(ferrId, msg) {
-    const el = $(ferrId);
-    if (el) el.textContent = msg;
-  }
-  function clearFieldErrors() {
-    document.querySelectorAll(".ferr").forEach(el => el.textContent = "");
-    document.querySelectorAll(".finput.input-error").forEach(el => el.classList.remove("input-error"));
-  }
-
-  /* ══ ADMIN LOGIN ══ */
-  function setupAdmin() {
-    $("adminPassToggle")?.addEventListener("click", () => {
-      const p = $("adminPassInput");
-      const isP = p.type === "password";
-      p.type = isP ? "text" : "password";
-      $("adminPassToggle").innerHTML = isP ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
-    });
-
-    $("adminBtn")?.addEventListener("click", () => {
-      if (isAdmin) { doAdminLogout(); return; }
-      $("adminEmailInput").value = "";
-      $("adminPassInput").value  = "";
-      const err = $("adminError");
-      if (err) err.textContent = "";
-      clearFieldErrors();
-      openModal("adminModal");
-      setTimeout(() => $("adminEmailInput")?.focus(), 240);
-    });
-
-    $("adminXClose")?.addEventListener("click",  () => closeModal("adminModal"));
-    $("adminCancel")?.addEventListener("click",  () => closeModal("adminModal"));
-    $("adminConfirm")?.addEventListener("click", tryAdminLogin);
-    [$("adminEmailInput"), $("adminPassInput")].forEach(inp =>
-      inp?.addEventListener("keydown", e => { if (e.key === "Enter") tryAdminLogin(); })
-    );
-    $("adminModal")?.addEventListener("click", e => { if (e.target === $("adminModal")) closeModal("adminModal"); });
-
-    /* Delete modal */
-    $("deleteConfirm")?.addEventListener("click", doDelete);
-    $("deleteCancel")?.addEventListener("click",  () => { closeModal("deleteModal"); pendingDelete = null; });
-    $("deleteModal")?.addEventListener("click",   e => { if (e.target === $("deleteModal")) { closeModal("deleteModal"); pendingDelete = null; } });
-
-    /* Row edit modal */
-    $("rowEditX")?.addEventListener("click",       () => { closeModal("rowEditModal"); pendingRowEdit = null; clearFieldErrors(); });
-    $("rowEditCancel")?.addEventListener("click",  () => { closeModal("rowEditModal"); pendingRowEdit = null; clearFieldErrors(); });
-    $("rowEditConfirm")?.addEventListener("click", saveRowEdit);
-    $("rowEditHarga")?.addEventListener("keydown", e => { if (e.key === "Enter") saveRowEdit(); });
-    $("rowEditModal")?.addEventListener("click",   e => { if (e.target === $("rowEditModal")) { closeModal("rowEditModal"); pendingRowEdit = null; clearFieldErrors(); } });
-
-    /* DMS edit modal */
-    $("dmsEditX")?.addEventListener("click",       () => closeModal("dmsEditModal"));
-    $("dmsEditCancel")?.addEventListener("click",  () => closeModal("dmsEditModal"));
-    $("dmsEditConfirm")?.addEventListener("click", saveDmsEdit);
-    ["dmsEditKode","dmsEditNama"].forEach(id => $(id)?.addEventListener("keydown", e => { if (e.key === "Enter") saveDmsEdit(); }));
-    $("dmsEditModal")?.addEventListener("click",   e => { if (e.target === $("dmsEditModal")) closeModal("dmsEditModal"); });
-
-    /* DMS add button */
-    $("dmsAddBtn")?.addEventListener("click", () => openDmsEdit(-1));
-
-    /* History modal */
-    $("histBtn")?.addEventListener("click", () => openModal("historyModal"));
-    $("historyClose")?.addEventListener("click", () => closeModal("historyModal"));
-    $("historyModal")?.addEventListener("click", e => { if (e.target === $("historyModal")) closeModal("historyModal"); });
-  }
-
-  async function tryAdminLogin() {
-    const email = $("adminEmailInput").value.trim();
-    const pass  = $("adminPassInput").value.trim();
-    const errEl = $("adminError");
-    if (errEl) errEl.textContent = "";
-
-    if (!email || !pass) {
-      if (!email) setFerr("ferrEmail", "Email wajib diisi");
-      if (!pass)  setFerr("ferrPass",  "Password wajib diisi");
-      return;
-    }
-
-    try {
-      await signInWithEmailAndPassword(auth, email, pass);
-      closeModal("adminModal");
-      toast("✦ Login berhasil, selamat datang Admin!", "success");
-    } catch(err) {
-      if (errEl) {
-        errEl.textContent = "Email atau password salah";
-        errEl.style.display = "flex";
-      }
-      const box = $("adminModal")?.querySelector(".modal-box");
-      if (box) {
-        box.classList.add("modal-shake");
-        setTimeout(() => box.classList.remove("modal-shake"), 450);
-      }
-      toast("Email atau password salah", "error");
-    }
-  }
-
-  onAuthStateChanged(auth, (user) => {
-    isAdmin = !!user;
-
-    /* Tampilkan/sembunyikan tombol histori */
-    const histBtn = $("histBtn");
-    if (histBtn) histBtn.style.display = isAdmin ? "flex" : "none";
-
-    /* Update tombol admin */
-    const btn = $("adminBtn");
-    if (btn) {
-      if (isAdmin) {
-        /* Mulai countdown 5 menit */
-        clearInterval(adminTimer);
-        adminTimeLeft = 300;
-        updateAdminBtn();
-        adminTimer = setInterval(() => {
-          adminTimeLeft--;
-          updateAdminBtn();
-          if (adminTimeLeft <= 0) {
-            clearInterval(adminTimer);
-            signOut(auth);
-          }
-        }, 1000);
-      } else {
-        clearInterval(adminTimer);
-        btn.classList.remove("countdown");
-        btn.innerHTML = '<i class="fas fa-lock"></i>';
-      }
-    }
-
-    renderAll();
-    renderDmsTable();
-  });
-
-  function doAdminLogout() {
-    signOut(auth);
-    toast("Logout berhasil", "info");
-  }
-
-  function updateAdminBtn() {
-    const btn = $("adminBtn"); if (!btn || !isAdmin) return;
-    btn.classList.add("countdown");
-    const m   = Math.floor(adminTimeLeft / 60);
-    const s   = adminTimeLeft % 60;
-    const pct = (adminTimeLeft / 300) * 276;
-    btn.innerHTML = `
-      <svg class="timer-ring" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,69,96,0.18)" stroke-width="8"/>
-        <circle cx="50" cy="50" r="44" fill="none" stroke="#ff4560" stroke-width="8"
-          stroke-dasharray="276" stroke-dashoffset="${276 - pct}"
-          stroke-linecap="round" transform="rotate(-90 50 50)"
-          style="transition:stroke-dashoffset 0.95s linear"/>
-      </svg>
-      <span class="timer-text">${m}:${s.toString().padStart(2,"0")}</span>`;
-  }
+  function openModal(id){const m=$(id);if(!m)return;m.classList.remove("hidden");requestAnimationFrame(()=>m.classList.add("modal-open"));document.body.style.overflow="hidden";}
+  function closeModal(id){const m=$(id);if(!m)return;m.classList.remove("modal-open");setTimeout(()=>{m.classList.add("hidden");document.body.style.overflow="";},300);}
+  function setFerr(id,msg){const el=$(id);if(el)el.textContent=msg;}
+  function clearFieldErrors(){document.querySelectorAll(".ferr").forEach(el=>el.textContent="");}
 
   /* ══ SORT ══ */
   function setupSort() {
-    document.querySelectorAll(".card-sort").forEach(btn => {
-      const target = btn.dataset.target;
-      sortState[target] = "none";
-      btn.addEventListener("click", () => {
-        const key = toKey(target);
-        if (sortState[target] !== "asc") {
-          data[key].sort((a,b) => a[2]-b[2]); sortState[target] = "asc";
-          btn.classList.add("asc"); btn.classList.remove("desc");
-        } else {
-          data[key].sort((a,b) => b[2]-a[2]); sortState[target] = "desc";
-          btn.classList.add("desc"); btn.classList.remove("asc");
-        }
-        render(target, data[key]);
+    document.querySelectorAll(".card-sort").forEach(btn=>{
+      const target=btn.dataset.target; sortState[target]="none";
+      btn.addEventListener("click",()=>{
+        const key=toKey(target);
+        if(sortState[target]!=="asc"){data[key].sort((a,b)=>a[2]-b[2]);sortState[target]="asc";btn.classList.add("asc");btn.classList.remove("desc");}
+        else{data[key].sort((a,b)=>b[2]-a[2]);sortState[target]="desc";btn.classList.add("desc");btn.classList.remove("asc");}
+        render(target,data[key]);
       });
     });
   }
 
   /* ══ FILTER ══ */
   function setupFilter() {
-    const btns  = document.querySelectorAll(".filter-btn");
-    const cards = document.querySelectorAll(".glass-card");
-    btns.forEach(btn => btn.addEventListener("click", () => {
-      btns.forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      const f = btn.dataset.filter;
-      cards.forEach(c => { c.style.display = (f === "all" || (c.dataset.category||"").includes(f)) ? "" : "none"; });
+    const btns=document.querySelectorAll(".filter-btn"), cards=document.querySelectorAll(".glass-card");
+    btns.forEach(btn=>btn.addEventListener("click",()=>{
+      btns.forEach(b=>b.classList.remove("active")); btn.classList.add("active");
+      const f=btn.dataset.filter;
+      cards.forEach(c=>{c.style.display=(f==="all"||(c.dataset.category||"").includes(f))?"":"none";});
     }));
   }
 
   /* ══ DMS TABLE ══ */
   function renderDmsTable() {
-    const tbody = document.querySelector("#dmsTable tbody");
-    if (!tbody) return;
-    tbody.innerHTML = "";
-
-    dmsData.forEach((row, i) => {
-      const tr = document.createElement("tr");
-      tr.className = "dms-row";
-      tr.style.animationDelay = `${i * 18}ms`;
-      tr.innerHTML = `
+    const tbody=document.querySelector("#dmsTable tbody"); if(!tbody)return;
+    tbody.innerHTML="";
+    dmsData.forEach((row,i)=>{
+      const tr=document.createElement("tr"); tr.className="dms-row"; tr.style.animationDelay=`${i*18}ms`;
+      tr.innerHTML=`
         <td class="dms-td-kode"><span class="kode-chip">${esc(row[0])}</span></td>
         <td class="dms-td-nama">${esc(row[1])}</td>
-        ${isAdmin ? `<td class="td-act"><div class="act-group">
-          <button class="act-btn act-edit" data-i="${i}" title="Edit"><i class="fas fa-pen-to-square"></i></button>
-          <button class="act-btn act-del"  data-i="${i}" title="Hapus"><i class="fas fa-trash-can"></i></button>
-        </div></td>` : ""}`;
-
-      tr.addEventListener("click", e => {
-        if (e.target.closest(".act-btn")) return;
-        document.querySelectorAll("#dmsTable tbody tr.active-row").forEach(r => r.classList.remove("active-row"));
+        ${isAdmin?`<td class="td-act"><div class="act-group">
+          <button class="act-btn act-edit" data-i="${i}"><i class="fas fa-pen-to-square"></i></button>
+          <button class="act-btn act-del"  data-i="${i}"><i class="fas fa-trash-can"></i></button>
+        </div></td>`:""}`;
+      tr.addEventListener("click",e=>{
+        if(e.target.closest(".act-btn"))return;
+        document.querySelectorAll("#dmsTable tbody tr.active-row").forEach(r=>r.classList.remove("active-row"));
         tr.classList.add("active-row");
-        navigator.clipboard?.writeText(row[0]).then(() => toast(`📋 Disalin: ${row[0]} · ${row[1]}`, "info", 2200)).catch(() => {});
+        navigator.clipboard?.writeText(row[0]).then(()=>toast(`📋 Disalin: ${row[0]} · ${row[1]}`,"info",2200)).catch(()=>{});
       });
-
-      tbody.appendChild(tr);
-      requestAnimationFrame(() => tr.classList.add("row-in"));
+      tbody.appendChild(tr); requestAnimationFrame(()=>tr.classList.add("row-in"));
     });
-
-    if (isAdmin) {
-      tbody.querySelectorAll(".act-edit").forEach(b =>
-        b.addEventListener("click", e => { e.stopPropagation(); openDmsEdit(+b.dataset.i); })
-      );
-      tbody.querySelectorAll(".act-del").forEach(b =>
-        b.addEventListener("click", e => { e.stopPropagation(); confirmDelete("dms", null, +b.dataset.i); })
-      );
+    if(isAdmin){
+      tbody.querySelectorAll(".act-edit").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();openDmsEdit(+b.dataset.i);}));
+      tbody.querySelectorAll(".act-del").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();confirmDelete("dms",null,+b.dataset.i);}));
     }
-
-    const dmsCount = $("dmsCount");
-    if (dmsCount) dmsCount.textContent = `${dmsData.length} pabrik`;
-
-    const addWrap = $("dmsAddWrap");
-    if (addWrap) addWrap.style.display = isAdmin ? "flex" : "none";
-
-    const thead = document.querySelector("#dmsTable thead tr");
-    if (thead) {
-      const ex = thead.querySelector(".th-act-dms");
-      if (isAdmin && !ex) {
-        const th = document.createElement("th");
-        th.className = "th-act-dms th-act";
-        th.innerHTML = '<i class="fas fa-sliders"></i>';
-        thead.appendChild(th);
-      } else if (!isAdmin && ex) {
-        ex.remove();
-      }
+    const dc=$("dmsCount"); if(dc)dc.textContent=`${dmsData.length} pabrik`;
+    const aw=$("dmsAddWrap"); if(aw)aw.style.display=isAdmin?"flex":"none";
+    const thead=document.querySelector("#dmsTable thead tr");
+    if(thead){
+      const ex=thead.querySelector(".th-act-dms");
+      if(isAdmin&&!ex){const th=document.createElement("th");th.className="th-act-dms th-act";th.innerHTML='<i class="fas fa-sliders"></i>';thead.appendChild(th);}
+      else if(!isAdmin&&ex)ex.remove();
     }
-
     setupSearch();
   }
 
   function openDmsEdit(index) {
-    const isNew = index === -1;
-    const row   = isNew ? ["", ""] : dmsData[index];
-    const titleEl = $("dmsEditTitle");
-    if (titleEl) titleEl.innerHTML = isNew
-      ? '<i class="fas fa-circle-plus"></i> Tambah Pabrik'
-      : '<i class="fas fa-pen-to-square"></i> Edit Pabrik';
-    $("dmsEditKode").value  = row[0];
-    $("dmsEditNama").value  = row[1];
-    $("dmsEditIndex").value = index;
-    clearFieldErrors();
-    openModal("dmsEditModal");
-    setTimeout(() => $("dmsEditKode")?.focus(), 230);
+    const isNew=index===-1, row=isNew?["",""]:dmsData[index];
+    const titleEl=$("dmsEditTitle");
+    if(titleEl)titleEl.innerHTML=isNew?'<i class="fas fa-circle-plus"></i> Tambah Pabrik':'<i class="fas fa-pen-to-square"></i> Edit Pabrik';
+    $("dmsEditKode").value=row[0]; $("dmsEditNama").value=row[1]; $("dmsEditIndex").value=index;
+    clearFieldErrors(); openModal("dmsEditModal"); setTimeout(()=>$("dmsEditKode")?.focus(),230);
   }
 
   function saveDmsEdit() {
-    const kode  = $("dmsEditKode").value.trim().toUpperCase();
-    const nama  = $("dmsEditNama").value.trim().toUpperCase();
-    const index = parseInt($("dmsEditIndex").value);
-    const isNew = index === -1;
-    clearFieldErrors();
-    let ok = true;
-    if (!kode) { setFerr("ferrKode", "Kode wajib diisi"); ok = false; }
-    if (!nama)  { setFerr("ferrNama", "Nama pabrik wajib diisi"); ok = false; }
-    if (!ok) return;
-
-    if (isNew) { dmsData.push([kode, nama]); toast(`✦ Pabrik ditambahkan: ${kode}`, "success"); }
-    else       { dmsData[index] = [kode, nama]; toast(`✦ Pabrik diperbarui: ${kode}`, "success"); }
-
-    saveHistory(isNew ? "tambah" : "edit", "DMS", `${kode} · ${nama}`);
-    saveDmsToFirebase();
-    closeModal("dmsEditModal");
-    renderDmsTable();
+    const kode=$("dmsEditKode").value.trim().toUpperCase();
+    const nama=$("dmsEditNama").value.trim().toUpperCase();
+    const index=parseInt($("dmsEditIndex").value), isNew=index===-1;
+    clearFieldErrors(); let ok=true;
+    if(!kode){setFerr("ferrKode","Kode wajib diisi");ok=false;}
+    if(!nama){setFerr("ferrNama","Nama pabrik wajib diisi");ok=false;}
+    if(!ok) return;
+    if(isNew){dmsData.push([kode,nama]);toast(`✦ Pabrik ditambahkan: ${kode}`,"success");}
+    else{dmsData[index]=[kode,nama];toast(`✦ Pabrik diperbarui: ${kode}`,"success");}
+    saveHistory(isNew?"tambah":"edit","DMS",`${kode} · ${nama}`);
+    saveDmsToFirebase(); closeModal("dmsEditModal"); renderDmsTable();
   }
 
   /* ══ RENDER HISTORY ══ */
   function renderHistory() {
-    const list = $("historyList");
-    if (!list) return;
-    if (!historyData.length) {
-      list.innerHTML = `<div class="hist-empty"><i class="fas fa-inbox"></i><p>Belum ada histori perubahan</p></div>`;
-      return;
-    }
-    const actionIcon = { tambah:"<i class='fas fa-plus-circle' style='color:#00e676'></i>", edit:"<i class='fas fa-pen-to-square' style='color:#ffc107'></i>", hapus:"<i class='fas fa-trash-can' style='color:#ff4560'></i>" };
-    const actionLabel = { tambah:"Tambah", edit:"Edit", hapus:"Hapus" };
-    list.innerHTML = historyData.map(h => {
-      const d = new Date(h.ts);
-      const tStr = d.toLocaleString("id-ID", { day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" });
+    const list=$("historyList"); if(!list)return;
+    if(!historyData.length){list.innerHTML=`<div class="hist-empty"><i class="fas fa-inbox"></i><p>Belum ada histori</p></div>`;return;}
+    const aIcon={tambah:"<i class='fas fa-plus-circle' style='color:#00e676'></i>",edit:"<i class='fas fa-pen-to-square' style='color:#ffc107'></i>",hapus:"<i class='fas fa-trash-can' style='color:#ff4560'></i>"};
+    const aLabel={tambah:"Tambah",edit:"Edit",hapus:"Hapus"};
+    list.innerHTML=historyData.map(h=>{
+      const tStr=new Date(h.ts).toLocaleString("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
       return `<div class="hist-item">
-        <div class="hist-action">${actionIcon[h.action] || "•"} <span class="hist-badge hist-${h.action}">${actionLabel[h.action]||h.action}</span></div>
+        <div class="hist-action">${aIcon[h.action]||"•"} <span class="hist-badge hist-${h.action}">${aLabel[h.action]||h.action}</span></div>
         <div class="hist-detail">${esc(h.detail)}</div>
         <div class="hist-meta"><span class="hist-section">${esc(h.section)}</span> · <span class="hist-time">${tStr}</span></div>
       </div>`;
@@ -1203,85 +820,133 @@
 
   /* ══ SEARCH DMS ══ */
   function setupSearch() {
-    const si = $("searchInput"), sc = $("searchClear"), dt = $("dmsTable");
-    const nr = $("noResult"), nq = $("noResultQuery"), dc = $("dmsCount");
-    if (!si || !dt) return;
-
-    const allRows = Array.from(dt.querySelectorAll("tbody tr"));
-    const total   = dmsData.length;
-
-    function doSearch() {
-      const q = si.value.toUpperCase().trim();
-      let vis = 0;
-      allRows.forEach(r => { const m = r.textContent.toUpperCase().includes(q); r.style.display = m ? "" : "none"; if (m) vis++; });
-      if (sc) sc.style.display = q ? "flex" : "none";
-      if (nr) { nr.classList.toggle("hidden", vis > 0 || !q); if (nq) nq.textContent = si.value; }
-      if (dc) dc.textContent = q ? `${vis} dari ${total} pabrik` : `${total} pabrik`;
+    const si=$("searchInput"),sc=$("searchClear"),dt=$("dmsTable");
+    const nr=$("noResult"),nq=$("noResultQuery"),dc=$("dmsCount");
+    if(!si||!dt)return;
+    const allRows=Array.from(dt.querySelectorAll("tbody tr")), total=dmsData.length;
+    function doSearch(){
+      const q=si.value.toUpperCase().trim(); let vis=0;
+      allRows.forEach(r=>{const m=r.textContent.toUpperCase().includes(q);r.style.display=m?"":"none";if(m)vis++;});
+      if(sc)sc.style.display=q?"flex":"none";
+      if(nr){nr.classList.toggle("hidden",vis>0||!q);if(nq)nq.textContent=si.value;}
+      if(dc)dc.textContent=q?`${vis} dari ${total} pabrik`:`${total} pabrik`;
     }
-
-    const ni = si.cloneNode(true); si.parentNode.replaceChild(ni, si);
-    ni.addEventListener("input", doSearch);
-    if (sc) {
-      const nc = sc.cloneNode(true); sc.parentNode.replaceChild(nc, sc);
-      nc.addEventListener("click", () => { ni.value = ""; doSearch(); ni.focus(); });
-    }
+    const ni=si.cloneNode(true); si.parentNode.replaceChild(ni,si); ni.addEventListener("input",doSearch);
+    if(sc){const nc=sc.cloneNode(true);sc.parentNode.replaceChild(nc,sc);nc.addEventListener("click",()=>{ni.value="";doSearch();ni.focus();});}
   }
 
   /* ══ CHAT ══ */
   function setupChat() {
-    const toggle = $("chatToggle"), box = $("chatBox"), close = $("chatClose"), wa = $("chatWA");
-    const typing = $("typing"), bubbles = document.querySelectorAll(".bubble.bot");
-    const sound = $("chatSound"), notif = document.querySelector(".chat-notif");
-
-    const reset = () => { bubbles.forEach(b => b.classList.add("hidden")); typing?.classList.add("hidden"); wa?.classList.add("hidden"); };
-    const seq   = () => {
-      reset(); let d = 600;
-      bubbles.forEach(b => {
-        setTimeout(() => { typing?.classList.remove("hidden"); setTimeout(() => { typing?.classList.add("hidden"); b.classList.remove("hidden"); sound && (sound.currentTime = 0, sound.play().catch(() => {})); }, 700); }, d);
-        d += 1400;
-      });
-      setTimeout(() => wa?.classList.remove("hidden"), d + 200);
-    };
-    toggle?.addEventListener("click", () => {
-      const open = box.classList.toggle("show");
-      if (open) { notif && (notif.style.display = "none"); !chatOpened && (chatOpened = true, seq()); }
-    });
-    close?.addEventListener("click", () => box.classList.remove("show"));
-    document.addEventListener("click", e => { if (box?.classList.contains("show") && !box.contains(e.target) && !toggle.contains(e.target)) box.classList.remove("show"); });
+    const toggle=$("chatToggle"),box=$("chatBox"),close=$("chatClose"),wa=$("chatWA");
+    const typing=$("typing"),bubbles=document.querySelectorAll(".bubble.bot");
+    const sound=$("chatSound"),notif=document.querySelector(".chat-notif");
+    const reset=()=>{bubbles.forEach(b=>b.classList.add("hidden"));typing?.classList.add("hidden");wa?.classList.add("hidden");};
+    const seq=()=>{reset();let d=600;bubbles.forEach(b=>{setTimeout(()=>{typing?.classList.remove("hidden");setTimeout(()=>{typing?.classList.add("hidden");b.classList.remove("hidden");sound&&(sound.currentTime=0,sound.play().catch(()=>{}));},700);},d);d+=1400;});setTimeout(()=>wa?.classList.remove("hidden"),d+200);};
+    toggle?.addEventListener("click",()=>{const open=box.classList.toggle("show");if(open){notif&&(notif.style.display="none");!chatOpened&&(chatOpened=true,seq());}});
+    close?.addEventListener("click",()=>box.classList.remove("show"));
+    document.addEventListener("click",e=>{if(box?.classList.contains("show")&&!box.contains(e.target)&&!toggle.contains(e.target))box.classList.remove("show");});
   }
 
   /* ══ CLOCK ══ */
   function startClock() {
-    const tick = () => {
-      const el = $("datetime"); if (!el) return;
-      el.textContent = new Date().toLocaleString("id-ID", { weekday:"short", day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit", second:"2-digit" }) + " WIB";
-    };
-    tick(); setInterval(tick, 1000);
+    const tick=()=>{const el=$("datetime");if(!el)return;el.textContent=new Date().toLocaleString("id-ID",{weekday:"short",day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit"})+" WIB";};
+    tick(); setInterval(tick,1000);
   }
 
   /* ══ VISITOR ══ */
   function initVisitor() {
-    let c = parseInt(localStorage.getItem("visCount") || "1540") + 1;
-    localStorage.setItem("visCount", c);
-    const el = $("visitorNumber"); if (!el) return;
-    let s = c - 20;
-    const step = () => { s++; el.textContent = s; if (s < c) requestAnimationFrame(step); };
-    requestAnimationFrame(step);
+    let c=parseInt(localStorage.getItem("visCount")||"1540")+1; localStorage.setItem("visCount",c);
+    const el=$("visitorNumber"); if(!el)return; let s=c-20;
+    const step=()=>{s++;el.textContent=s;if(s<c)requestAnimationFrame(step);}; requestAnimationFrame(step);
+  }
+
+  /* ══ ADMIN ══ */
+  function setupAdmin() {
+    $("adminPassToggle")?.addEventListener("click",()=>{
+      const p=$("adminPassInput"),isP=p.type==="password"; p.type=isP?"text":"password";
+      $("adminPassToggle").innerHTML=isP?'<i class="fas fa-eye-slash"></i>':'<i class="fas fa-eye"></i>';
+    });
+    $("adminBtn")?.addEventListener("click",()=>{
+      if(isAdmin){signOut(auth);toast("Logout berhasil","info");return;}
+      $("adminEmailInput").value=""; $("adminPassInput").value="";
+      const err=$("adminError");if(err)err.textContent="";
+      clearFieldErrors(); openModal("adminModal"); setTimeout(()=>$("adminEmailInput")?.focus(),240);
+    });
+    $("adminXClose")?.addEventListener("click",()=>closeModal("adminModal"));
+    $("adminCancel")?.addEventListener("click",()=>closeModal("adminModal"));
+    $("adminConfirm")?.addEventListener("click",tryAdminLogin);
+    [$("adminEmailInput"),$("adminPassInput")].forEach(inp=>inp?.addEventListener("keydown",e=>{if(e.key==="Enter")tryAdminLogin();}));
+    $("adminModal")?.addEventListener("click",e=>{if(e.target===$("adminModal"))closeModal("adminModal");});
+    $("deleteConfirm")?.addEventListener("click",doDelete);
+    $("deleteCancel")?.addEventListener("click",()=>{closeModal("deleteModal");pendingDelete=null;});
+    $("deleteModal")?.addEventListener("click",e=>{if(e.target===$("deleteModal")){closeModal("deleteModal");pendingDelete=null;}});
+    $("rowEditX")?.addEventListener("click",()=>{closeModal("rowEditModal");pendingRowEdit=null;clearFieldErrors();});
+    $("rowEditCancel")?.addEventListener("click",()=>{closeModal("rowEditModal");pendingRowEdit=null;clearFieldErrors();});
+    $("rowEditConfirm")?.addEventListener("click",saveRowEdit);
+    $("rowEditHarga")?.addEventListener("keydown",e=>{if(e.key==="Enter")saveRowEdit();});
+    $("rowEditModal")?.addEventListener("click",e=>{if(e.target===$("rowEditModal")){closeModal("rowEditModal");pendingRowEdit=null;clearFieldErrors();}});
+    $("dmsEditX")?.addEventListener("click",()=>closeModal("dmsEditModal"));
+    $("dmsEditCancel")?.addEventListener("click",()=>closeModal("dmsEditModal"));
+    $("dmsEditConfirm")?.addEventListener("click",saveDmsEdit);
+    ["dmsEditKode","dmsEditNama"].forEach(id=>$(id)?.addEventListener("keydown",e=>{if(e.key==="Enter")saveDmsEdit();}));
+    $("dmsEditModal")?.addEventListener("click",e=>{if(e.target===$("dmsEditModal"))closeModal("dmsEditModal");});
+    $("dmsAddBtn")?.addEventListener("click",()=>openDmsEdit(-1));
+    $("histBtn")?.addEventListener("click",()=>openModal("historyModal"));
+    $("historyClose")?.addEventListener("click",()=>closeModal("historyModal"));
+    $("historyModal")?.addEventListener("click",e=>{if(e.target===$("historyModal"))closeModal("historyModal");});
+  }
+
+  async function tryAdminLogin() {
+    const email=$("adminEmailInput").value.trim(), pass=$("adminPassInput").value.trim();
+    const errEl=$("adminError"); if(errEl)errEl.textContent="";
+    if(!email||!pass){if(!email)setFerr("ferrEmail","Email wajib diisi");if(!pass)setFerr("ferrPass","Password wajib diisi");return;}
+    try {
+      await signInWithEmailAndPassword(auth,email,pass);
+      closeModal("adminModal"); toast("✦ Login berhasil!","success");
+    } catch(err) {
+      if(errEl){errEl.textContent="Email atau password salah";errEl.style.display="flex";}
+      const box=$("adminModal")?.querySelector(".modal-box");
+      if(box){box.classList.add("modal-shake");setTimeout(()=>box.classList.remove("modal-shake"),450);}
+      toast("Email atau password salah","error");
+    }
+  }
+
+  onAuthStateChanged(auth, user => {
+    isAdmin = !!user;
+    const histBtn=$("histBtn"); if(histBtn)histBtn.style.display=isAdmin?"flex":"none";
+    const btn=$("adminBtn");
+    if(btn){
+      if(isAdmin){
+        clearInterval(adminTimer); adminTimeLeft=300; updateAdminBtn();
+        adminTimer=setInterval(()=>{ adminTimeLeft--; updateAdminBtn(); if(adminTimeLeft<=0){clearInterval(adminTimer);signOut(auth);} },1000);
+      } else {
+        clearInterval(adminTimer); btn.classList.remove("countdown"); btn.innerHTML='<i class="fas fa-lock"></i>';
+      }
+    }
+    renderAll(); renderDmsTable();
+  });
+
+  function updateAdminBtn() {
+    const btn=$("adminBtn"); if(!btn||!isAdmin) return;
+    btn.classList.add("countdown");
+    const m=Math.floor(adminTimeLeft/60), s=adminTimeLeft%60, pct=(adminTimeLeft/300)*276;
+    btn.innerHTML=`<svg class="timer-ring" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,69,96,0.18)" stroke-width="8"/>
+      <circle cx="50" cy="50" r="44" fill="none" stroke="#ff4560" stroke-width="8"
+        stroke-dasharray="276" stroke-dashoffset="${276-pct}"
+        stroke-linecap="round" transform="rotate(-90 50 50)"
+        style="transition:stroke-dashoffset 0.95s linear"/>
+    </svg><span class="timer-text">${m}:${s.toString().padStart(2,"0")}</span>`;
   }
 
   /* ══ INIT ══ */
   document.addEventListener("DOMContentLoaded", () => {
-    startClock();
-    initVisitor();
-    setupSort();
-    setupFilter();
-    setupAdmin();
-    setupChat();
-
-    document.querySelectorAll(".glass-card").forEach((c, i) => { c.style.animationDelay = `${i * 0.07}s`; });
-    setTimeout(() => toast("Menghubungkan ke Firebase… ✦", "info", 2000), 400);
+    startClock(); initVisitor(); setupSort(); setupFilter(); setupAdmin(); setupChat();
+    document.querySelectorAll(".glass-card").forEach((c,i)=>{c.style.animationDelay=`${i*0.07}s`;});
+    setTimeout(()=>toast("Menghubungkan ke Firebase… ✦","info",2000),400);
   });
 </script>
 
 </body>
 </html>
+
