@@ -820,19 +820,32 @@
 
   /* ══ SEARCH DMS ══ */
   function setupSearch() {
-    const si=$("searchInput"),sc=$("searchClear"),dt=$("dmsTable");
-    const nr=$("noResult"),nq=$("noResultQuery"),dc=$("dmsCount");
-    if(!si||!dt)return;
-    const allRows=Array.from(dt.querySelectorAll("tbody tr")), total=dmsData.length;
-    function doSearch(){
-      const q=si.value.toUpperCase().trim(); let vis=0;
-      allRows.forEach(r=>{const m=r.textContent.toUpperCase().includes(q);r.style.display=m?"":"none";if(m)vis++;});
-      if(sc)sc.style.display=q?"flex":"none";
-      if(nr){nr.classList.toggle("hidden",vis>0||!q);if(nq)nq.textContent=si.value;}
-      if(dc)dc.textContent=q?`${vis} dari ${total} pabrik`:`${total} pabrik`;
+    const si = $("searchInput");
+    const sc = $("searchClear");
+    if (!si || si.dataset.searchReady) return;   // sudah dipasang, jangan duplikat
+    si.dataset.searchReady = "1";
+
+    function doSearch() {
+      const dt  = $("dmsTable");
+      const nr  = $("noResult");
+      const nq  = $("noResultQuery");
+      const dc  = $("dmsCount");
+      if (!dt) return;
+      const q   = si.value.toUpperCase().trim();
+      const rows = Array.from(dt.querySelectorAll("tbody tr"));
+      let vis = 0;
+      rows.forEach(r => {
+        const match = r.textContent.toUpperCase().includes(q);
+        r.style.display = match ? "" : "none";
+        if (match) vis++;
+      });
+      if (sc) sc.style.display = q ? "flex" : "none";
+      if (nr) { nr.classList.toggle("hidden", vis > 0 || !q); if (nq) nq.textContent = si.value; }
+      if (dc) dc.textContent = q ? `${vis} dari ${dmsData.length} pabrik` : `${dmsData.length} pabrik`;
     }
-    const ni=si.cloneNode(true); si.parentNode.replaceChild(ni,si); ni.addEventListener("input",doSearch);
-    if(sc){const nc=sc.cloneNode(true);sc.parentNode.replaceChild(nc,sc);nc.addEventListener("click",()=>{ni.value="";doSearch();ni.focus();});}
+
+    si.addEventListener("input", doSearch);
+    sc?.addEventListener("click", () => { si.value = ""; doSearch(); si.focus(); });
   }
 
   /* ══ CHAT ══ */
@@ -949,5 +962,4 @@
 
 </body>
 </html>
-
 
