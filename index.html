@@ -370,11 +370,10 @@
 
 <!-- ══════════ FIREBASE + APP (single module) ══════════ -->
 <script type="module">
-  import { initializeApp }              from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, set, push,
-           onValue, serverTimestamp }   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { initializeApp }                        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set, push, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
   import { getAuth, signInWithEmailAndPassword,
-           signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+           signOut, onAuthStateChanged }           from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
   /* ── Firebase Config ── */
   const firebaseConfig = {
@@ -391,9 +390,7 @@
   const db   = getDatabase(app);
   const auth = getAuth(app);
 
-  /* ══════════════════════════════════════════════════════
-     STATE
-  ══════════════════════════════════════════════════════ */
+  /* ══ STATE ══ */
   let isAdmin        = false;
   let adminTimer     = null;
   let adminTimeLeft  = 300;
@@ -403,8 +400,11 @@
   let undoStack      = [];
   let chatOpened     = false;
   let undoBarTimer   = null;
-  let isSaving       = false;
   let historyData    = [];
+  /* localWrite: timestamp terakhir kita write ke Firebase.
+     Listener akan skip snapshot yg datang dalam 4 detik setelah write
+     karena itu adalah echo dari write kita sendiri. */
+  let localWriteTs   = 0;
 
   /* ── Default Data ── */
   const defaultData = {
@@ -449,115 +449,145 @@
     ["90A5-9000","XWH SENTUL"]
   ];
 
-  /* Data aktif (akan diisi dari Firebase) */
+  /* Data aktif */
   const data = JSON.parse(JSON.stringify(defaultData));
   let dmsData = JSON.parse(JSON.stringify(defaultDms));
 
   /* ══ UTILS ══ */
-  const $      = id => document.getElementById(id);
-  const esc    = s  => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-  const fmt    = n  => "Rp\u00A0" + Number(n).toLocaleString("id-ID");
-  const toKey  = t  => t.replace(/-([a-z])/g, (_,c) => c.toUpperCase());
-  const isVit  = t  => t.includes("vit");
+  const $     = id => document.getElementById(id);
+  const esc   = s  => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const fmt   = n  => "Rp\u00A0" + Number(n).toLocaleString("id-ID");
+  const toKey = t  => t.replace(/-([a-z])/g, (_,c) => c.toUpperCase());
+  const isVit = t  => t.includes("vit");
 
-  /* ════════════════════════════════════════════════════
-     FIREBASE HELPERS
-     Firebase Realtime DB menyimpan nested array sebagai
-     object {0:{0:a,1:b,2:c}, 1:{...}} bukan array JS.
-     Kita tangani konversi dua arah di sini.
-  ════════════════════════════════════════════════════ */
+  /* ══════════════════════════════════════════════════════
+     KONVERSI FIREBASE ↔ JS ARRAY
+     Firebase tidak bisa simpan nested array JS langsung.
+     Kita simpan sebagai plain object {0:{0,1,2}, 1:{0,1,2}}
+     dan konversi kembali saat membaca.
+  ══════════════════════════════════════════════════════ */
 
-  /* Ubah object Firebase → array JS (rekursif satu level) */
-  function fbToArr(val) {
+  /* JS array rows → plain object untuk Firebase */
+  function toFbObj(rows, cols) {
+    const out = {};
+    rows.forEach((row, i) => {
+      out[i] = {};
+      for (let c = 0; c < cols; c++) out[i][c] = (row[c] !== undefined ? row[c] : null);
+    });
+    return out;
+  }
+
+  /* Firebase plain object / array → JS array of arrays */
+  function fromFbObj(val) {
     if (!val) return [];
-    if (Array.isArray(val)) {
-      return val.map(item => {
-        if (Array.isArray(item)) return item;
-        if (item && typeof item === "object")
-          return Object.keys(item).sort((a,b)=>+a-+b).map(k=>item[k]);
-        return item;
-      });
-    }
-    return Object.keys(val).sort((a,b)=>+a-+b).map(k => {
-      const item = val[k];
+    const top = Array.isArray(val)
+      ? val
+      : Object.keys(val).sort((a,b) => +a - +b).map(k => val[k]);
+    return top.map(item => {
+      if (!item) return [];
       if (Array.isArray(item)) return item;
-      if (item && typeof item === "object")
-        return Object.keys(item).sort((a,b)=>+a-+b).map(k2=>item[k2]);
-      return item;
+      return Object.keys(item).sort((a,b) => +a - +b).map(k => item[k]);
     });
   }
 
-  /* Ubah array rows JS → format aman untuk Firebase (hindari sparse array) */
-  function arrToFb(rows, cols) {
-    return rows.reduce((acc, row, i) => {
-      acc[i] = {};
-      for (let c = 0; c < cols; c++) acc[i][c] = row[c] ?? null;
-      return acc;
-    }, {});
-  }
+  /* ══════════════════════════════════════════════════════
+     FIREBASE SAVE  — tulis ke DB lalu update lokal
+  ══════════════════════════════════════════════════════ */
 
-  /* ── Simpan Ritase ke Firebase ── */
   function saveRitaseToFirebase() {
     if (!auth.currentUser) {
-      toast("⚠️ Harus login admin dulu!", "warn"); return Promise.resolve();
+      toast("⚠️ Login admin dulu!", "warn"); return;
     }
     const payload = {
-      spsAqua:   arrToFb(data.spsAqua,   3),
-      galonAqua: arrToFb(data.galonAqua, 3),
-      spsVit:    arrToFb(data.spsVit,    3),
-      galonVit:  arrToFb(data.galonVit,  3)
+      spsAqua:   toFbObj(data.spsAqua,   3),
+      galonAqua: toFbObj(data.galonAqua, 3),
+      spsVit:    toFbObj(data.spsVit,    3),
+      galonVit:  toFbObj(data.galonVit,  3)
     };
-    isSaving = true;
-    return set(ref(db, "ritase"), payload)
-      .then(() => {
-        console.log("✅ Ritase tersimpan");
-        toast("✅ Data tersimpan!", "success", 2000);
-      })
+    localWriteTs = Date.now();                // catat waktu write
+    set(ref(db, "ritase"), payload)
+      .then(() => toast("✅ Tersimpan!", "success", 1800))
       .catch(err => {
-        console.error("❌ Ritase gagal:", err.code, err.message);
-        const msg = err.code === "PERMISSION_DENIED"
-          ? "❌ Akses ditolak Firebase — cek Rules database!"
-          : "❌ Gagal simpan: " + (err.code || err.message);
-        toast(msg, "error", 7000);
-      })
-      .finally(() => { setTimeout(() => { isSaving = false; }, 3000); });
+        localWriteTs = 0;
+        console.error("FB ritase error:", err.code, err.message);
+        toast(err.code === "PERMISSION_DENIED"
+          ? "❌ Permission denied — cek Firebase Rules!"
+          : "❌ Gagal simpan: " + err.message, "error", 6000);
+      });
   }
 
-  /* ── Simpan DMS ke Firebase ── */
   function saveDmsToFirebase() {
     if (!auth.currentUser) {
-      toast("⚠️ Harus login admin dulu!", "warn"); return Promise.resolve();
+      toast("⚠️ Login admin dulu!", "warn"); return;
     }
-    const payload = arrToFb(dmsData, 2);
-    isSaving = true;
-    return set(ref(db, "dms"), payload)
-      .then(() => {
-        console.log("✅ DMS tersimpan");
-        toast("✅ DMS tersimpan!", "success", 2000);
-      })
+    const payload = toFbObj(dmsData, 2);
+    localWriteTs = Date.now();
+    set(ref(db, "dms"), payload)
+      .then(() => toast("✅ DMS Tersimpan!", "success", 1800))
       .catch(err => {
-        console.error("❌ DMS gagal:", err.code, err.message);
-        const msg = err.code === "PERMISSION_DENIED"
-          ? "❌ Akses ditolak Firebase — cek Rules database!"
-          : "❌ Gagal simpan DMS: " + (err.code || err.message);
-        toast(msg, "error", 7000);
-      })
-      .finally(() => { setTimeout(() => { isSaving = false; }, 3000); });
+        localWriteTs = 0;
+        console.error("FB dms error:", err.code, err.message);
+        toast(err.code === "PERMISSION_DENIED"
+          ? "❌ Permission denied — cek Firebase Rules!"
+          : "❌ Gagal simpan DMS: " + err.message, "error", 6000);
+      });
   }
 
-  /* ── Simpan Histori ke Firebase ── */
+  /* ══ SIMPAN HISTORI ══ */
   function saveHistory(action, section, detail) {
     const user = auth.currentUser;
     if (!user) return;
-    const entry = {
-      action,          // "tambah" | "edit" | "hapus"
-      section,         // "SPS AQUA" | "DMS" | dll
-      detail,          // deskripsi singkat
+    push(ref(db, "history"), {
+      action, section, detail,
       email: user.email,
       ts: Date.now()
-    };
-    push(ref(db, "history"), entry).catch(err => console.warn("History gagal:", err));
+    }).catch(() => {});
   }
+
+  /* ══════════════════════════════════════════════════════
+     FIREBASE LISTENERS  — terima data dari DB
+     Skip jika snapshot datang < 4 detik setelah kita write
+     (itu echo write sendiri, data lokal sudah benar)
+  ══════════════════════════════════════════════════════ */
+
+  onValue(ref(db, "ritase"), snap => {
+    if (Date.now() - localWriteTs < 4000) return;  // abaikan echo write sendiri
+    const fb = snap.val();
+    if (fb) {
+      const sa = fromFbObj(fb.spsAqua);
+      const ga = fromFbObj(fb.galonAqua);
+      const sv = fromFbObj(fb.spsVit);
+      const gv = fromFbObj(fb.galonVit);
+      data.spsAqua   = sa.length ? sa : defaultData.spsAqua;
+      data.galonAqua = ga.length ? ga : defaultData.galonAqua;
+      data.spsVit    = sv.length ? sv : defaultData.spsVit;
+      data.galonVit  = gv.length ? gv : defaultData.galonVit;
+    }
+    renderAll();
+  });
+
+  onValue(ref(db, "dms"), snap => {
+    if (Date.now() - localWriteTs < 4000) return;
+    const val = snap.val();
+    if (val) {
+      const arr = fromFbObj(val);
+      dmsData = arr.length ? arr : JSON.parse(JSON.stringify(defaultDms));
+    }
+    renderDmsTable();
+  });
+
+  onValue(ref(db, "history"), snap => {
+    const val = snap.val();
+    if (val && typeof val === "object") {
+      historyData = Object.entries(val)
+        .map(([k,v]) => ({ id: k, ...v }))
+        .sort((a,b) => b.ts - a.ts)
+        .slice(0, 50);
+    } else {
+      historyData = [];
+    }
+    renderHistory();
+  });
 
   /* ══ TOAST ══ */
   function toast(msg, type="info", dur=3200) {
@@ -710,47 +740,6 @@
       });
     });
   }
-
-  /* ══ Firebase Realtime Listeners ══ */
-  onValue(ref(db, "ritase"), (snapshot) => {
-    if (isSaving) return;
-    const fb = snapshot.val();
-    if (fb) {
-      data.spsAqua   = fbToArr(fb.spsAqua)   || defaultData.spsAqua;
-      data.galonAqua = fbToArr(fb.galonAqua) || defaultData.galonAqua;
-      data.spsVit    = fbToArr(fb.spsVit)    || defaultData.spsVit;
-      data.galonVit  = fbToArr(fb.galonVit)  || defaultData.galonVit;
-      if (!data.spsAqua.length)   data.spsAqua   = defaultData.spsAqua;
-      if (!data.galonAqua.length) data.galonAqua = defaultData.galonAqua;
-      if (!data.spsVit.length)    data.spsVit    = defaultData.spsVit;
-      if (!data.galonVit.length)  data.galonVit  = defaultData.galonVit;
-    }
-    renderAll();
-  });
-
-  onValue(ref(db, "dms"), (snapshot) => {
-    if (isSaving) return;
-    const val = snapshot.val();
-    if (val) {
-      const arr = fbToArr(val);
-      dmsData = arr.length ? arr : JSON.parse(JSON.stringify(defaultDms));
-    }
-    renderDmsTable();
-  });
-
-  /* ── Listener Histori ── */
-  onValue(ref(db, "history"), (snapshot) => {
-    const val = snapshot.val();
-    if (val && typeof val === "object") {
-      historyData = Object.entries(val)
-        .map(([k, v]) => ({ id: k, ...v }))
-        .sort((a, b) => b.ts - a.ts)
-        .slice(0, 50);
-    } else {
-      historyData = [];
-    }
-    renderHistory();
-  });
 
   /* ══ ROW EDIT MODAL ══ */
   function openRowEdit(target, index) {
@@ -1296,3 +1285,4 @@
 
 </body>
 </html>
+
