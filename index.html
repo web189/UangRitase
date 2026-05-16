@@ -172,6 +172,7 @@
 </p>
     <div class="social-row">
       <button class="icon-btn admin-btn" id="adminBtn" title="Admin Login"><i class="fas fa-lock"></i></button>
+      <button class="icon-btn hist-btn" id="histBtn" title="Histori Perubahan" style="display:none"><i class="fas fa-clock-rotate-left"></i></button>
       <a class="icon-btn" href="https://www.instagram.com/benyoriki?igsh=cGZkOXpuN2JyYjAy" target="_blank"><i class="fab fa-instagram"></i></a>
       <a class="icon-btn" href="https://www.youtube.com/@rikihermawan8103" target="_blank"><i class="fab fa-youtube"></i></a>
       <a class="icon-btn" href="https://www.tiktok.com/@benyoriki" target="_blank"><i class="fab fa-tiktok"></i></a>
@@ -346,6 +347,23 @@
   </div>
 </div>
 
+<!-- HISTORY MODAL -->
+<div class="modal-overlay hidden" id="historyModal">
+  <div class="modal-box history-modal-box">
+    <button class="modal-x-btn" id="historyClose"><i class="fas fa-xmark"></i></button>
+    <div class="modal-edit-header">
+      <div class="edit-icon-circle" style="background:rgba(0,200,255,0.1);color:var(--aqua);border-color:rgba(0,200,255,0.25)">
+        <i class="fas fa-clock-rotate-left"></i>
+      </div>
+      <div>
+        <h3 class="modal-heading-sm">Histori Perubahan</h3>
+        <span class="section-pill badge-aqua">50 terakhir</span>
+      </div>
+    </div>
+    <div id="historyList" class="history-list"></div>
+  </div>
+</div>
+
 <audio id="chatSound">
   <source src="https://assets.mixkit.co/sfx/preview/mixkit-click-pop-1114.mp3" type="audio/mpeg">
 </audio>
@@ -353,8 +371,8 @@
 <!-- ══════════ FIREBASE + APP (single module) ══════════ -->
 <script type="module">
   import { initializeApp }              from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, set,
-           onValue }                    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { getDatabase, ref, set, push,
+           onValue, serverTimestamp }   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
   import { getAuth, signInWithEmailAndPassword,
            signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
@@ -385,6 +403,8 @@
   let undoStack      = [];
   let chatOpened     = false;
   let undoBarTimer   = null;
+  let isSaving       = false;
+  let historyData    = [];
 
   /* ── Default Data ── */
   const defaultData = {
@@ -440,24 +460,103 @@
   const toKey  = t  => t.replace(/-([a-z])/g, (_,c) => c.toUpperCase());
   const isVit  = t  => t.includes("vit");
 
-  /* ── Firebase Save Helpers ── */
-  function saveRitaseToFirebase() {
-    set(ref(db, "ritase"), {
-      spsAqua:   data.spsAqua,
-      galonAqua: data.galonAqua,
-      spsVit:    data.spsVit,
-      galonVit:  data.galonVit
-    }).catch(err => {
-      console.error("Gagal simpan ritase:", err);
-      toast("Gagal menyimpan data ke Firebase", "error");
+  /* ════════════════════════════════════════════════════
+     FIREBASE HELPERS
+     Firebase Realtime DB menyimpan nested array sebagai
+     object {0:{0:a,1:b,2:c}, 1:{...}} bukan array JS.
+     Kita tangani konversi dua arah di sini.
+  ════════════════════════════════════════════════════ */
+
+  /* Ubah object Firebase → array JS (rekursif satu level) */
+  function fbToArr(val) {
+    if (!val) return [];
+    if (Array.isArray(val)) {
+      return val.map(item => {
+        if (Array.isArray(item)) return item;
+        if (item && typeof item === "object")
+          return Object.keys(item).sort((a,b)=>+a-+b).map(k=>item[k]);
+        return item;
+      });
+    }
+    return Object.keys(val).sort((a,b)=>+a-+b).map(k => {
+      const item = val[k];
+      if (Array.isArray(item)) return item;
+      if (item && typeof item === "object")
+        return Object.keys(item).sort((a,b)=>+a-+b).map(k2=>item[k2]);
+      return item;
     });
   }
 
+  /* Ubah array rows JS → format aman untuk Firebase (hindari sparse array) */
+  function arrToFb(rows, cols) {
+    return rows.reduce((acc, row, i) => {
+      acc[i] = {};
+      for (let c = 0; c < cols; c++) acc[i][c] = row[c] ?? null;
+      return acc;
+    }, {});
+  }
+
+  /* ── Simpan Ritase ke Firebase ── */
+  function saveRitaseToFirebase() {
+    if (!auth.currentUser) {
+      toast("⚠️ Harus login admin dulu!", "warn"); return Promise.resolve();
+    }
+    const payload = {
+      spsAqua:   arrToFb(data.spsAqua,   3),
+      galonAqua: arrToFb(data.galonAqua, 3),
+      spsVit:    arrToFb(data.spsVit,    3),
+      galonVit:  arrToFb(data.galonVit,  3)
+    };
+    isSaving = true;
+    return set(ref(db, "ritase"), payload)
+      .then(() => {
+        console.log("✅ Ritase tersimpan");
+        toast("✅ Data tersimpan!", "success", 2000);
+      })
+      .catch(err => {
+        console.error("❌ Ritase gagal:", err.code, err.message);
+        const msg = err.code === "PERMISSION_DENIED"
+          ? "❌ Akses ditolak Firebase — cek Rules database!"
+          : "❌ Gagal simpan: " + (err.code || err.message);
+        toast(msg, "error", 7000);
+      })
+      .finally(() => { setTimeout(() => { isSaving = false; }, 3000); });
+  }
+
+  /* ── Simpan DMS ke Firebase ── */
   function saveDmsToFirebase() {
-    set(ref(db, "dms"), dmsData).catch(err => {
-      console.error("Gagal simpan DMS:", err);
-      toast("Gagal menyimpan data DMS ke Firebase", "error");
-    });
+    if (!auth.currentUser) {
+      toast("⚠️ Harus login admin dulu!", "warn"); return Promise.resolve();
+    }
+    const payload = arrToFb(dmsData, 2);
+    isSaving = true;
+    return set(ref(db, "dms"), payload)
+      .then(() => {
+        console.log("✅ DMS tersimpan");
+        toast("✅ DMS tersimpan!", "success", 2000);
+      })
+      .catch(err => {
+        console.error("❌ DMS gagal:", err.code, err.message);
+        const msg = err.code === "PERMISSION_DENIED"
+          ? "❌ Akses ditolak Firebase — cek Rules database!"
+          : "❌ Gagal simpan DMS: " + (err.code || err.message);
+        toast(msg, "error", 7000);
+      })
+      .finally(() => { setTimeout(() => { isSaving = false; }, 3000); });
+  }
+
+  /* ── Simpan Histori ke Firebase ── */
+  function saveHistory(action, section, detail) {
+    const user = auth.currentUser;
+    if (!user) return;
+    const entry = {
+      action,          // "tambah" | "edit" | "hapus"
+      section,         // "SPS AQUA" | "DMS" | dll
+      detail,          // deskripsi singkat
+      email: user.email,
+      ts: Date.now()
+    };
+    push(ref(db, "history"), entry).catch(err => console.warn("History gagal:", err));
   }
 
   /* ══ TOAST ══ */
@@ -614,22 +713,43 @@
 
   /* ══ Firebase Realtime Listeners ══ */
   onValue(ref(db, "ritase"), (snapshot) => {
-    const firebaseData = snapshot.val();
-    if (firebaseData) {
-      data.spsAqua   = Array.isArray(firebaseData.spsAqua)   ? firebaseData.spsAqua   : defaultData.spsAqua;
-      data.galonAqua = Array.isArray(firebaseData.galonAqua) ? firebaseData.galonAqua : defaultData.galonAqua;
-      data.spsVit    = Array.isArray(firebaseData.spsVit)    ? firebaseData.spsVit    : defaultData.spsVit;
-      data.galonVit  = Array.isArray(firebaseData.galonVit)  ? firebaseData.galonVit  : defaultData.galonVit;
+    if (isSaving) return;
+    const fb = snapshot.val();
+    if (fb) {
+      data.spsAqua   = fbToArr(fb.spsAqua)   || defaultData.spsAqua;
+      data.galonAqua = fbToArr(fb.galonAqua) || defaultData.galonAqua;
+      data.spsVit    = fbToArr(fb.spsVit)    || defaultData.spsVit;
+      data.galonVit  = fbToArr(fb.galonVit)  || defaultData.galonVit;
+      if (!data.spsAqua.length)   data.spsAqua   = defaultData.spsAqua;
+      if (!data.galonAqua.length) data.galonAqua = defaultData.galonAqua;
+      if (!data.spsVit.length)    data.spsVit    = defaultData.spsVit;
+      if (!data.galonVit.length)  data.galonVit  = defaultData.galonVit;
     }
     renderAll();
   });
 
   onValue(ref(db, "dms"), (snapshot) => {
+    if (isSaving) return;
     const val = snapshot.val();
-    if (val && Array.isArray(val)) {
-      dmsData = val;
+    if (val) {
+      const arr = fbToArr(val);
+      dmsData = arr.length ? arr : JSON.parse(JSON.stringify(defaultDms));
     }
     renderDmsTable();
+  });
+
+  /* ── Listener Histori ── */
+  onValue(ref(db, "history"), (snapshot) => {
+    const val = snapshot.val();
+    if (val && typeof val === "object") {
+      historyData = Object.entries(val)
+        .map(([k, v]) => ({ id: k, ...v }))
+        .sort((a, b) => b.ts - a.ts)
+        .slice(0, 50);
+    } else {
+      historyData = [];
+    }
+    renderHistory();
   });
 
   /* ══ ROW EDIT MODAL ══ */
@@ -684,6 +804,9 @@
     if (isNew) { data[key].push([pabrik, muatan, harga]); toast(`✦ Rute ditambahkan: ${pabrik}`, "success"); }
     else       { data[key][index] = [pabrik, muatan, harga]; toast(`✦ Rute diperbarui: ${pabrik}`, "success"); }
 
+    const sectionLabel = { "spsAqua":"SPS AQUA","galonAqua":"GALON AQUA","spsVit":"SPS VIT","galonVit":"GALON VIT" }[key] || key;
+    saveHistory(isNew ? "tambah" : "edit", sectionLabel, `${pabrik} · ${muatan} · Rp${harga.toLocaleString("id-ID")}`);
+
     /* Simpan ke Firebase Realtime Database */
     saveRitaseToFirebase();
 
@@ -730,11 +853,13 @@
 
     if (type === "ritase") {
       data[key].splice(index, 1);
+      saveHistory("hapus", { "spsAqua":"SPS AQUA","galonAqua":"GALON AQUA","spsVit":"SPS VIT","galonVit":"GALON VIT" }[key] || key, `${row[0]} · ${row[1]}`);
       saveRitaseToFirebase();
       render(target, data[key]);
       updateStats();
     } else {
       dmsData.splice(index, 1);
+      saveHistory("hapus", "DMS", `${row[0]} · ${row[1]}`);
       saveDmsToFirebase();
       renderDmsTable();
     }
@@ -847,6 +972,11 @@
 
     /* DMS add button */
     $("dmsAddBtn")?.addEventListener("click", () => openDmsEdit(-1));
+
+    /* History modal */
+    $("histBtn")?.addEventListener("click", () => openModal("historyModal"));
+    $("historyClose")?.addEventListener("click", () => closeModal("historyModal"));
+    $("historyModal")?.addEventListener("click", e => { if (e.target === $("historyModal")) closeModal("historyModal"); });
   }
 
   async function tryAdminLogin() {
@@ -881,6 +1011,10 @@
 
   onAuthStateChanged(auth, (user) => {
     isAdmin = !!user;
+
+    /* Tampilkan/sembunyikan tombol histori */
+    const histBtn = $("histBtn");
+    if (histBtn) histBtn.style.display = isAdmin ? "flex" : "none";
 
     /* Update tombol admin */
     const btn = $("adminBtn");
@@ -1051,9 +1185,31 @@
     if (isNew) { dmsData.push([kode, nama]); toast(`✦ Pabrik ditambahkan: ${kode}`, "success"); }
     else       { dmsData[index] = [kode, nama]; toast(`✦ Pabrik diperbarui: ${kode}`, "success"); }
 
+    saveHistory(isNew ? "tambah" : "edit", "DMS", `${kode} · ${nama}`);
     saveDmsToFirebase();
     closeModal("dmsEditModal");
     renderDmsTable();
+  }
+
+  /* ══ RENDER HISTORY ══ */
+  function renderHistory() {
+    const list = $("historyList");
+    if (!list) return;
+    if (!historyData.length) {
+      list.innerHTML = `<div class="hist-empty"><i class="fas fa-inbox"></i><p>Belum ada histori perubahan</p></div>`;
+      return;
+    }
+    const actionIcon = { tambah:"<i class='fas fa-plus-circle' style='color:#00e676'></i>", edit:"<i class='fas fa-pen-to-square' style='color:#ffc107'></i>", hapus:"<i class='fas fa-trash-can' style='color:#ff4560'></i>" };
+    const actionLabel = { tambah:"Tambah", edit:"Edit", hapus:"Hapus" };
+    list.innerHTML = historyData.map(h => {
+      const d = new Date(h.ts);
+      const tStr = d.toLocaleString("id-ID", { day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" });
+      return `<div class="hist-item">
+        <div class="hist-action">${actionIcon[h.action] || "•"} <span class="hist-badge hist-${h.action}">${actionLabel[h.action]||h.action}</span></div>
+        <div class="hist-detail">${esc(h.detail)}</div>
+        <div class="hist-meta"><span class="hist-section">${esc(h.section)}</span> · <span class="hist-time">${tStr}</span></div>
+      </div>`;
+    }).join("");
   }
 
   /* ══ SEARCH DMS ══ */
