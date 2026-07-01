@@ -84,7 +84,7 @@ body::after {
   border-radius: 50%;
   pointer-events: none;
   z-index: -4;
-  filter: blur(90px);
+  filter: blur(60px);
   animation: orbFloat 12s ease-in-out infinite alternate;
 }
 body::before {
@@ -116,8 +116,8 @@ body::after {
   border: 1px solid rgba(0,200,255,0.22);
   padding: 5px 14px;
   border-radius: 20px;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   z-index: 100;
   letter-spacing: 0.03em;
   white-space: nowrap;
@@ -146,8 +146,8 @@ body::after {
   padding: 11px 16px;
   font-size: 12px;
   color: var(--text-1);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   pointer-events: auto;
   max-width: 270px;
   display: flex;
@@ -197,8 +197,8 @@ body::after {
   border-radius: 20px;
   margin-bottom: 16px;
   box-shadow: 0 0 16px rgba(0,230,118,0.12);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .pulse-dot {
   width: 7px; height: 7px;
@@ -266,8 +266,8 @@ body::after {
   text-decoration: none;
   cursor: pointer;
   border: 1px solid var(--border);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   transition: all 0.28s var(--ease-o);
   position: relative;
   overflow: hidden;
@@ -326,8 +326,8 @@ body::after {
   border: 1px solid rgba(0,200,255,0.16);
   border-radius: var(--r-lg);
   padding: 14px 28px;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05);
   position: relative;
   overflow: hidden;
@@ -390,8 +390,8 @@ body::after {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.25s var(--ease-o);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   position: relative;
   overflow: hidden;
 }
@@ -438,8 +438,8 @@ body::after {
   background: rgba(4,14,32,0.55);
   border: 1px solid rgba(0,200,255,0.11);
   border-radius: var(--r-xl);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   overflow: hidden;
   transition: transform 0.35s var(--ease-o), box-shadow 0.35s, border-color 0.3s;
   animation: cardIn 0.65s var(--ease-o) both;
@@ -768,8 +768,8 @@ body::after {
   border: 1px solid rgba(0,200,255,0.12);
   border-radius: var(--r-xl);
   padding: 22px;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   position: relative;
   overflow: hidden;
 }
@@ -885,8 +885,8 @@ body::after {
   border-top: 1px solid rgba(0,200,255,0.1);
   padding: 44px 20px;
   background: rgba(4,13,26,0.65);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   position: relative;
   overflow: hidden;
 }
@@ -973,8 +973,8 @@ body::after {
   font-weight: 700;
   text-decoration: none;
   transition: all 0.28s var(--ease-o);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .download-btn:hover {
   transform: translateY(-3px);
@@ -992,7 +992,7 @@ body::after {
   border-radius: var(--r-md);
   max-width: 330px;
   width: 100%;
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(8px);
 }
 .mini-icon-wrap { color: var(--aqua); font-size: 16px; opacity: 0.7; }
 .mini-title {
@@ -1066,8 +1066,8 @@ body::after {
   pointer-events: none;
   transition: all 0.38s var(--ease-s);
   z-index: 8999;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 .chat-box.show {
   transform: translateY(0) scale(1);
@@ -1223,8 +1223,8 @@ body::after {
   position: fixed;
   inset: 0;
   background: rgba(2,8,22,0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   z-index: 10000;
   display: flex;
   align-items: center;
@@ -1553,7 +1553,7 @@ body::after {
   box-shadow: 0 8px 36px rgba(0,0,0,0.65), 0 0 20px rgba(0,200,255,0.1);
   transition: bottom 0.44s var(--ease-s);
   white-space: nowrap;
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(10px);
 }
 #undoBar.undo-show { bottom: 26px; }
 #undoBtn {

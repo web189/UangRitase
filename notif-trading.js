@@ -57,8 +57,8 @@
         0 1px 0 rgba(255,255,255,0.06) inset,
         0 16px 50px rgba(0,0,0,0.8),
         0 40px 90px rgba(0,0,0,0.55);
-      backdrop-filter: blur(48px) saturate(220%);
-      -webkit-backdrop-filter: blur(48px) saturate(220%);
+      backdrop-filter: blur(16px) saturate(150%);
+      -webkit-backdrop-filter: blur(16px) saturate(150%);
       /* Entry state */
       transform: translateX(calc(100% + 60px)) scale(0.86) rotateY(-14deg);
       opacity: 0;
@@ -156,7 +156,7 @@
       border-radius: 50%;
       opacity: 0.07;
       pointer-events: none;
-      filter: blur(60px);
+      filter: blur(28px);
       z-index: 0;
       animation: byp-orb-breathe 4s ease-in-out infinite;
     }
@@ -944,7 +944,7 @@
      PARTICLE BURST
   ══════════════════════════════════════ */
   function burst(card, color) {
-    var count = 9;
+    var count = 5;
     for (var i = 0; i < count; i++) {
       var p = document.createElement('div');
       p.className = 'byp-ptcl';
@@ -952,7 +952,6 @@
       var d   = 32 + Math.random() * 26;
       p.style.cssText =
         'background:' + color + ';' +
-        'box-shadow:0 0 6px ' + color + ';' +
         'left:22px;top:22px;' +
         '--px:' + Math.cos(ang * Math.PI / 180) * d + 'px;' +
         '--py:' + Math.sin(ang * Math.PI / 180) * d + 'px;' +
