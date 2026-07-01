@@ -2,6 +2,22 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
+<script>
+/* Deteksi PC lawas (Windows 7/Vista/XP, atau pilihan manual tersimpan)
+   dijalankan sedini mungkin & synchronous, supaya class ke <html>
+   sudah kepasang SEBELUM CSS pertama kali render (anti flicker). */
+(function () {
+  try {
+    var saved = localStorage.getItem('liteMode');
+    var ua = navigator.userAgent || '';
+    var isLegacyWin = /Windows NT 6\.1|Windows NT 6\.0|Windows NT 5\.1/.test(ua);
+    var isLegacyChrome = /Chrome\/(\d+)/.test(ua) && parseInt(ua.match(/Chrome\/(\d+)/)[1], 10) < 110;
+    var auto = isLegacyWin || (isLegacyWin && isLegacyChrome);
+    var on = saved === "1" || (saved === null && auto);
+    if (on) document.documentElement.classList.add('lite-mode');
+  } catch (e) {}
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>UangRitase - Pabrik AQUA VIT</title>
 <meta name="description" content="Data DMS terbaru SPS & Galon AQUA dan VIT. Informasi ritase pabrik, SKU dan nominal harga terupdate.">
@@ -26,6 +42,7 @@
 
 <canvas id="meshCanvas"></canvas>
 <div class="datetime-pill" id="datetime"></div>
+<button class="lite-toggle" id="liteToggle" title="Mode Ringan (matikan efek berat)"><i class="fas fa-bolt"></i></button>
 <div class="toast-container" id="toastContainer"></div>
 
 <!-- HEADER -->
@@ -1181,15 +1198,35 @@
     });
   }
 
+  /* ══ MODE RINGAN (lite-mode) ══ */
+  function isLiteMode() { return document.documentElement.classList.contains("lite-mode"); }
+
+  function setupLiteToggle() {
+    const btn = $("liteToggle");
+    if (!btn) return;
+    const on = isLiteMode();
+    btn.classList.toggle("active", on);
+    btn.title = on ? "Mode Ringan: AKTIF — klik untuk kembali normal" : "Mode Ringan (matikan efek berat untuk PC lawas)";
+    btn.addEventListener("click", () => {
+      const nowOn = isLiteMode();
+      localStorage.setItem("liteMode", nowOn ? "0" : "1");
+      location.reload();
+    });
+  }
+
   /* ══ INIT ══ */
   document.addEventListener("DOMContentLoaded", () => {
-    startClock(); initVisitor(); setupSort(); setupFilter(); setupAdmin(); setupChat();
+    startClock(); initVisitor(); setupSort(); setupFilter(); setupAdmin(); setupChat(); setupLiteToggle();
     document.querySelectorAll(".glass-card").forEach((c,i)=>{c.style.animationDelay=`${i*0.07}s`;});
     setTimeout(()=>toast("Menghubungkan ke Firebase… ✦","info",2000),400);
 
-    // 2026 Effects
-    initParticles();
-    initWaterBubbles();
+    // 2026 Effects — dimatikan total di mode ringan (PC lawas / Windows 7 / GPU lemah)
+    if (isLiteMode()) {
+      document.querySelectorAll(".video-bg video").forEach(v => { try { v.pause(); v.removeAttribute("src"); v.load(); } catch(e){} });
+    } else {
+      initParticles();
+      initWaterBubbles();
+    }
     initScrollReveal();
   });
 </script>
