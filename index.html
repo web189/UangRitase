@@ -37,49 +37,23 @@
 </head>
 <body>
 
-<!-- VIDEO BG (dikompres ~88%, dimuat setelah konten utama siap, jeda saat scroll) -->
-<div class="video-bg">
-  <video id="bgVideo" muted loop playsinline preload="none" poster="video/poster.jpg">
-  </video>
-  <div class="overlay"></div>
+<!-- SKY BG: matahari terbit/tenggelam + bulan & bintang malam + awan, mengikuti jam WIB.
+     Ringan: tanpa video, tanpa canvas per-frame — murni CSS transition/animation,
+     posisi & warna dihitung sekali per menit lalu dibiarkan CSS yang menganimasikan. -->
+<div class="sky-bg" id="skyBg" aria-hidden="true">
+  <div class="sky-gradient" id="skyGradient"></div>
+  <div class="star-layer small" id="starsSmall"></div>
+  <div class="star-layer big" id="starsBig"></div>
+  <div class="clouds" id="cloudsWrap"></div>
+  <div class="sun" id="sunEl"></div>
+  <div class="moon" id="moonEl">
+    <span class="moon-crater c1"></span>
+    <span class="moon-crater c2"></span>
+    <span class="moon-crater c3"></span>
+  </div>
+  <div class="sky-vignette"></div>
 </div>
-<script>
-(function () {
-  var v = document.getElementById('bgVideo');
-  if (!v) return;
-  var started = false;
-  function startVideo() {
-    if (started) return;
-    started = true;
-    var src = document.createElement('source');
-    src.src = 'video/water.mp4';
-    src.type = 'video/mp4';
-    v.appendChild(src);
-    v.load();
-    var p = v.play();
-    if (p && p.catch) p.catch(function () {});
-  }
-  if (document.readyState === 'complete') {
-    setTimeout(startVideo, 50);
-  } else {
-    window.addEventListener('load', function () { setTimeout(startVideo, 50); });
-  }
-  document.addEventListener('visibilitychange', function () {
-    if (!started) return;
-    if (document.hidden) v.pause();
-    else v.play().catch(function () {});
-  });
-  var scrollTimer;
-  window.addEventListener('scroll', function () {
-    if (!started) return;
-    v.pause();
-    clearTimeout(scrollTimer);
-    scrollTimer = setTimeout(function () {
-      if (!document.hidden) v.play().catch(function () {});
-    }, 180);
-  }, { passive: true });
-})();
-</script>
+<script src="sky.js" defer></script>
 
 <canvas id="meshCanvas"></canvas>
 <div class="datetime-pill" id="datetime"></div>
