@@ -1,0 +1,16 @@
+{
+  "rules": {
+    "ritase": {
+      ".read": true,
+      ".write": "auth != null && auth.token.email == 'admin@uangritase.com'"
+    },
+    "dms": {
+      ".read": true,
+      ".write": "auth != null && auth.token.email == 'admin@uangritase.com'"
+    },
+    "history": {
+      ".read": "auth != null",
+      ".write": "auth != null && auth.token.email == 'admin@uangritase.com'"
+    }
+  }
+}

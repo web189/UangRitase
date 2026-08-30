@@ -1,0 +1,16 @@
+{
+  "rules": {
+    "ritase": {
+      ".read": true,
+      ".write": "auth != null && auth.uid == 'GANTI_DENGAN_UID_ADMIN'"
+    },
+    "dms": {
+      ".read": true,
+      ".write": "auth != null && auth.uid == 'GANTI_DENGAN_UID_ADMIN'"
+    },
+    "history": {
+      ".read": "auth != null && auth.uid == 'GANTI_DENGAN_UID_ADMIN'",
+      ".write": "auth != null && auth.uid == 'GANTI_DENGAN_UID_ADMIN'"
+    }
+  }
+}

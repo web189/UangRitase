@@ -495,18 +495,42 @@ function submitDmsEdit() {
 }
 
 /* ---------- Admin login / countdown ---------- */
+/* Proteksi tambahan di sisi klien: setelah beberapa kali gagal, tombol login
+   dikunci sementara. Ini lapisan kedua saja — Firebase Auth sendiri sudah
+   punya rate-limit bawaan (auth/too-many-requests) di sisi server. */
+let loginFailCount = 0;
+let loginLockUntil = 0;
+const LOGIN_MAX_ATTEMPTS = 5;
+const LOGIN_LOCK_MS = 30000;
+
 async function submitAdminLogin() {
+  const now = Date.now();
+  if (now < loginLockUntil) {
+    const secsLeft = Math.ceil((loginLockUntil - now) / 1000);
+    const err = $("adminError");
+    if (err) { err.textContent = `Terlalu banyak percobaan. Coba lagi dalam ${secsLeft} detik.`; err.style.display = "flex"; }
+    return;
+  }
   const email = $("adminEmailInput").value.trim(), pass = $("adminPassInput").value.trim();
   const err = $("adminError"); if (err) err.textContent = "";
   if (!email || !pass) { if (!email) setFieldError("ferrEmail", "Email wajib diisi"); if (!pass) setFieldError("ferrPass", "Password wajib diisi"); return; }
   try {
     await signInWithEmailAndPassword(auth, email, pass);
+    loginFailCount = 0;
     closeModal("adminModal"); toast("✦ Login berhasil!", "success");
   } catch (e) {
-    if (err) { err.textContent = "Email atau password salah"; err.style.display = "flex"; }
+    loginFailCount++;
+    let msg = "Email atau password salah";
+    if (e.code === "auth/too-many-requests") msg = "Terlalu banyak percobaan gagal. Coba lagi beberapa saat lagi.";
+    if (loginFailCount >= LOGIN_MAX_ATTEMPTS) {
+      loginLockUntil = Date.now() + LOGIN_LOCK_MS;
+      msg = `Terlalu banyak percobaan. Form dikunci ${LOGIN_LOCK_MS / 1000} detik.`;
+      loginFailCount = 0;
+    }
+    if (err) { err.textContent = msg; err.style.display = "flex"; }
     const box = $("adminModal")?.querySelector(".modal-box");
     if (box) { box.classList.add("modal-shake"); setTimeout(() => box.classList.remove("modal-shake"), 450); }
-    toast("Email atau password salah", "error");
+    toast(msg, "error");
   }
 }
 function renderAdminButton() {
