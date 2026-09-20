@@ -12,13 +12,17 @@
   var KEY = 'pwaInstallDismissed:' + location.pathname;
   var SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
 
-  /* ---- 1. Service worker ---- */
-  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-    window.addEventListener('load', function () {
+  /* ---- 1. Service worker ----
+     Didaftarkan LANGSUNG (tidak menunggu event 'load'). Situs ini memuat banyak sumber luar
+     (font, audio, Firebase); kalau menunggu 'load', pendaftaran bisa tertunda lama dan Chrome
+     belum menganggap situs "bisa dipasang". */
+  if ('serviceWorker' in navigator &&
+      (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+    try {
       navigator.serviceWorker.register('sw.js').catch(function (err) {
         if (window.console) console.warn('[PWA] service worker gagal didaftarkan:', err);
       });
-    });
+    } catch (e) {}
   }
 
   /* ---- 2. Tombol pasang ---- */

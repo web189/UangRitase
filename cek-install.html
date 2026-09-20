@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cek Install — UangRitase</title>
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.json">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#0b1220;color:#e8eefc;font:15px/1.5 "Segoe UI",Tahoma,Arial,sans-serif;padding:20px}
+  .wrap{max-width:760px;margin:0 auto}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{opacity:.7;margin:0 0 18px;font-size:13px}
+  .verdict{padding:14px 16px;border-radius:12px;margin-bottom:16px;font-weight:600;background:#182238;border:1px solid #2a3a5c}
+  .verdict.ok{background:#0f2e22;border-color:#1f7a54;color:#9cf0c8}
+  .verdict.bad{background:#341518;border-color:#8a2a33;color:#ffb3ba}
+  .row{display:flex;gap:10px;padding:10px 12px;border-radius:10px;background:#111a2e;margin-bottom:8px;border:1px solid #1b2846}
+  .dot{flex:0 0 22px;height:22px;border-radius:50%;text-align:center;font-size:13px;line-height:22px;font-weight:700;color:#06121f;background:#7a869f}
+  .ok .dot,.row.ok .dot{background:#36d399}
+  .row.bad .dot{background:#ff6b78}
+  .row.warn .dot{background:#ffc857}
+  .row.wait .dot{background:#7a869f}
+  .t{font-weight:600}
+  .d{font-size:13px;opacity:.8;word-break:break-word}
+  .fix{margin-top:4px;font-size:13px;color:#ffd58a}
+  button{border:0;border-radius:9px;padding:10px 18px;font:600 14px "Segoe UI",Arial,sans-serif;cursor:pointer;background:#2f7dff;color:#fff;margin:6px 8px 0 0}
+  button.sec{background:#26314d;color:#cfe0ff}
+  #installBox{display:none;margin:12px 0}
+  code{background:#1a2440;padding:1px 6px;border-radius:5px}
+  pre{white-space:pre-wrap;word-break:break-word;background:#0a1020;border:1px solid #1b2846;border-radius:10px;padding:10px;font-size:12px;display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Cek Kesiapan Install — UangRitase</h1>
+  <p class="sub">Halaman ini memeriksa file di GitHub Pages satu per satu dan memberi tahu apa yang kurang.</p>
+
+  <div id="verdict" class="verdict">Sedang memeriksa…</div>
+  <div id="installBox"><button id="installBtn">Pasang aplikasi sekarang</button></div>
+  <div id="list"></div>
+
+  <button class="sec" id="copyBtn">Salin hasil pemeriksaan</button>
+  <button class="sec" id="againBtn">Periksa ulang</button>
+  <pre id="raw"></pre>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var listEl = document.getElementById('list');
+  var verdictEl = document.getElementById('verdict');
+  var installBox = document.getElementById('installBox');
+  var log = [];
+  var deferred = null;
+  var installable = false;
+
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault(); deferred = e; installable = true;
+    installBox.style.display = 'block';
+  });
+  window.addEventListener('appinstalled', function () { installBox.style.display = 'none'; });
+  document.getElementById('installBtn').onclick = function () { if (deferred) { deferred.prompt(); } };
+
+  function add(state, title, detail, fix) {
+    var row = document.createElement('div');
+    row.className = 'row ' + state;
+    var mark = state === 'ok' ? '\u2713' : state === 'bad' ? '\u2715' : state === 'warn' ? '!' : '\u2026';
+    row.innerHTML = '<div class="dot">' + mark + '</div><div><div class="t"></div><div class="d"></div><div class="fix"></div></div>';
+    row.querySelector('.t').textContent = title;
+    row.querySelector('.d').textContent = detail || '';
+    row.querySelector('.fix').textContent = fix ? ('Perbaikan: ' + fix) : '';
+    listEl.appendChild(row);
+    log.push('[' + state.toUpperCase() + '] ' + title + (detail ? ' — ' + detail : '') + (fix ? ' || ' + fix : ''));
+    return state;
+  }
+  function bust(u) { return u + (u.indexOf('?') === -1 ? '?' : '&') + '_=' + Date.now(); }
+  function get(u, asBlob) {
+    return fetch(bust(u), { cache: 'no-store' }).then(function (r) {
+      return (asBlob ? r.blob() : r.text()).then(function (b) { return { status: r.status, ok: r.ok, body: b }; });
+    }).catch(function (e) { return { status: 0, ok: false, err: String(e) }; });
+  }
+  function imgSize(blob) {
+    return new Promise(function (res) {
+      var i = new Image(), u = URL.createObjectURL(blob);
+      i.onload = function () { res(i.naturalWidth + 'x' + i.naturalHeight); };
+      i.onerror = function () { res(null); };
+      i.src = u;
+    });
+  }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  async function run() {
+    listEl.innerHTML = ''; log = []; installable = false; deferred = null; installBox.style.display = 'none';
+    document.getElementById('raw').style.display = 'none';
+    verdictEl.className = 'verdict'; verdictEl.textContent = 'Sedang memeriksa…';
+    var bad = 0, warn = 0;
+    function tally(s) { if (s === 'bad') bad++; if (s === 'warn') warn++; }
+
+    log.push('Alamat: ' + location.href);
+    log.push('Browser: ' + navigator.userAgent);
+
+    /* 1. HTTPS */
+    tally(location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+      ? add('ok', 'Situs memakai HTTPS', location.origin)
+      : add('bad', 'Situs TIDAK memakai HTTPS', location.protocol, 'buka lewat https://web189.github.io/UangRitase/'));
+
+    /* 2. index.html di GitHub */
+    var idx = await get('./');
+    var manifestHref = null;
+    if (!idx.ok) {
+      tally(add('bad', 'index.html tidak bisa dibaca', 'status ' + idx.status));
+    } else {
+      var m = /<link[^>]+rel=["']manifest["'][^>]*href=["']([^"']+)["']/i.exec(idx.body) ||
+              /<link[^>]+href=["']([^"']+)["'][^>]*rel=["']manifest["']/i.exec(idx.body);
+      manifestHref = m && m[1];
+      tally(manifestHref
+        ? add('ok', 'index.html punya tag manifest', manifestHref)
+        : add('bad', 'index.html BELUM punya tag manifest', 'file index.html di GitHub masih versi lama', 'upload ulang index.html dari UangRitase-PWA.zip'));
+      tally(/pwa\.js/.test(idx.body)
+        ? add('ok', 'index.html memanggil pwa.js')
+        : add('bad', 'index.html BELUM memanggil pwa.js', '', 'upload ulang index.html dari UangRitase-PWA.zip'));
+    }
+
+    /* 3. manifest */
+    var mf = await get(manifestHref || 'manifest.json');
+    var manifest = null;
+    if (!mf.ok) {
+      tally(add('bad', 'manifest.json tidak ditemukan', 'status ' + mf.status, 'upload manifest.json ke folder utama repo UangRitase'));
+    } else {
+      try { manifest = JSON.parse(mf.body); } catch (e) { manifest = null; }
+      if (!manifest) tally(add('bad', 'manifest.json rusak (bukan JSON valid)', '', 'upload ulang manifest.json dari zip'));
+      else {
+        tally(manifest.name && manifest.start_url && (manifest.display === 'standalone' || manifest.display === 'fullscreen')
+          ? add('ok', 'manifest.json valid', manifest.name + ' • display=' + manifest.display + ' • start_url=' + manifest.start_url)
+          : add('bad', 'manifest.json kurang lengkap', 'butuh name, start_url, display=standalone', 'upload ulang manifest.json dari zip'));
+      }
+    }
+
+    /* 4. ikon */
+    if (manifest && manifest.icons) {
+      var base = new URL(manifestHref || 'manifest.json', location.href);
+      var have192 = false, have512 = false;
+      for (var i = 0; i < manifest.icons.length; i++) {
+        var ic = manifest.icons[i], u = new URL(ic.src, base).href;
+        var r = await get(u, true);
+        if (!r.ok) {
+          tally(add('bad', 'Ikon tidak ditemukan: ' + ic.src, 'status ' + r.status + ' (' + (ic.purpose || 'any') + ')',
+            'upload file ' + ic.src + ' ke GitHub (folder img). INI PENYEBAB UMUM tombol Install tidak muncul'));
+          continue;
+        }
+        var sz = await imgSize(r.body);
+        if (!sz) { tally(add('bad', 'Ikon rusak: ' + ic.src, 'file ada tapi bukan gambar valid', 'upload ulang file ikon dari zip')); continue; }
+        var w = parseInt(sz, 10);
+        if ((ic.purpose || 'any').indexOf('maskable') === -1) { if (w >= 192) have192 = true; if (w >= 512) have512 = true; }
+        tally(add('ok', 'Ikon OK: ' + ic.src, sz + ' px • ' + (ic.purpose || 'any')));
+      }
+      tally(have192 && have512 ? add('ok', 'Ikon 192px dan 512px tersedia')
+        : add('bad', 'Ikon 192px dan/atau 512px belum lengkap', '', 'upload icon-192.png dan icon-512.png ke folder img'));
+    }
+
+    /* 5. service worker */
+    var sw = await get('sw.js');
+    if (!sw.ok) {
+      tally(add('bad', 'sw.js tidak ditemukan', 'status ' + sw.status, 'upload sw.js ke folder utama repo UangRitase'));
+    } else {
+      tally(/addEventListener\(\s*['"]fetch['"]/.test(sw.body)
+        ? add('ok', 'sw.js ada dan punya fetch handler', Math.round(sw.body.length / 1024) + ' KB')
+        : add('bad', 'sw.js tidak punya fetch handler', 'kemungkinan itu file sw.js lama/bukan dari zip', 'upload ulang sw.js dari UangRitase-PWA.zip'));
+    }
+    var pj = await get('pwa.js');
+    tally(pj.ok ? add('ok', 'pwa.js ada', /LANGSUNG/.test(pj.body) ? 'versi terbaru (daftar langsung)' : 'versi lama (menunggu load)') :
+      add('bad', 'pwa.js tidak ditemukan', 'status ' + pj.status, 'upload pwa.js ke folder utama repo'));
+    if (pj.ok && !/LANGSUNG/.test(pj.body)) tally(add('warn', 'pwa.js masih versi lama', '', 'upload pwa.js dari zip terbaru'));
+
+    /* 6. registrasi SW (dari halaman ini) */
+    if ('serviceWorker' in navigator) {
+      try {
+        await navigator.serviceWorker.register('sw.js');
+        await Promise.race([navigator.serviceWorker.ready, sleep(8000)]);
+        var regs = await navigator.serviceWorker.getRegistrations();
+        var active = regs.some(function (x) { return x.active; });
+        tally(active ? add('ok', 'Service worker berhasil aktif di browser ini') :
+          add('warn', 'Service worker terdaftar tetapi belum aktif', '', 'tutup halaman ini, buka lagi, lalu periksa ulang'));
+      } catch (e) {
+        tally(add('bad', 'Service worker gagal didaftarkan', String(e), 'pastikan sw.js ada di folder utama dan dibuka lewat HTTPS'));
+      }
+    } else {
+      tally(add('bad', 'Browser ini tidak mendukung service worker', navigator.userAgent, 'pakai Chrome/Edge versi 109 (Windows 7)'));
+    }
+
+    /* 7. penilaian browser */
+    var standalone = window.matchMedia && matchMedia('(display-mode: standalone)').matches;
+    if (standalone) {
+      tally(add('ok', 'Sedang dibuka sebagai aplikasi terpasang'));
+    } else {
+      var w2 = add('wait', 'Menunggu penilaian Chrome…', 'sampai 12 detik');
+      for (var k = 0; k < 24 && !installable; k++) await sleep(500);
+      listEl.removeChild(listEl.lastChild); log.pop();
+      if (installable) tally(add('ok', 'Chrome menyatakan situs SIAP dipasang', 'tombol "Pasang aplikasi sekarang" di atas bisa dipakai'));
+      else tally(add('warn', 'Chrome belum menawarkan pemasangan', 'bisa karena ada yang merah di atas, aplikasi sudah terpasang, atau tombol Pasang sudah pernah ditolak',
+        'perbaiki yang merah, lalu tutup & buka lagi tab ini (Ctrl+F5)'));
+    }
+
+    if (bad === 0 && installable) { verdictEl.className = 'verdict ok'; verdictEl.textContent = 'Semua syarat terpenuhi — situs siap dipasang.'; }
+    else if (bad === 0) { verdictEl.className = 'verdict ok'; verdictEl.textContent = 'File sudah lengkap. Jika tombol Install belum muncul, tutup semua tab UangRitase lalu buka lagi (Ctrl+F5).'; }
+    else { verdictEl.className = 'verdict bad'; verdictEl.textContent = bad + ' masalah ditemukan — lihat tanda merah (\u2715) di bawah dan ikuti "Perbaikan".'; }
+  }
+
+  document.getElementById('againBtn').onclick = run;
+  document.getElementById('copyBtn').onclick = function () {
+    var raw = document.getElementById('raw');
+    raw.textContent = log.join('\n'); raw.style.display = 'block';
+    try {
+      var ta = document.createElement('textarea'); ta.value = raw.textContent; document.body.appendChild(ta);
+      ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+      this.textContent = 'Tersalin \u2713';
+    } catch (e) {}
+  };
+  run();
+})();
+</script>
+</body>
+</html>
