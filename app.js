@@ -523,6 +523,7 @@ async function submitAdminLogin() {
 function renderAdminButton() {
   const btn = $("adminBtn"); if (!btn || !isAdmin) return;
   btn.classList.add("countdown");
+  const cap = $("adminCaption"); if (cap) cap.textContent = "Admin aktif · tap untuk keluar";
   const mm = Math.floor(logoutSeconds / 60), ss = logoutSeconds % 60;
   const dashOffset = 276 - (logoutSeconds / 300) * 276;
   btn.innerHTML = `<svg class="timer-ring" viewBox="0 0 100 100">
@@ -573,15 +574,6 @@ function initChat() {
   document.addEventListener("click", e => { if (box?.classList.contains("show") && !box.contains(e.target) && !toggle.contains(e.target)) box.classList.remove("show"); });
 }
 
-/* ---------- Lite mode ---------- */
-function isLite() { return document.documentElement.classList.contains("lite-mode"); }
-function initLiteToggle() {
-  const btn = $("liteToggle"); if (!btn) return;
-  const on = isLite();
-  btn.classList.toggle("active", on);
-  btn.title = on ? "Mode Ringan: AKTIF — klik untuk kembali normal" : "Mode Ringan (matikan efek berat untuk PC lawas)";
-  btn.addEventListener("click", () => { localStorage.setItem("liteMode", isLite() ? "0" : "1"); location.reload(); });
-}
 
 /* ---------- Filter nav (kartu ritase) ---------- */
 function initFilterNav() {
@@ -722,7 +714,7 @@ onAuthStateChanged(auth, user => {
       clearInterval(logoutTimer); logoutSeconds = 300; renderAdminButton();
       logoutTimer = setInterval(() => { logoutSeconds--; renderAdminButton(); if (logoutSeconds <= 0) { clearInterval(logoutTimer); signOut(auth); } }, 1000);
     } else {
-      clearInterval(logoutTimer); adminBtn.classList.remove("countdown"); adminBtn.innerHTML = '<i class="fas fa-lock"></i>';
+      clearInterval(logoutTimer); adminBtn.classList.remove("countdown"); adminBtn.innerHTML = '<i class="fas fa-lock"></i>'; { const cap = $("adminCaption"); if (cap) cap.textContent = "Rubah/Edit/Hapus"; }
     }
   }
   renderAllRitase();
@@ -737,7 +729,6 @@ document.addEventListener("DOMContentLoaded", () => {
   initSortButtons();
   initAccordion();
   initChat();
-  initLiteToggle();
   initRevealOnScroll();
 
   $("adminPassToggle")?.addEventListener("click", () => {

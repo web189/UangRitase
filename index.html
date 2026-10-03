@@ -4,13 +4,9 @@
 <meta charset="UTF-8">
 <script>
 (function () {
-  try {
-    var saved = localStorage.getItem('liteMode');
-    var ua = navigator.userAgent || '';
-    var isLegacyWin = /Windows NT 6\.1|Windows NT 6\.0|Windows NT 5\.1/.test(ua);
-    var on = saved === "1" || (saved === null && isLegacyWin);
-    if (on) document.documentElement.classList.add('lite-mode');
-  } catch (e) {}
+  var t = 'dark';
+  try { var s = localStorage.getItem('theme'); if (s === 'light' || s === 'dark') t = s; } catch (e) {}
+  document.documentElement.setAttribute('data-theme', t);
 })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
@@ -19,7 +15,7 @@
 <meta name="robots" content="index, follow">
 <meta name="author" content="UangRitase">
 <link rel="icon" href="favicon.png">
-<meta name="theme-color" content="#071b30">
+<meta name="theme-color" content="#071b30" id="metaTheme">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="192x192" href="img/icon-192.png">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
@@ -41,7 +37,7 @@
 <div class="bg-static" aria-hidden="true"></div>
 
 <div class="datetime-pill" id="datetime"></div>
-<button class="lite-toggle" id="liteToggle" title="Mode Ringan (matikan efek berat)"><i class="fas fa-bolt"></i></button>
+<button class="theme-toggle" id="themeToggle" type="button" aria-label="Ganti mode terang / gelap" title="Ganti mode terang / gelap"><i class="fas fa-sun ic-sun"></i><i class="fas fa-moon ic-moon"></i></button>
 <div class="toast-container" id="toastContainer"></div>
 
 <!-- HEADER -->
@@ -76,8 +72,8 @@
   <button class="filter-btn active" data-filter="all"><i class="fas fa-border-all"></i> Semua</button>
   <button class="filter-btn" data-filter="aqua"><i class="fas fa-droplet"></i> AQUA</button>
   <button class="filter-btn" data-filter="vit"><i class="fas fa-circle"></i> VIT</button>
-  <button class="filter-btn" data-filter="sps"><i class="fas fa-truck"></i> SPS</button>
-  <button class="filter-btn" data-filter="galon"><i class="fas fa-jug-water"></i> Galon</button>
+  <button class="filter-btn" data-filter="sps"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7 12 11.5V21.5L3.5 17z" fill="currentColor" fill-opacity=".22" stroke="none"/><path d="M12 2.5 3.5 7v10L12 21.5 20.5 17V7z"/><path d="M3.5 7 12 11.5 20.5 7M12 11.5v10"/><path d="M7.75 4.75l8.5 4.5"/></svg> SPS</button>
+  <button class="filter-btn" data-filter="galon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 13c1.7-1.2 3.3 1.2 5 0s3.3-1.2 5 0V20a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2z" fill="currentColor" fill-opacity=".28" stroke="none"/><path d="M10 2h4v2.2c0 .6.3 1.1.8 1.5C16.2 6.7 17 8 17 9.6V20a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V9.6c0-1.6.8-2.9 2.2-3.9.5-.4.8-.9.8-1.5z"/><path d="M7 13c1.7-1.2 3.3 1.2 5 0s3.3-1.2 5 0"/></svg> Galon</button>
 </nav>
 
 <!-- HARGA RITASE — accordion, semua tabel tertutup sampai di-tap -->
@@ -86,8 +82,9 @@
   <div class="acc-list" id="mainContainer">
     <div class="acc-item" data-acc="rt-sps-aqua" data-category="aqua sps">
       <button class="acc-head">
-        <span class="acc-head-icon"><i class="fas fa-droplet"></i></span>
-        <span class="acc-head-text"><strong>SPS AQUA</strong><span>Harga uang ritase · <span id="count-sps-aqua">0 rute</span></span></span>
+        <span class="acc-head-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7 12 11.5V21.5L3.5 17z" fill="currentColor" fill-opacity=".22" stroke="none"/><path d="M12 2.5 3.5 7v10L12 21.5 20.5 17V7z"/><path d="M3.5 7 12 11.5 20.5 7M12 11.5v10"/><path d="M7.75 4.75l8.5 4.5"/></svg></span>
+        <span class="acc-head-text"><strong>SPS AQUA</strong><span>Harga uang ritase per pabrik</span></span>
+        <span class="acc-chip" id="count-sps-aqua">0 rute</span>
         <i class="fas fa-chevron-down acc-chevron"></i>
       </button>
       <div class="acc-body" id="accBody-rt-sps-aqua">
@@ -99,8 +96,9 @@
     </div>
     <div class="acc-item" data-acc="rt-galon-aqua" data-category="aqua galon">
       <button class="acc-head">
-        <span class="acc-head-icon"><i class="fas fa-jug-water"></i></span>
-        <span class="acc-head-text"><strong>GALON AQUA</strong><span>Harga uang ritase · <span id="count-galon-aqua">0 rute</span></span></span>
+        <span class="acc-head-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 13c1.7-1.2 3.3 1.2 5 0s3.3-1.2 5 0V20a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2z" fill="currentColor" fill-opacity=".28" stroke="none"/><path d="M10 2h4v2.2c0 .6.3 1.1.8 1.5C16.2 6.7 17 8 17 9.6V20a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V9.6c0-1.6.8-2.9 2.2-3.9.5-.4.8-.9.8-1.5z"/><path d="M7 13c1.7-1.2 3.3 1.2 5 0s3.3-1.2 5 0"/></svg></span>
+        <span class="acc-head-text"><strong>GALON AQUA</strong><span>Harga uang ritase per pabrik</span></span>
+        <span class="acc-chip" id="count-galon-aqua">0 rute</span>
         <i class="fas fa-chevron-down acc-chevron"></i>
       </button>
       <div class="acc-body" id="accBody-rt-galon-aqua">
@@ -112,8 +110,9 @@
     </div>
     <div class="acc-item is-vit" data-acc="rt-sps-vit" data-category="vit sps">
       <button class="acc-head">
-        <span class="acc-head-icon"><i class="fas fa-circle-dot"></i></span>
-        <span class="acc-head-text"><strong>SPS VIT</strong><span>Harga uang ritase · <span id="count-sps-vit">0 rute</span></span></span>
+        <span class="acc-head-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7 12 11.5V21.5L3.5 17z" fill="currentColor" fill-opacity=".22" stroke="none"/><path d="M12 2.5 3.5 7v10L12 21.5 20.5 17V7z"/><path d="M3.5 7 12 11.5 20.5 7M12 11.5v10"/><path d="M7.75 4.75l8.5 4.5"/></svg></span>
+        <span class="acc-head-text"><strong>SPS VIT</strong><span>Harga uang ritase per pabrik</span></span>
+        <span class="acc-chip" id="count-sps-vit">0 rute</span>
         <i class="fas fa-chevron-down acc-chevron"></i>
       </button>
       <div class="acc-body" id="accBody-rt-sps-vit">
@@ -125,8 +124,9 @@
     </div>
     <div class="acc-item is-vit" data-acc="rt-galon-vit" data-category="vit galon">
       <button class="acc-head">
-        <span class="acc-head-icon"><i class="fas fa-jug-water"></i></span>
-        <span class="acc-head-text"><strong>GALON VIT</strong><span>Harga uang ritase · <span id="count-galon-vit">0 rute</span></span></span>
+        <span class="acc-head-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 13c1.7-1.2 3.3 1.2 5 0s3.3-1.2 5 0V20a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2z" fill="currentColor" fill-opacity=".28" stroke="none"/><path d="M10 2h4v2.2c0 .6.3 1.1.8 1.5C16.2 6.7 17 8 17 9.6V20a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V9.6c0-1.6.8-2.9 2.2-3.9.5-.4.8-.9.8-1.5z"/><path d="M7 13c1.7-1.2 3.3 1.2 5 0s3.3-1.2 5 0"/></svg></span>
+        <span class="acc-head-text"><strong>GALON VIT</strong><span>Harga uang ritase per pabrik</span></span>
+        <span class="acc-chip" id="count-galon-vit">0 rute</span>
         <i class="fas fa-chevron-down acc-chevron"></i>
       </button>
       <div class="acc-body" id="accBody-rt-galon-vit">
@@ -147,7 +147,8 @@
     <div class="acc-item" data-acc="dmsPabrik">
       <button class="acc-head">
         <span class="acc-head-icon"><i class="fas fa-building"></i></span>
-        <span class="acc-head-text"><strong>DMS Kode Pabrik</strong><span>Nama lengkap pabrik & kode DMS · <span id="dmsCount">23 pabrik</span></span></span>
+        <span class="acc-head-text"><strong>DMS Kode Pabrik</strong><span>Nama lengkap pabrik & kode DMS</span></span>
+        <span class="acc-chip" id="dmsCount">23 pabrik</span>
         <i class="fas fa-chevron-down acc-chevron"></i>
       </button>
       <div class="acc-body" id="accBody-dmsPabrik">
@@ -176,9 +177,9 @@
       </div>
     </div>
 
-    <div class="acc-item" data-acc="refKode">
+    <div class="acc-item is-gold" data-acc="refKode">
       <button class="acc-head">
-        <span class="acc-head-icon" style="background:rgba(255,193,7,.1);color:var(--gold)"><i class="fas fa-barcode"></i></span>
+        <span class="acc-head-icon is-gold"><i class="fas fa-barcode"></i></span>
         <span class="acc-head-text"><strong>Referensi Kode PT. Lokon Prima</strong><span>Kode galon, SPS, item SKU, pabrik & DMS level</span></span>
         <i class="fas fa-chevron-down acc-chevron"></i>
       </button>
@@ -201,15 +202,13 @@
       Powered by
       <a href="https://benyoriki.com/" target="_blank" class="benyo-link">@benyoriki</a>
     </p>
-    <div class="social-row">
-      <button class="icon-btn admin-btn" id="adminBtn" title="Admin Login"><i class="fas fa-lock"></i></button>
-      <button class="icon-btn hist-btn" id="histBtn" title="Histori Perubahan" style="display:none"><i class="fas fa-clock-rotate-left"></i></button>
-      <a class="icon-btn" href="https://www.instagram.com/benyoriki?igsh=cGZkOXpuN2JyYjAy" target="_blank"><i class="fab fa-instagram"></i></a>
-      <a class="icon-btn" href="https://www.youtube.com/@rikihermawan8103" target="_blank"><i class="fab fa-youtube"></i></a>
-      <a class="icon-btn" href="https://www.tiktok.com/@benyoriki" target="_blank"><i class="fab fa-tiktok"></i></a>
-      <a class="icon-btn" href="https://web.facebook.com/benyo.hermawan" target="_blank"><i class="fab fa-facebook"></i></a>
+    <div class="admin-wrap">
+      <div class="social-row">
+        <button class="icon-btn admin-btn" id="adminBtn" title="Admin Login"><i class="fas fa-lock"></i></button>
+        <button class="icon-btn hist-btn" id="histBtn" title="Histori Perubahan" style="display:none"><i class="fas fa-clock-rotate-left"></i></button>
+      </div>
+      <span class="admin-caption" id="adminCaption">Rubah/Edit/Hapus</span>
     </div>
-    <a class="download-btn" href="https://benyoriki.com/" target="_blank"><i class="fas fa-download"></i> xXx link</a>
     <div class="mini-player" id="miniPlayer">
       <div class="mini-info">
         <div class="mini-icon-wrap"><i class="fas fa-headphones"></i></div>
@@ -364,6 +363,22 @@
 
 <audio id="chatSound"><source src="https://assets.mixkit.co/sfx/preview/mixkit-click-pop-1114.mp3" type="audio/mpeg"></audio>
 
+<script>
+(function () {
+  var btn = document.getElementById('themeToggle'), meta = document.getElementById('metaTheme');
+  function paint(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    if (meta) meta.setAttribute('content', t === 'light' ? '#eaf2fb' : '#071b30');
+    if (btn) btn.title = t === 'light' ? 'Ganti ke mode gelap' : 'Ganti ke mode terang';
+  }
+  paint(document.documentElement.getAttribute('data-theme') || 'dark');
+  if (btn) btn.addEventListener('click', function () {
+    var t = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    paint(t);
+    try { localStorage.setItem('theme', t); } catch (e) {}
+  });
+})();
+</script>
 <script type="module" src="app.js"></script>
 
 <!-- ✦ BenyoPromo Notif — diredupkan otomatis saat area tabel sedang dibaca -->
