@@ -212,21 +212,6 @@ function pushHistory(action, section, detail) {
 }
 
 /* ---------- Stats ---------- */
-function animateNumber(el, target) {
-  if (!el) return;
-  const start = parseInt(el.textContent) || 0;
-  if (start === target) { el.textContent = target; return; }
-  let step = 0; const steps = 20;
-  const tick = () => { step++; el.textContent = Math.round(start + (step / steps) * (target - start)); if (step < steps) requestAnimationFrame(tick); };
-  requestAnimationFrame(tick);
-}
-function renderStats() {
-  const all = [...ritase.spsAqua, ...ritase.galonAqua, ...ritase.spsVit, ...ritase.galonVit];
-  const values = all.map(r => Number(r[2]));
-  animateNumber($("statTotal"), all.length);
-  if ($("statAvg")) $("statAvg").textContent = rupiah(values.length ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : 0);
-  if ($("statHigh")) $("statHigh").textContent = rupiah(values.length ? Math.max(...values) : 0);
-}
 
 /* ---------- Render tabel ritase per kategori ---------- */
 const SECTION_LABEL = { "sps-aqua": "SPS AQUA", "galon-aqua": "GALON AQUA", "sps-vit": "SPS VIT", "galon-vit": "GALON VIT" };
@@ -259,9 +244,11 @@ function renderRitaseTable(id, rows) {
   const wrap = container.querySelector(".rtw");
   if (wrap) requestAnimationFrame(() => { if (wrap.scrollWidth > wrap.clientWidth + 2) wrap.classList.add("scrollable"); });
 
-  container.querySelectorAll(".rtr").forEach((tr, i) => { tr.style.animationDelay = 22 * i + "ms"; tr.classList.add("row-in"); });
+  container.querySelectorAll(".rtr").forEach((tr, i) => { tr.classList.add("row-in"); });
 
   const countEl = $(`count-${id}`); if (countEl) countEl.textContent = `${rows.length} rute`;
+  const accIt = container.closest(".acc-item");
+  if (accIt && accIt.classList.contains("acc-open")) { const ab = accIt.querySelector(".acc-body"); requestAnimationFrame(() => { ab.style.maxHeight = ab.scrollHeight + "px"; }); }
 
   if (isAdmin) {
     container.querySelectorAll(".act-edit").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); openRowEdit(b.dataset.target, +b.dataset.i); }));
@@ -310,7 +297,7 @@ function renderAllRitase() {
   renderRitaseTable("galon-aqua", ritase.galonAqua);
   renderRitaseTable("sps-vit", ritase.spsVit);
   renderRitaseTable("galon-vit", ritase.galonVit);
-  renderStats();
+ 
   renderAdminButton();
 }
 
@@ -349,7 +336,7 @@ function submitRowEdit() {
   saveRitase();
   closeModal("rowEditModal");
   renderRitaseTable(target, ritase[key]);
-  renderStats();
+ 
   setTimeout(() => {
     const rows = document.querySelectorAll(`#${target} .rtr`);
     const idx = isNew ? rows.length - 1 : index;
@@ -379,7 +366,7 @@ function confirmDelete() {
   if (type === "ritase") {
     ritase[key].splice(index, 1);
     pushHistory("hapus", SECTION_LABEL[target] || target, `${row[0]} · ${row[1]}`);
-    saveRitase(); renderRitaseTable(target, ritase[key]); renderStats();
+    saveRitase(); renderRitaseTable(target, ritase[key]);
   } else {
     dmsList.splice(index, 1);
     pushHistory("hapus", "DMS", `${row[0]} · ${row[1]}`);
@@ -403,7 +390,7 @@ function showUndoBar(msg) {
 function undoDelete() {
   const item = undoStack.pop(); if (!item) return;
   clearTimeout(undoTimer); $("undoBar")?.classList.remove("undo-show");
-  if (item.type === "ritase") { ritase[item.key].splice(item.index, 0, item.row); saveRitase(); renderRitaseTable(item.target, ritase[item.key]); renderStats(); }
+  if (item.type === "ritase") { ritase[item.key].splice(item.index, 0, item.row); saveRitase(); renderRitaseTable(item.target, ritase[item.key]); }
   else { dmsList.splice(item.index, 0, item.row); saveDms(); renderDmsTable(); }
   toast("✦ Data berhasil dipulihkan", "success");
 }
@@ -598,7 +585,7 @@ function initLiteToggle() {
 
 /* ---------- Filter nav (kartu ritase) ---------- */
 function initFilterNav() {
-  const btns = document.querySelectorAll(".filter-btn"), cards = document.querySelectorAll(".glass-card");
+  const btns = document.querySelectorAll(".filter-btn"), cards = document.querySelectorAll(".acc-item[data-category]");
   btns.forEach(btn => btn.addEventListener("click", () => {
     btns.forEach(b => b.classList.remove("active")); btn.classList.add("active");
     const f = btn.dataset.filter;
@@ -677,72 +664,6 @@ function initRefTabs() {
   refreshOpenAccordionHeight("refKode");
 }
 
-/* ---------- Sky background (ringan): CSS-driven, dihitung 1x/menit ---------- */
-function initSky() {
-  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const sunEl = $("sunEl"), moonEl = $("moonEl"), starsSmall = $("starsSmall"), starsBig = $("starsBig"), skyGradient = $("skyGradient"), cloudsWrap = $("cloudsWrap");
-  if (isLite()) return;
-
-  function getWIB() {
-    try {
-      const fmt = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Jakarta", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
-      const obj = {}; fmt.formatToParts(new Date()).forEach(p => obj[p.type] = p.value);
-      return (parseInt(obj.hour, 10) % 24) + parseInt(obj.minute, 10) / 60 + parseInt(obj.second, 10) / 3600;
-    } catch { const d = new Date(); return ((d.getUTCHours() + d.getUTCMinutes() / 60) + 7) % 24; }
-  }
-  const STOPS = [
-    { t: 0, c: ["#03060f", "#070b1c", "#0b1330", "#111c3d", "#152648"] },
-    { t: 4.5, c: ["#03060f", "#080c1e", "#0d1636", "#17203f", "#241f3a"] },
-    { t: 5.75, c: ["#0e1030", "#302050", "#8a3f6b", "#e2703f", "#ffbf6b"] },
-    { t: 7, c: ["#1c5fa8", "#2f86c9", "#57ade0", "#8fd0ec", "#c9ecf7"] },
-    { t: 12, c: ["#1670c2", "#2f96da", "#5fc0ea", "#9adcf2", "#dcf3fa"] },
-    { t: 17, c: ["#1c4a8a", "#3c5f9e", "#a15f8a", "#e2854f", "#ffcf8a"] },
-    { t: 18.25, c: ["#170f30", "#3a1f52", "#9a3f68", "#e2643f", "#ffb15f"] },
-    { t: 19.25, c: ["#080a20", "#0e1436", "#17203f", "#1c2540", "#2a2440"] },
-    { t: 24, c: ["#03060f", "#070b1c", "#0b1330", "#111c3d", "#152648"] }
-  ];
-  const hexToRgb = h => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
-  const lerp = (a, b, r) => Math.round(a + (b - a) * r);
-  function gradientAt(t) {
-    let i = 0; while (i < STOPS.length - 1 && t > STOPS[i + 1].t) i++;
-    const a = STOPS[i], b = STOPS[Math.min(i + 1, STOPS.length - 1)];
-    const span = b.t - a.t || 1, r = Math.max(0, Math.min(1, (t - a.t) / span));
-    const colors = a.c.map((hexA, idx) => { const A = hexToRgb(hexA), B = hexToRgb(b.c[idx]); return `rgb(${lerp(A[0], B[0], r)},${lerp(A[1], B[1], r)},${lerp(A[2], B[2], r)})`; });
-    return `linear-gradient(180deg,${colors[0]} 0%,${colors[1]} 25%,${colors[2]} 52%,${colors[3]} 78%,${colors[4]} 100%)`;
-  }
-  const SUNRISE = 5.75, SUNSET = 17.85;
-  function arcPos(p) { const x = 6 + p * 88, y = 90 - Math.sin(p * Math.PI) * 72, o = Math.min(1, Math.sin(p * Math.PI) * 6); return { x, y, o }; }
-
-  function update() {
-    const t = getWIB();
-    if (skyGradient) skyGradient.style.background = gradientAt(t);
-    const isDay = t >= SUNRISE && t < SUNSET;
-    if (sunEl) { if (isDay) { const p = arcPos((t - SUNRISE) / (SUNSET - SUNRISE)); sunEl.style.left = p.x + "%"; sunEl.style.top = p.y + "%"; sunEl.style.opacity = p.o; } else sunEl.style.opacity = 0; }
-    if (moonEl) {
-      if (!isDay) { const nightLen = (24 - SUNSET) + SUNRISE; const elapsed = t >= SUNSET ? (t - SUNSET) : ((24 - SUNSET) + t); const p = arcPos(Math.max(0, Math.min(1, elapsed / nightLen))); moonEl.style.left = p.x + "%"; moonEl.style.top = p.y + "%"; moonEl.style.opacity = p.o; }
-      else moonEl.style.opacity = 0;
-    }
-    starsSmall?.classList.toggle("show", !isDay); starsBig?.classList.toggle("show", !isDay);
-    cloudsWrap?.classList.toggle("clouds-day", isDay); cloudsWrap?.classList.toggle("clouds-night", !isDay);
-  }
-  // Bintang: dikurangi dari 70+16 -> 40+10 titik (cukup utk kesan malam, jauh lebih ringan)
-  function scatter(count) { const arr = []; for (let i = 0; i < count; i++) arr.push((Math.random() * 100).toFixed(2) + "vw " + (Math.random() * 62).toFixed(2) + "vh #fff"); return arr.join(","); }
-  if (starsSmall && starsBig) { starsSmall.style.boxShadow = scatter(40); starsBig.style.boxShadow = scatter(10); }
-  // Awan: dikurangi dikit dari sebelumnya
-  if (cloudsWrap) {
-    const n = window.innerWidth < 640 ? 3 : 5;
-    for (let i = 0; i < n; i++) {
-      const c = document.createElement("div"); c.className = "cloud";
-      const w = 90 + Math.random() * 110, h = w * 0.32;
-      c.style.width = w + "px"; c.style.height = h + "px"; c.style.top = (4 + Math.random() * 34) + "%";
-      const dur = 70 + Math.random() * 90; c.style.animationDuration = dur + "s"; c.style.animationDelay = "-" + (Math.random() * dur).toFixed(1) + "s";
-      cloudsWrap.appendChild(c);
-    }
-  }
-  update();
-  if (!reduceMotion) setInterval(update, 60000); // sebelumnya 45s -> 60s
-}
-
 /* ---------- Datetime pill & visitor counter ---------- */
 function initClock() {
   const el = $("datetime"); if (!el) return;
@@ -763,7 +684,7 @@ function initRevealOnScroll() {
   const io = new IntersectionObserver(entries => {
     entries.forEach(e => { if (e.isIntersecting) { e.target.style.opacity = "1"; e.target.style.transform = "translateY(0)"; io.unobserve(e.target); } });
   }, { threshold: 0.08 });
-  document.querySelectorAll(".glass-card, .stats-bar").forEach(el => { el.style.transition = "opacity 0.6s ease, transform 0.6s ease"; io.observe(el); });
+  document.querySelectorAll(".glass-card, .stats-bar").forEach(el => { io.observe(el); });
 }
 
 /* ---------- Window resize: cek scrollable ritase-table ---------- */
@@ -810,7 +731,6 @@ onAuthStateChanged(auth, user => {
 
 /* ---------- Init ---------- */
 document.addEventListener("DOMContentLoaded", () => {
-  initSky();
   initClock();
   initVisitorCounter();
   initFilterNav();

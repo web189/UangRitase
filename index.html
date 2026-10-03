@@ -37,23 +37,8 @@
 </head>
 <body>
 
-<!-- SKY BG: matahari/bulan/awan mengikuti jam WIB — murni CSS transition, dihitung 1x/menit -->
-<div class="sky-bg" id="skyBg" aria-hidden="true">
-  <div class="sky-gradient" id="skyGradient"></div>
-  <div class="star-layer small" id="starsSmall"></div>
-  <div class="star-layer big" id="starsBig"></div>
-  <div class="clouds" id="cloudsWrap"></div>
-  <div class="sun" id="sunEl"></div>
-  <div class="moon" id="moonEl">
-    <span class="moon-crater c1"></span>
-    <span class="moon-crater c2"></span>
-    <span class="moon-crater c3"></span>
-  </div>
-  <div class="sky-vignette"></div>
-</div>
-
-<!-- Ambient blobs: pengganti ringan utk canvas mesh particle (CSS-only, GPU) -->
-<div class="ambient-blobs" aria-hidden="true"><span></span><span></span><span></span></div>
+<!-- BG statis: murni gradient CSS, tanpa animasi / blur / JS -->
+<div class="bg-static" aria-hidden="true"></div>
 
 <div class="datetime-pill" id="datetime"></div>
 <button class="lite-toggle" id="liteToggle" title="Mode Ringan (matikan efek berat)"><i class="fas fa-bolt"></i></button>
@@ -62,7 +47,6 @@
 <!-- HEADER -->
 <header class="header">
   <div class="header-badge"><span class="pulse-dot"></span><span>LIVE UPDATE</span></div>
-  <h1 class="header-title"><span class="title-rp">Rp</span>UANG RITASE</h1>
   <p class="header-sub">Driver Tua · Depo Parung · <span id="updateTag">Update Manual</span></p>
   <p class="header-sub">
     Website Developer
@@ -85,22 +69,6 @@
       <span class="visitor-badge"><i class="fas fa-eye"></i><span id="visitorNumber">0</span></span>
     </a>
   </div>
-  <div class="stats-bar">
-    <div class="stat-item">
-      <span class="stat-value" id="statTotal">—</span>
-      <span class="stat-label">Total Rute</span>
-    </div>
-    <div class="stat-divider"></div>
-    <div class="stat-item">
-      <span class="stat-value" id="statAvg">—</span>
-      <span class="stat-label">Rata-rata</span>
-    </div>
-    <div class="stat-divider"></div>
-    <div class="stat-item">
-      <span class="stat-value" id="statHigh">—</span>
-      <span class="stat-label">Tertinggi</span>
-    </div>
-  </div>
 </header>
 
 <!-- FILTER NAV (mengatur kartu harga ritase di bawah) -->
@@ -112,44 +80,64 @@
   <button class="filter-btn" data-filter="galon"><i class="fas fa-jug-water"></i> Galon</button>
 </nav>
 
-<!-- HARGA RITASE — konten utama, tetap tampil langsung -->
-<main class="container" id="mainContainer">
-  <section class="glass-card" data-category="aqua sps">
-    <div class="card-header">
-      <div class="card-icon aqua-icon"><i class="fas fa-droplet"></i></div>
-      <div class="card-header-text"><h2>SPS AQUA</h2><span class="card-count" id="count-sps-aqua">0 rute</span></div>
-      <button class="card-sort" data-target="sps-aqua" title="Sort harga"><i class="fas fa-sort"></i></button>
+<!-- HARGA RITASE — accordion, semua tabel tertutup sampai di-tap -->
+<section class="menu-section" id="ritaseSection">
+  <div class="menu-title"><i class="fas fa-route"></i> Harga Ritase (tap untuk buka)</div>
+  <div class="acc-list" id="mainContainer">
+    <div class="acc-item" data-acc="rt-sps-aqua" data-category="aqua sps">
+      <button class="acc-head">
+        <span class="acc-head-icon"><i class="fas fa-droplet"></i></span>
+        <span class="acc-head-text"><strong>SPS AQUA</strong><span>Harga uang ritase · <span id="count-sps-aqua">0 rute</span></span></span>
+        <i class="fas fa-chevron-down acc-chevron"></i>
+      </button>
+      <div class="acc-body" id="accBody-rt-sps-aqua">
+        <div class="acc-body-inner">
+          <div class="rt-toolbar"><button class="card-sort with-label" data-target="sps-aqua" title="Urutkan harga"><i class="fas fa-sort"></i><span>Urutkan harga</span></button></div>
+          <div id="sps-aqua"></div>
+        </div>
+      </div>
     </div>
-    <div id="sps-aqua"></div>
-  </section>
-
-  <section class="glass-card" data-category="aqua galon">
-    <div class="card-header">
-      <div class="card-icon aqua-icon"><i class="fas fa-jug-water"></i></div>
-      <div class="card-header-text"><h2>GALON AQUA</h2><span class="card-count" id="count-galon-aqua">0 rute</span></div>
-      <button class="card-sort" data-target="galon-aqua" title="Sort harga"><i class="fas fa-sort"></i></button>
+    <div class="acc-item" data-acc="rt-galon-aqua" data-category="aqua galon">
+      <button class="acc-head">
+        <span class="acc-head-icon"><i class="fas fa-jug-water"></i></span>
+        <span class="acc-head-text"><strong>GALON AQUA</strong><span>Harga uang ritase · <span id="count-galon-aqua">0 rute</span></span></span>
+        <i class="fas fa-chevron-down acc-chevron"></i>
+      </button>
+      <div class="acc-body" id="accBody-rt-galon-aqua">
+        <div class="acc-body-inner">
+          <div class="rt-toolbar"><button class="card-sort with-label" data-target="galon-aqua" title="Urutkan harga"><i class="fas fa-sort"></i><span>Urutkan harga</span></button></div>
+          <div id="galon-aqua"></div>
+        </div>
+      </div>
     </div>
-    <div id="galon-aqua"></div>
-  </section>
-
-  <section class="glass-card" data-category="vit sps">
-    <div class="card-header">
-      <div class="card-icon vit-icon"><i class="fas fa-circle-dot"></i></div>
-      <div class="card-header-text"><h2>SPS VIT</h2><span class="card-count" id="count-sps-vit">0 rute</span></div>
-      <button class="card-sort" data-target="sps-vit" title="Sort harga"><i class="fas fa-sort"></i></button>
+    <div class="acc-item is-vit" data-acc="rt-sps-vit" data-category="vit sps">
+      <button class="acc-head">
+        <span class="acc-head-icon"><i class="fas fa-circle-dot"></i></span>
+        <span class="acc-head-text"><strong>SPS VIT</strong><span>Harga uang ritase · <span id="count-sps-vit">0 rute</span></span></span>
+        <i class="fas fa-chevron-down acc-chevron"></i>
+      </button>
+      <div class="acc-body" id="accBody-rt-sps-vit">
+        <div class="acc-body-inner">
+          <div class="rt-toolbar"><button class="card-sort with-label" data-target="sps-vit" title="Urutkan harga"><i class="fas fa-sort"></i><span>Urutkan harga</span></button></div>
+          <div id="sps-vit"></div>
+        </div>
+      </div>
     </div>
-    <div id="sps-vit"></div>
-  </section>
-
-  <section class="glass-card" data-category="vit galon">
-    <div class="card-header">
-      <div class="card-icon vit-icon"><i class="fas fa-jug-water"></i></div>
-      <div class="card-header-text"><h2>GALON VIT</h2><span class="card-count" id="count-galon-vit">0 rute</span></div>
-      <button class="card-sort" data-target="galon-vit" title="Sort harga"><i class="fas fa-sort"></i></button>
+    <div class="acc-item is-vit" data-acc="rt-galon-vit" data-category="vit galon">
+      <button class="acc-head">
+        <span class="acc-head-icon"><i class="fas fa-jug-water"></i></span>
+        <span class="acc-head-text"><strong>GALON VIT</strong><span>Harga uang ritase · <span id="count-galon-vit">0 rute</span></span></span>
+        <i class="fas fa-chevron-down acc-chevron"></i>
+      </button>
+      <div class="acc-body" id="accBody-rt-galon-vit">
+        <div class="acc-body-inner">
+          <div class="rt-toolbar"><button class="card-sort with-label" data-target="galon-vit" title="Urutkan harga"><i class="fas fa-sort"></i><span>Urutkan harga</span></button></div>
+          <div id="galon-vit"></div>
+        </div>
+      </div>
     </div>
-    <div id="galon-vit"></div>
-  </section>
-</main>
+  </div>
+</section>
 
 <!-- ══════════ MENU DATA LAINNYA — accordion, tabel baru dimuat saat dibuka ══════════ -->
 <section class="menu-section">
