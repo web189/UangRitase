@@ -191,8 +191,7 @@ body{background:transparent}
   .header p.header-sub:first-of-type{grid-column:1;font-family:var(--font-d);font-weight:800;color:#fff;
     font-size:clamp(22px,2.3vw,30px);line-height:1.25;letter-spacing:-.01em;margin-top:0}
   .header p.header-sub:first-of-type #updateTag{color:var(--gold)}
-  .header p.header-sub:last-of-type{grid-column:1;margin-top:10px;font-size:14px}
-  .header-actions{grid-column:2;grid-row:1/4;margin:0;flex-direction:column;align-items:stretch;gap:12px;min-width:270px}
+  .header-actions{grid-column:2;grid-row:1/3;margin:0;flex-direction:column;align-items:stretch;gap:12px;min-width:270px}
   .header-actions .action-card{justify-content:center;padding:14px 22px;font-size:14px}
   .filter-nav{width:min(1180px,calc(100% - 40px));margin:26px auto 24px;padding:0;justify-content:flex-start}
   .menu-section{max-width:1220px;margin-bottom:34px}
@@ -365,7 +364,6 @@ html[data-theme="light"] .hist-section{background:rgba(10,123,189,.10)}
     background:radial-gradient(80% 120% at 100% 0%,rgba(0,200,255,.16),transparent 62%),radial-gradient(70% 120% at 0% 100%,rgba(255,69,96,.10),transparent 62%),linear-gradient(135deg,rgba(16,36,70,.94),rgba(8,20,40,.94));
     box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 8px 24px rgba(0,0,0,.35)}
   .header p.header-sub:first-of-type{font-family:var(--font-d);font-weight:800;font-size:16px;line-height:1.35;color:var(--text-1);margin:0 0 6px}
-  .header p.header-sub:last-of-type{font-size:13px;margin:0 0 16px}
   .header-actions{margin:0}
   .filter-nav{position:sticky;top:8px;z-index:60;margin:14px 14px 8px;padding:8px;border-radius:20px;gap:6px;
     justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;
@@ -420,3 +418,84 @@ html[data-theme="light"] .ritase-table tbody tr:nth-child(even) td{background:rg
   .filter-nav{gap:4px;padding:7px 6px}
   .filter-nav .filter-btn{padding:7px 9px;gap:4px;font-size:11px}
 }
+
+
+/* ══════════════════════════════════════════════════════════
+   v8 — Tagline header, Login Admin baru, popup promo
+   ══════════════════════════════════════════════════════════ */
+.header-tagline{font-family:var(--font-d);font-weight:800;line-height:1.5;color:var(--text-1)}
+.header-tagline span{white-space:nowrap}
+.tg-hl{color:var(--gold)}
+.tg-sep{font-style:normal;color:var(--aqua);margin:0 .12em}
+@media (max-width:899px){.header p.header-sub.header-tagline:first-of-type{font-size:15px;line-height:1.55;margin:0 0 16px}}
+@media (min-width:900px){.header p.header-sub.header-tagline:first-of-type{font-size:clamp(20px,2.1vw,27px);line-height:1.4;margin:0}}
+html[data-theme="light"] .tg-hl{color:#b45309}
+
+/* popup benyoriki.com: tombol ✕ tidak menimpa "Baru saja" */
+#byp-stack .byp-card .byp-header-row{padding-right:38px}
+
+/* ───────── LOGIN ADMIN ───────── */
+.login-box{padding:0;overflow:hidden;max-height:94vh;overflow-y:auto}
+.login-side{display:none}
+.login-main{padding:26px 20px 26px}
+.login-main::before{content:'';display:block;width:42px;height:4px;border-radius:4px;background:rgba(150,190,255,.25);margin:-8px auto 18px}
+.login-hero{width:64px;height:64px;margin:0 auto 14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;color:#2a1700;
+  background:linear-gradient(145deg,#ffe082,#ff9800);box-shadow:0 0 0 6px rgba(255,193,7,.16),0 0 0 7px rgba(255,193,7,.38)}
+.login-main .modal-heading{font-size:22px;margin-bottom:4px}
+.login-main .modal-desc{font-size:13px;margin-bottom:20px}
+.login-field{gap:7px}
+.login-label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;letter-spacing:.01em;color:var(--text-1)}
+.login-step{width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;
+  color:var(--aqua);background:rgba(0,200,255,.14);border:1px solid rgba(0,200,255,.38)}
+.login-input-wrap{position:relative}
+.login-input-wrap .finput{height:50px;padding:0 48px 0 44px;font-size:16px;border-radius:14px;border:1.5px solid rgba(120,175,255,.32);background:rgba(2,8,22,.7)}
+.login-input-wrap .finput:focus{border-color:var(--aqua);box-shadow:0 0 0 3px rgba(0,200,255,.18)}
+.login-input-wrap .li-icon{position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:15px;color:var(--aqua);pointer-events:none}
+.login-input-wrap .eye-btn{right:6px;width:40px;height:40px;font-size:15px;display:flex;align-items:center;justify-content:center;color:var(--text-2)}
+.login-field:has(.ferr:not(:empty)) .finput{border-color:var(--danger);box-shadow:0 0 0 3px rgba(255,59,92,.14)}
+.login-caps{display:none;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:#ffb74d}
+.login-caps.on{display:flex}
+.login-btns{grid-template-columns:1fr 1.5fr;gap:10px;margin-top:4px}
+.login-btns .mbt{height:50px;padding:0 10px}
+.login-btns .mbt-primary{background:linear-gradient(135deg,#1a8cff,#0a55d6);color:#fff;border-color:rgba(120,200,255,.45);box-shadow:0 4px 16px rgba(10,85,214,.45)}
+.mbt:disabled{opacity:.75;cursor:wait}
+.login-note{display:flex;align-items:center;justify-content:center;gap:7px;margin:16px 0 0;font-size:11.5px;color:var(--text-3);text-align:center}
+.login-note i{color:var(--aqua)}
+@media (max-width:767px){.login-box .modal-x-btn{top:12px;right:12px}}
+
+/* PC / tablet: kartu dua panel */
+@media (min-width:768px){
+  .login-box{display:grid;grid-template-columns:250px 1fr;max-width:720px;width:100%;border-radius:24px}
+  .login-main{padding:36px 34px 28px}
+  .login-main::before{display:none}
+  .login-side{display:flex;flex-direction:column;justify-content:center;gap:12px;padding:34px 24px;position:relative;overflow:hidden;color:#eaf4ff;
+    background:radial-gradient(120% 80% at 0% 0%,rgba(0,200,255,.30),transparent 60%),radial-gradient(100% 80% at 100% 100%,rgba(255,69,96,.24),transparent 62%),linear-gradient(160deg,#0b2550,#061428);
+    border-right:1px solid rgba(120,175,255,.18)}
+  .login-side::before{content:'';position:absolute;left:-90px;bottom:-90px;width:300px;height:300px;border-radius:50%;pointer-events:none;
+    background:repeating-radial-gradient(circle,transparent 0,transparent 22px,rgba(0,200,255,.16) 23px,transparent 24px)}
+  .login-side>*{position:relative}
+  .login-side-logos{display:flex;gap:10px;align-items:center}
+  .login-side-logos img{width:46px;height:46px;border-radius:50%;background:#fff;object-fit:contain;padding:2px}
+  .login-side-logos img:last-child{padding:6px;background:#fff}
+  .login-side h4{font-family:var(--font-d);font-size:19px;font-weight:800;margin:6px 0 0;color:#fff}
+  .login-side p{font-size:12.5px;line-height:1.55;color:rgba(234,244,255,.78);margin:0}
+  .login-side ul{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:11px}
+  .login-side li{display:flex;align-items:center;gap:10px;font-size:12.5px;color:rgba(234,244,255,.9)}
+  .login-side li i{width:28px;height:28px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;color:var(--aqua);background:rgba(0,200,255,.12);border:1px solid rgba(0,200,255,.28)}
+  .login-box .modal-x-btn{top:14px;right:14px}
+}
+
+/* mode terang */
+html[data-theme="light"] .login-main::before{background:rgba(30,70,140,.22)}
+html[data-theme="light"] .login-step{color:var(--aqua);background:rgba(10,123,189,.10);border-color:rgba(10,123,189,.35)}
+html[data-theme="light"] .login-input-wrap .finput{background:#fff;border-color:rgba(30,70,140,.30)}
+html[data-theme="light"] .login-input-wrap .finput:focus{border-color:var(--aqua);box-shadow:0 0 0 3px rgba(10,123,189,.16)}
+html[data-theme="light"] .login-input-wrap .li-icon{color:var(--aqua)}
+html[data-theme="light"] .login-caps{color:#b45309}
+html[data-theme="light"] .login-hero{box-shadow:0 0 0 6px rgba(169,104,0,.14),0 0 0 7px rgba(169,104,0,.38)}
+.login-field .ferr{min-height:0}
+.login-field .ferr:empty{display:none}
+.login-field{gap:7px}
+.login-caps.on{margin-top:-2px}
+.login-main .field-group{gap:16px;margin-bottom:16px}
+.login-main .modal-err-global{margin:0 0 14px}

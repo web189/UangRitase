@@ -501,6 +501,8 @@ async function submitAdminLogin() {
   const email = $("adminEmailInput").value.trim(), pass = $("adminPassInput").value.trim();
   const err = $("adminError"); if (err) err.textContent = "";
   if (!email || !pass) { if (!email) setFieldError("ferrEmail", "Email wajib diisi"); if (!pass) setFieldError("ferrPass", "Password wajib diisi"); return; }
+  const okBtn = $("adminConfirm"), okHtml = okBtn ? okBtn.innerHTML : "";
+  if (okBtn) { okBtn.disabled = true; okBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memeriksa…'; }
   try {
     await signInWithEmailAndPassword(auth, email, pass);
     loginFailCount = 0;
@@ -518,6 +520,8 @@ async function submitAdminLogin() {
     const box = $("adminModal")?.querySelector(".modal-box");
     if (box) { box.classList.add("modal-shake"); setTimeout(() => box.classList.remove("modal-shake"), 450); }
     toast(msg, "error");
+  } finally {
+    if (okBtn) { okBtn.disabled = false; okBtn.innerHTML = okHtml; }
   }
 }
 function renderAdminButton() {
@@ -734,7 +738,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("adminPassToggle")?.addEventListener("click", () => {
     const input = $("adminPassInput"); const wasHidden = input.type === "password";
     input.type = wasHidden ? "text" : "password";
-    $("adminPassToggle").innerHTML = wasHidden ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+    $("adminPassToggle").innerHTML = wasHidden ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>'; $("adminPassToggle").setAttribute("aria-label", wasHidden ? "Sembunyikan password" : "Tampilkan password");
   });
   $("adminBtn")?.addEventListener("click", () => {
     if (isAdmin) { signOut(auth); toast("Logout berhasil", "info"); return; }
@@ -747,6 +751,8 @@ document.addEventListener("DOMContentLoaded", () => {
   $("adminCancel")?.addEventListener("click", () => closeModal("adminModal"));
   $("adminConfirm")?.addEventListener("click", submitAdminLogin);
   [$("adminEmailInput"), $("adminPassInput")].forEach(el => el?.addEventListener("keydown", e => { if (e.key === "Enter") submitAdminLogin(); }));
+  $("adminPassInput")?.addEventListener("keyup", e => { const w = $("capsWarn"); if (w && e.getModifierState) w.classList.toggle("on", e.getModifierState("CapsLock")); });
+  $("adminPassInput")?.addEventListener("blur", () => $("capsWarn")?.classList.remove("on"));
   $("adminModal")?.addEventListener("click", e => { if (e.target === $("adminModal")) closeModal("adminModal"); });
 
   $("deleteConfirm")?.addEventListener("click", confirmDelete);
