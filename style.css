@@ -332,3 +332,91 @@ html[data-theme="light"] .hist-edit{background:rgba(169,104,0,.12);color:#a96800
 html[data-theme="light"] .hist-hapus{background:rgba(224,38,75,.10);color:#c81e45}
 html[data-theme="light"] .hist-section{background:rgba(10,123,189,.10)}
 @media (max-width:899px){.footer{padding-bottom:84px}}
+
+/* ══════════════════════════════════════════════════════════
+   v7 — Hero panel, gembok di atas, filter lengket, polish
+   ══════════════════════════════════════════════════════════ */
+.admin-wrap{display:none}
+.header{position:relative;overflow:hidden}
+.header::after{display:none}
+.header::before{content:'';position:absolute;right:-80px;top:-80px;width:320px;height:320px;border-radius:50%;pointer-events:none;
+  background:repeating-radial-gradient(circle,transparent 0,transparent 26px,rgba(0,200,255,.14) 27px,transparent 28px);
+  -webkit-mask-image:radial-gradient(circle,#000 15%,transparent 68%);mask-image:radial-gradient(circle,#000 15%,transparent 68%)}
+.header>*{position:relative}
+
+/* baris atas: LIVE UPDATE + gembok */
+.header-top{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.header-top .header-badge{margin-bottom:0}
+.admin-pill{display:inline-flex;align-items:center;gap:8px;padding:4px 14px 4px 4px;border-radius:26px;
+  background:rgba(255,193,7,.10);border:1px solid rgba(255,193,7,.50)}
+.admin-pill .admin-btn{width:34px;height:34px;font-size:15px;border:none;flex-shrink:0;
+  background:linear-gradient(145deg,#ffe082,#ff9800);color:#2a1700;box-shadow:0 0 0 3px rgba(255,193,7,.20)}
+.admin-pill .admin-btn:hover{background:linear-gradient(145deg,#fff0b3,#ffa726);box-shadow:0 0 0 4px rgba(255,193,7,.30)}
+.admin-pill .admin-caption{font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--gold);cursor:pointer;white-space:nowrap}
+.admin-pill .admin-btn.countdown{width:42px;height:42px;background:rgba(255,69,96,.12);color:var(--vit);box-shadow:none;border:none}
+.admin-pill .timer-ring{width:42px;height:42px;top:0;left:0}
+.admin-pill .hist-btn{width:34px;height:34px;font-size:14px;flex-shrink:0}
+.admin-pill:has(.countdown){padding-right:12px}
+
+/* HP: hero jadi panel kartu */
+@media (max-width:899px){
+  .header{width:calc(100% - 28px);max-width:640px;margin:58px auto 0;padding:20px 16px 22px;border-radius:26px;
+    border:1px solid rgba(120,175,255,.18);
+    background:radial-gradient(80% 120% at 100% 0%,rgba(0,200,255,.16),transparent 62%),radial-gradient(70% 120% at 0% 100%,rgba(255,69,96,.10),transparent 62%),linear-gradient(135deg,rgba(16,36,70,.94),rgba(8,20,40,.94));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 8px 24px rgba(0,0,0,.35)}
+  .header p.header-sub:first-of-type{font-family:var(--font-d);font-weight:800;font-size:16px;line-height:1.35;color:var(--text-1);margin:0 0 6px}
+  .header p.header-sub:last-of-type{font-size:13px;margin:0 0 16px}
+  .header-actions{margin:0}
+  .filter-nav{position:sticky;top:8px;z-index:60;margin:14px 14px 8px;padding:8px;border-radius:20px;gap:6px;
+    justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+    background:rgba(8,20,40,.97);border:1px solid rgba(120,175,255,.18);box-shadow:0 6px 18px rgba(0,0,0,.4)}
+  .filter-nav::-webkit-scrollbar{display:none}
+  .filter-nav .filter-btn{flex-shrink:0}
+  .filter-nav .filter-btn:first-child{margin-left:auto}
+  .filter-nav .filter-btn:last-child{margin-right:auto}
+  .menu-section{margin-top:18px}
+}
+/* PC */
+@media (min-width:900px){
+  .header::before{right:-90px;top:-90px;width:440px;height:440px}
+  .header-top{justify-content:flex-start;grid-column:1;margin-bottom:16px}
+  .filter-nav{position:sticky;top:10px;z-index:60;width:min(1180px,calc(100% - 40px));margin:22px auto 22px;padding:9px 12px;
+    border-radius:20px;justify-content:flex-start;background:rgba(8,20,40,.97);border:1px solid rgba(120,175,255,.18);box-shadow:0 8px 22px rgba(0,0,0,.4)}
+}
+
+/* kartu: highlight saat terbuka, nomor bulat di tabel */
+.acc-item.acc-open .acc-head{background:linear-gradient(90deg,rgba(0,200,255,.09),transparent 75%)}
+.acc-item.is-vit.acc-open .acc-head{background:linear-gradient(90deg,rgba(255,69,96,.10),transparent 75%)}
+.acc-item.is-gold.acc-open .acc-head{background:linear-gradient(90deg,rgba(255,193,7,.09),transparent 75%)}
+.no-chip{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;
+  font-size:10.5px;font-weight:700;color:var(--aqua);background:rgba(0,200,255,.08);border:1px solid rgba(0,200,255,.20)}
+.vit-row .no-chip{color:var(--vit);background:rgba(255,69,96,.08);border-color:rgba(255,69,96,.22)}
+.ritase-table tbody tr:nth-child(even) td{background:rgba(255,255,255,.018)}
+
+/* footer */
+.mini-player{margin:0 auto;justify-content:center}
+.mini-info{display:flex;align-items:center;justify-content:center;gap:10px;flex:1;min-width:0}
+.mini-icon-wrap{opacity:.85}
+.mini-title{flex:0 1 auto}
+.footer-inner{align-items:center}
+
+/* mode terang */
+html[data-theme="light"] .admin-pill{background:rgba(169,104,0,.08);border-color:rgba(169,104,0,.42)}
+html[data-theme="light"] .admin-pill .admin-caption{color:#8a5300}
+html[data-theme="light"] .admin-pill .admin-btn.countdown{background:rgba(224,38,75,.08)}
+html[data-theme="light"] .header{border-color:rgba(30,70,140,.16);
+  background:radial-gradient(80% 120% at 100% 0%,rgba(0,200,255,.16),transparent 62%),radial-gradient(70% 120% at 0% 100%,rgba(255,69,96,.07),transparent 62%),linear-gradient(135deg,#fff,#edf4fc);
+  box-shadow:inset 0 1px 0 #fff,0 6px 22px rgba(20,50,100,.10)}
+html[data-theme="light"] .header::before{background:repeating-radial-gradient(circle,transparent 0,transparent 26px,rgba(10,123,189,.16) 27px,transparent 28px)}
+html[data-theme="light"] .header p.header-sub:first-of-type{color:var(--text-1)}
+html[data-theme="light"] .filter-nav{background:rgba(255,255,255,.97);border-color:rgba(30,70,140,.16);box-shadow:0 6px 18px rgba(20,50,100,.14)}
+html[data-theme="light"] .acc-item.acc-open .acc-head{background:linear-gradient(90deg,rgba(10,123,189,.08),transparent 75%)}
+html[data-theme="light"] .acc-item.is-vit.acc-open .acc-head{background:linear-gradient(90deg,rgba(224,38,75,.07),transparent 75%)}
+html[data-theme="light"] .acc-item.is-gold.acc-open .acc-head{background:linear-gradient(90deg,rgba(169,104,0,.08),transparent 75%)}
+html[data-theme="light"] .no-chip{background:rgba(10,123,189,.08);border-color:rgba(10,123,189,.22)}
+html[data-theme="light"] .vit-row .no-chip{background:rgba(224,38,75,.07);border-color:rgba(224,38,75,.24)}
+html[data-theme="light"] .ritase-table tbody tr:nth-child(even) td{background:rgba(10,123,189,.03)}
+@media (max-width:899px){
+  .filter-nav{gap:4px;padding:7px 6px}
+  .filter-nav .filter-btn{padding:7px 9px;gap:4px;font-size:11px}
+}

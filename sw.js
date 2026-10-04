@@ -14,7 +14,7 @@
    ============================================================ */
 'use strict';
 
-var CACHE_VERSION = '2026-10-03.4';
+var CACHE_VERSION = '2026-10-04.1';
 var APP_CACHE = 'uang-ritase-app-' + CACHE_VERSION;
 var CDN_CACHE = 'uang-ritase-cdn-' + CACHE_VERSION;
 
@@ -23,17 +23,17 @@ var PRECACHE = [
   "./",
   "favicon.png",
   "manifest.json",
-  "img/icon-192.png",
-  "img/apple-touch-icon.png",
+  "img/icon-192-v2.png",
+  "img/apple-touch-icon-v2.png",
   "style.css",
   "img/logo1.png",
   "img/logo2.png",
   "app.js",
   "notif-trading.min.js",
   "pwa.js",
-  "img/icon-512.png",
-  "img/icon-192-maskable.png",
-  "img/icon-512-maskable.png"
+  "img/icon-512-v2.png",
+  "img/icon-192-maskable-v2.png",
+  "img/icon-512-maskable-v2.png"
 ];
 
 /* Bagian situs lain di bawah folder yang sama — TIDAK boleh disentuh service worker ini */

@@ -17,8 +17,8 @@
 <link rel="icon" href="favicon.png">
 <meta name="theme-color" content="#071b30" id="metaTheme">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" sizes="192x192" href="img/icon-192.png">
-<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="img/icon-192-v2.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon-v2.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="UangRitase">
 <link rel="stylesheet" href="style.css">
@@ -42,7 +42,14 @@
 
 <!-- HEADER -->
 <header class="header">
-  <div class="header-badge"><span class="pulse-dot"></span><span>LIVE UPDATE</span></div>
+  <div class="header-top">
+    <div class="header-badge"><span class="pulse-dot"></span><span>LIVE UPDATE</span></div>
+    <div class="admin-pill" id="adminPill">
+      <button class="icon-btn admin-btn" id="adminBtn" type="button" title="Admin Login" aria-label="Login admin: Rubah, Edit, Hapus"><i class="fas fa-lock"></i></button>
+      <span class="admin-caption" id="adminCaption">Rubah/Edit/Hapus</span>
+      <button class="icon-btn hist-btn" id="histBtn" type="button" title="Histori Perubahan" style="display:none"><i class="fas fa-clock-rotate-left"></i></button>
+    </div>
+  </div>
   <p class="header-sub">Driver Tua · Depo Parung · <span id="updateTag">Update Manual</span></p>
   <p class="header-sub">
     Website Developer
@@ -202,13 +209,6 @@
       Powered by
       <a href="https://benyoriki.com/" target="_blank" class="benyo-link">@benyoriki</a>
     </p>
-    <div class="admin-wrap">
-      <div class="social-row">
-        <button class="icon-btn admin-btn" id="adminBtn" title="Admin Login"><i class="fas fa-lock"></i></button>
-        <button class="icon-btn hist-btn" id="histBtn" title="Histori Perubahan" style="display:none"><i class="fas fa-clock-rotate-left"></i></button>
-      </div>
-      <span class="admin-caption" id="adminCaption">Rubah/Edit/Hapus</span>
-    </div>
     <div class="mini-player" id="miniPlayer">
       <div class="mini-info">
         <div class="mini-icon-wrap"><i class="fas fa-headphones"></i></div>

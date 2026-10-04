@@ -227,7 +227,7 @@ function renderRitaseTable(id, rows) {
     </tr></thead><tbody>`;
   rows.forEach((r, i) => {
     html += `<tr class="rtr${vit ? " vit-row" : ""}" data-i="${i}">
-        <td class="td-no">${i + 1}</td>
+        <td class="td-no"><span class="no-chip">${i + 1}</span></td>
         <td class="td-pabrik">${esc(r[0])}</td>
         <td class="td-muatan"><span class="muatan-chip">${esc(r[1])}</span></td>
         <td class="${priceCls}">${rupiah(r[2])}</td>
@@ -523,7 +523,7 @@ async function submitAdminLogin() {
 function renderAdminButton() {
   const btn = $("adminBtn"); if (!btn || !isAdmin) return;
   btn.classList.add("countdown");
-  const cap = $("adminCaption"); if (cap) cap.textContent = "Admin aktif · tap untuk keluar";
+  const cap = $("adminCaption"); if (cap) cap.textContent = "Admin aktif · keluar";
   const mm = Math.floor(logoutSeconds / 60), ss = logoutSeconds % 60;
   const dashOffset = 276 - (logoutSeconds / 300) * 276;
   btn.innerHTML = `<svg class="timer-ring" viewBox="0 0 100 100">
@@ -767,6 +767,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("dmsAddBtn")?.addEventListener("click", () => openDmsEdit(-1));
 
   $("histBtn")?.addEventListener("click", () => openModal("historyModal"));
+  $("adminCaption")?.addEventListener("click", () => $("adminBtn")?.click());
   $("historyClose")?.addEventListener("click", () => closeModal("historyModal"));
   $("historyModal")?.addEventListener("click", e => { if (e.target === $("historyModal")) closeModal("historyModal"); });
 
