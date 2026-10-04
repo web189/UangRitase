@@ -27,6 +27,13 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const auth = getAuth(app);
 
+/* ---------- Preferensi login (tersimpan di perangkat ini saja) ---------- */
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+};
+
 /* ---------- Helper kecil ---------- */
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -501,11 +508,13 @@ async function submitAdminLogin() {
   const email = $("adminEmailInput").value.trim(), pass = $("adminPassInput").value.trim();
   const err = $("adminError"); if (err) err.textContent = "";
   if (!email || !pass) { if (!email) setFieldError("ferrEmail", "Email wajib diisi"); if (!pass) setFieldError("ferrPass", "Password wajib diisi"); return; }
+  store.set("ur_keep", $("adminKeep")?.checked ? "1" : "0");
   const okBtn = $("adminConfirm"), okHtml = okBtn ? okBtn.innerHTML : "";
   if (okBtn) { okBtn.disabled = true; okBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memeriksa…'; }
   try {
     await signInWithEmailAndPassword(auth, email, pass);
     loginFailCount = 0;
+    store.set("ur_email", email);
     closeModal("adminModal"); toast("✦ Login berhasil!", "success");
   } catch (e) {
     loginFailCount++;
@@ -523,6 +532,12 @@ async function submitAdminLogin() {
   } finally {
     if (okBtn) { okBtn.disabled = false; okBtn.innerHTML = okHtml; }
   }
+}
+function renderAdminKeep() {
+  const btn = $("adminBtn"); if (!btn || !isAdmin) return;
+  btn.classList.remove("countdown"); btn.classList.add("admin-on");
+  btn.innerHTML = '<i class="fas fa-lock-open"></i>';
+  const cap = $("adminCaption"); if (cap) cap.textContent = "Admin aktif · keluar";
 }
 function renderAdminButton() {
   const btn = $("adminBtn"); if (!btn || !isAdmin) return;
@@ -715,10 +730,14 @@ onAuthStateChanged(auth, user => {
   const adminBtn = $("adminBtn");
   if (adminBtn) {
     if (isAdmin) {
-      clearInterval(logoutTimer); logoutSeconds = 300; renderAdminButton();
-      logoutTimer = setInterval(() => { logoutSeconds--; renderAdminButton(); if (logoutSeconds <= 0) { clearInterval(logoutTimer); signOut(auth); } }, 1000);
+      clearInterval(logoutTimer);
+      if (store.get("ur_keep") === "1") { renderAdminKeep(); }
+      else {
+        logoutSeconds = 300; renderAdminButton();
+        logoutTimer = setInterval(() => { logoutSeconds--; renderAdminButton(); if (logoutSeconds <= 0) { clearInterval(logoutTimer); signOut(auth); } }, 1000);
+      }
     } else {
-      clearInterval(logoutTimer); adminBtn.classList.remove("countdown"); adminBtn.innerHTML = '<i class="fas fa-lock"></i>'; { const cap = $("adminCaption"); if (cap) cap.textContent = "Rubah/Edit/Hapus"; }
+      clearInterval(logoutTimer); adminBtn.classList.remove("countdown", "admin-on"); adminBtn.innerHTML = '<i class="fas fa-lock"></i>'; { const cap = $("adminCaption"); if (cap) cap.textContent = "Rubah/Edit/Hapus"; }
     }
   }
   renderAllRitase();
@@ -741,11 +760,12 @@ document.addEventListener("DOMContentLoaded", () => {
     $("adminPassToggle").innerHTML = wasHidden ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>'; $("adminPassToggle").setAttribute("aria-label", wasHidden ? "Sembunyikan password" : "Tampilkan password");
   });
   $("adminBtn")?.addEventListener("click", () => {
-    if (isAdmin) { signOut(auth); toast("Logout berhasil", "info"); return; }
-    $("adminEmailInput").value = ""; $("adminPassInput").value = "";
+    if (isAdmin) { store.del("ur_keep"); signOut(auth); toast("Logout berhasil", "info"); return; }
+    $("adminEmailInput").value = store.get("ur_email") || ""; $("adminPassInput").value = "";
+    if ($("adminKeep")) $("adminKeep").checked = store.get("ur_keep") === "1";
     const err = $("adminError"); if (err) err.textContent = "";
     clearFieldErrors(); openModal("adminModal");
-    setTimeout(() => $("adminEmailInput")?.focus(), 240);
+    setTimeout(() => ($("adminEmailInput").value ? $("adminPassInput") : $("adminEmailInput"))?.focus(), 240);
   });
   $("adminXClose")?.addEventListener("click", () => closeModal("adminModal"));
   $("adminCancel")?.addEventListener("click", () => closeModal("adminModal"));

@@ -218,16 +218,16 @@
 <button class="chat-toggle" id="chatToggle"><i class="fab fa-whatsapp"></i><span class="chat-notif">1</span></button>
 
 <!-- CHAT BOX -->
-<div class="chat-box" id="chatBox">
+<div class="chat-box" id="chatBox" role="dialog" aria-label="Chat Logistik Pusat">
   <div class="chat-header">
     <div class="chat-header-left">
-      <div class="chat-avatar"><i class="fas fa-headset"></i></div>
+      <div class="chat-avatar"><i class="fas fa-headset"></i><span class="chat-avatar-dot"></span></div>
       <div>
         <div class="chat-title">Logistik Pusat</div>
         <div class="chat-status"><span class="online-dot"></span> Online sekarang</div>
       </div>
     </div>
-    <button class="chat-close-btn" id="chatClose"><i class="fas fa-xmark"></i></button>
+    <button class="chat-close-btn" id="chatClose" type="button" aria-label="Tutup chat"><i class="fas fa-xmark"></i></button>
   </div>
   <div class="chat-body" id="chatBody">
     <div class="chat-date-divider">Hari ini</div>
@@ -237,8 +237,15 @@
     <div class="typing hidden" id="typing"><span></span><span></span><span></span></div>
   </div>
   <div class="chat-footer">
-    <a class="chat-wa hidden" id="chatWA" href="https://wa.me/6282127700502" target="_blank"><i class="fab fa-whatsapp"></i> Chat WhatsApp Sekarang</a>
-    <a class="admin-link" href="https://web189.github.io/Jadwal-Admin/" target="_blank"><i class="fas fa-calendar-days"></i> Jadwal Admin</a>
+    <a class="chat-wa hidden" id="chatWA" href="https://wa.me/6282127700502" target="_blank" rel="noopener"><span class="chat-wa-ic"><i class="fab fa-whatsapp"></i></span><span class="chat-wa-tx">Chat WhatsApp Sekarang</span><i class="fas fa-arrow-right chat-wa-ar"></i></a>
+    <div class="chat-quick">
+      <span class="chat-quick-label">Atau pilih topik</span>
+      <div class="chat-quick-row">
+        <a class="chat-chip" href="https://wa.me/6282127700502?text=Halo%20Admin%2C%20saya%20mau%20tanya%20harga%20uang%20ritase." target="_blank" rel="noopener"><i class="fas fa-coins"></i> Harga Ritase</a>
+        <a class="chat-chip" href="https://wa.me/6282127700502?text=Halo%20Admin%2C%20saya%20mau%20tanya%20kode%20pabrik%20%2F%20DMS." target="_blank" rel="noopener"><i class="fas fa-industry"></i> Kode Pabrik</a>
+        <a class="chat-chip" href="https://wa.me/6282127700502?text=Halo%20Admin%2C%20ada%20data%20ritase%20yang%20perlu%20dikoreksi." target="_blank" rel="noopener"><i class="fas fa-triangle-exclamation"></i> Lapor Data</a>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -256,7 +263,7 @@
         <li><i class="fas fa-pen-to-square"></i> Rubah &amp; edit harga ritase</li>
         <li><i class="fas fa-trash-can"></i> Hapus data (bisa dipulihkan)</li>
         <li><i class="fas fa-clock-rotate-left"></i> Histori perubahan tercatat</li>
-        <li><i class="fas fa-hourglass-half"></i> Otomatis keluar 5 menit</li>
+        <li><i class="fas fa-hourglass-half"></i> Keluar otomatis 5 menit</li>
       </ul>
     </aside>
 
@@ -264,6 +271,7 @@
       <div class="login-hero"><i class="fas fa-lock"></i></div>
       <h3 class="modal-heading" id="loginTitle">Login Admin</h3>
       <p class="modal-desc">Masuk untuk Rubah / Edit / Hapus data</p>
+      <div class="modal-desc">admin@gudang.com / admin123</div>
 
       <div class="field-group">
         <div class="field-item login-field" id="fwEmail">
@@ -286,12 +294,18 @@
         </div>
       </div>
 
+      <label class="login-keep" for="adminKeep">
+        <input type="checkbox" id="adminKeep">
+        <span class="keep-box"><i class="fas fa-check"></i></span>
+        <span class="keep-txt">Tetap masuk di perangkat ini<small>Hanya untuk HP/PC pribadi. Jangan dicentang di perangkat umum.</small></span>
+      </label>
+
       <div class="modal-err-global" id="adminError"></div>
       <div class="modal-btns login-btns">
         <button class="mbt mbt-ghost" id="adminCancel" type="button">Batal</button>
         <button class="mbt mbt-primary" id="adminConfirm" type="button"><i class="fas fa-right-to-bracket"></i> Masuk</button>
       </div>
-      <p class="login-note"><i class="fas fa-shield-halved"></i> Khusus admin. Sesi keluar otomatis setelah 5 menit.</p>
+      <p class="login-note"><i class="fas fa-shield-halved"></i> Khusus admin. Tanpa centang, sesi keluar otomatis setelah 5 menit.</p>
     </div>
   </div>
 </div>
