@@ -1,0 +1,160 @@
+/* ══════════════════════════════════════════════════════════
+   v9 — Tampilan "Konsol Logistik": HUD biru-navy, AQUA vs VIT
+   Ringan: tanpa blur, tanpa JS, animasi hanya transform/opacity
+   Dimuat SETELAH style.css (menimpa lapisan lama)
+   ══════════════════════════════════════════════════════════ */
+:root{
+  --font-d:'Sora','Segoe UI',Arial,sans-serif;
+  --s1:rgba(15,34,66,.82);--s2:rgba(7,17,36,.94);--ln:rgba(130,180,255,.16);
+  --h1:rgba(20,44,86,.97);--h2:rgba(6,16,34,.97);--hi:rgba(255,255,255,.06);--ink:#031321
+}
+html[data-theme="light"]{
+  --s1:#fff;--s2:#f1f7fd;--ln:rgba(30,70,140,.16);
+  --h1:#ffffff;--h2:#e8f1fb;--hi:rgba(10,123,189,.07);--ink:#fff
+}
+body{font-feature-settings:"tnum" 1}
+
+/* ── Tanggal & tema ── */
+body .datetime-pill{top:12px;right:14px;font-size:10.5px;padding:4px 12px;background:var(--s2);border-color:var(--ln)}
+body .theme-toggle{background:var(--s2)}
+
+/* ── HERO ── */
+body .header{position:relative;border:0;overflow:hidden;
+  background:
+    radial-gradient(70% 130% at 100% 0%,rgba(0,200,255,.20),transparent 60%),
+    radial-gradient(60% 120% at 0% 100%,rgba(255,69,96,.13),transparent 62%),
+    linear-gradient(145deg,var(--h1),var(--h2));
+  box-shadow:0 18px 40px -22px rgba(0,120,255,.45),inset 0 1px 0 var(--hi)}
+body .header::after{display:block!important;content:'';position:absolute;inset:0;padding:1px;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(135deg,rgba(0,200,255,.85),transparent 34%,transparent 66%,rgba(255,69,96,.75));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+/* garis pindai tunggal — satu-satunya gerak di hero */
+body .header .header-top::before{content:'';position:absolute;left:-30%;top:0;width:30%;height:2px;
+  background:linear-gradient(90deg,transparent,var(--aqua),transparent);animation:v9scan 5s linear infinite}
+body .header-top{position:relative;overflow:visible}
+@keyframes v9scan{to{transform:translateX(450%)}}
+@keyframes v9ping{0%{transform:scale(1);opacity:.7}100%{transform:scale(2.8);opacity:0}}
+body .pulse-dot{position:relative;animation:none!important}
+body .pulse-dot::after{content:'';position:absolute;inset:0;border-radius:50%;background:var(--green);animation:v9ping 2s ease-out infinite}
+body .header-badge{letter-spacing:.12em;font-size:10px;background:rgba(0,230,118,.09)}
+
+/* Tagline jadi legenda chip: Rp · Kode Pabrik · Kode Sales · Depo */
+body .header p.header-tagline{display:flex;flex-wrap:wrap;gap:6px 6px;font-size:0!important;line-height:1;margin:2px 0 16px!important;justify-content:center;text-align:center}
+body .header-tagline .tg-sep{display:none}
+body .header-tagline span{font-family:var(--font-d);font-size:12.5px;font-weight:700;letter-spacing:.01em;
+  padding:7px 11px;border-radius:10px;color:var(--text-1);background:var(--hi);border:1px solid var(--ln)}
+body .header-tagline .tg-hl{font-size:14px;font-weight:800;color:#2a1a00;border-color:transparent;
+  background:linear-gradient(135deg,#ffe082,#ffb300);box-shadow:0 6px 16px -8px rgba(255,179,0,.8)}
+body .header-tagline span:last-child{color:var(--aqua);border-color:rgba(0,200,255,.35);background:rgba(0,200,255,.09)}
+
+/* Tombol aksi */
+body .header-actions{gap:10px}
+body .action-card{border-radius:16px;font-family:var(--font-d);font-weight:700;font-size:12.5px}
+body .sheet-link{background:var(--s2);border-color:rgba(0,200,255,.32);color:var(--aqua)}
+body .wa-button{background:linear-gradient(135deg,#22d36b,#0aa84a);box-shadow:0 10px 22px -10px rgba(10,168,74,.9)}
+body .visitor-badge{background:rgba(0,0,0,.25);font-weight:700}
+@media (max-width:899px){
+  body .header{margin-top:52px;padding:18px 14px 16px;border-radius:24px}
+  body .header-actions{display:grid;grid-template-columns:1fr 1fr;align-items:stretch}
+  body .header-actions .action-card{flex-direction:column;gap:5px;max-width:none;width:100%;padding:12px 6px;text-align:center;justify-content:center}
+  body .sheet-link>.fa-arrow-up-right-from-square{display:none}
+  body .sheet-logos img{height:22px}
+  body .wa-button>.fa-whatsapp{font-size:20px}
+}
+@media (min-width:900px){
+  body .header p.header-tagline{justify-content:flex-start;margin:0!important}
+  body .header-tagline span{font-size:14px;padding:8px 14px}
+  body .header-tagline .tg-hl{font-size:17px}
+  body .header-actions .action-card{border-radius:18px;padding:15px 22px;transition:transform .2s,box-shadow .2s}
+  body .header-actions .action-card:hover{transform:translateY(-2px)}
+}
+
+/* ── FILTER: kontrol segmen ── */
+body .filter-nav{background:var(--s2);border:1px solid var(--ln);border-radius:18px;padding:6px;gap:4px}
+body .filter-btn{border:0;background:transparent;border-radius:13px;padding:9px 14px;color:var(--text-2);font-family:var(--font-d);font-weight:600;font-size:12px;transition:background-color .2s,color .2s}
+body .filter-btn:hover{background:var(--hi);color:var(--text-1);transform:none}
+body .filter-btn.active{color:var(--ink);font-weight:700;background:linear-gradient(135deg,#00d0ff,#3b8bff);box-shadow:0 6px 16px -8px rgba(0,160,255,.9)}
+body .filter-btn[data-filter="vit"].active{background:linear-gradient(135deg,#ff4d6a,#ff7a59);color:#fff;box-shadow:0 6px 16px -8px rgba(255,69,96,.9)}
+html[data-theme="light"] body .filter-btn.active{color:#fff}
+@media (max-width:899px){body .filter-nav{margin:12px 12px 4px;top:6px}}
+
+/* ── Judul seksi ── */
+body .menu-title{text-transform:none;letter-spacing:0;font-family:var(--font-d);font-size:15px;font-weight:700;color:var(--text-1);margin-bottom:12px}
+body .menu-title i{width:28px;height:28px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;background:rgba(0,200,255,.12)}
+@media (max-width:480px){body .menu-title{font-size:13.5px}}
+
+/* ── KARTU ACCORDION ── */
+body .acc-item{background:linear-gradient(180deg,var(--s1),var(--s2));border:1px solid var(--ln);border-radius:20px;
+  transition:border-color .2s,box-shadow .25s}
+body .acc-item::before{left:0;right:auto;top:16px;bottom:16px;width:3px;height:auto;border-radius:0 4px 4px 0;
+  background:linear-gradient(180deg,var(--aqua),#3b8bff)}
+body .acc-item.is-vit::before{background:linear-gradient(180deg,var(--vit),#ff8a5c)}
+body .acc-item.is-gold::before{background:linear-gradient(180deg,#ffd54f,#ff9800)}
+body .acc-item.acc-open{border-color:rgba(0,200,255,.5);box-shadow:0 16px 34px -20px rgba(0,170,255,.7)}
+body .acc-item.is-vit.acc-open{border-color:rgba(255,69,96,.5);box-shadow:0 16px 34px -20px rgba(255,69,96,.7)}
+body .acc-item.is-gold.acc-open{border-color:rgba(255,193,7,.5);box-shadow:0 16px 34px -20px rgba(255,193,7,.6)}
+body .acc-head{padding:16px 18px 16px 22px;-webkit-tap-highlight-color:transparent}
+body .acc-head:active{background:var(--hi)}
+body .acc-head-text strong{font-family:var(--font-d);font-size:15.5px;font-weight:700;letter-spacing:0}
+body .acc-head-text span{font-size:11.5px}
+body .acc-head-icon{border-radius:15px}
+body .acc-chip{font-family:var(--font-d);font-weight:700;border-radius:999px;padding:5px 11px}
+body .acc-chevron{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--hi);font-size:11px}
+body .acc-open .acc-chevron{background:rgba(0,200,255,.16)}
+body .acc-body-inner{border-top:1px dashed var(--ln);margin:0 18px;padding:14px 0 18px}
+@media (min-width:900px){body .acc-body-inner{margin:0 22px}}
+@media (max-width:640px){body .acc-head{padding:14px 12px 14px 18px;gap:10px}body .acc-head-text strong{font-size:14px}body .acc-head-text span{font-size:11px}}
+@media (max-width:380px){body .acc-head-text span{display:none}}
+
+/* Tombol urutkan */
+body .card-sort.with-label{width:auto;height:34px;padding:0 13px;gap:7px;border-radius:999px;font-family:var(--font-d);font-size:11.5px;font-weight:600}
+body .rt-toolbar{display:flex;justify-content:flex-end;margin-bottom:10px}
+
+/* ── TABEL ── */
+body .rtw{border:1px solid var(--ln);border-radius:14px;background:rgba(0,0,0,.14)}
+html[data-theme="light"] body .rtw{background:#fff}
+body .ritase-table thead tr{background:linear-gradient(90deg,rgba(0,200,255,.16),rgba(0,200,255,.04))}
+body .ritase-table th{font-family:var(--font-d);font-size:10px;letter-spacing:.08em;padding:10px 12px}
+body .ritase-table td{padding:11px 12px;border-bottom:1px solid var(--ln)}
+body .ritase-table tbody tr:last-child td{border-bottom:0}
+body .td-pabrik{font-family:var(--font-d);font-weight:700;font-size:13px}
+body .muatan-chip{border-radius:8px;font-weight:600}
+body .uang{font-family:var(--font-d);font-size:14.5px;font-weight:800;letter-spacing:-.01em}
+body .vit-row .th-price{color:var(--vit)}
+body .ritase-table tbody tr:hover td{background:rgba(0,200,255,.07)}
+body .ritase-table .vit-row:hover td{background:rgba(255,69,96,.07)}
+body .rtr.row-active{outline:1px solid var(--aqua)}
+body .no-chip{width:24px;height:24px}
+@media (max-width:640px){
+  body .ritase-table td{padding:10px 8px;font-size:12px}
+  body .td-pabrik{font-size:12px}
+  body .uang{font-size:13.5px}
+}
+
+/* ── DMS & referensi ── */
+body .dms-wrapper{background:transparent;border:0;padding:0;box-shadow:none}
+body .dms-wrapper::before{display:none}
+body #searchInput{border-radius:14px;padding:13px 44px;background:var(--s2);border:1px solid var(--ln);font-size:14px}
+body #searchInput:focus{border-color:var(--aqua);box-shadow:0 0 0 3px rgba(0,200,255,.18)}
+body .table-container{border:1px solid var(--ln);border-radius:14px}
+body #dmsTable thead tr{background:linear-gradient(90deg,#ffb300,#ffd54f)}
+body .ref-table thead tr{background:linear-gradient(90deg,#0b66c3,#13a0e8)}
+body .ref-tabs{gap:6px}
+body .ref-tab-btn{border-radius:999px;padding:7px 14px;font-family:var(--font-d)}
+body .ref-tab-btn.active{background:linear-gradient(135deg,#00d0ff,#3b8bff);color:var(--ink);border-color:transparent}
+html[data-theme="light"] body .ref-tab-btn.active{color:#fff}
+
+/* ── Footer & chat ── */
+body .footer{background:transparent;border-top:1px solid var(--ln);padding:34px 20px 96px}
+body .mini-player{background:var(--s2);border-color:var(--ln)}
+body .chat-toggle{width:54px;height:54px;font-size:23px;bottom:20px;right:18px}
+body .chat-box{border-radius:24px}
+@media (max-width:899px){body .theme-toggle{bottom:26px}}
+
+/* ── Modal HP: sheet bawah dengan pegangan ── */
+@media (max-width:767px){body .modal-box::after{content:'';position:absolute;top:8px;left:50%;width:38px;height:4px;margin-left:-19px;border-radius:4px;background:var(--ln)}}
+
+/* ── Fokus keyboard & hemat gerak ── */
+body :focus-visible{outline:2px solid var(--aqua);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){body .header .header-top::before,body .pulse-dot::after{animation:none!important}}
