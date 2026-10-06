@@ -158,3 +158,36 @@ body .chat-box{border-radius:24px}
 /* ── Fokus keyboard & hemat gerak ── */
 body :focus-visible{outline:2px solid var(--aqua);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){body .header .header-top::before,body .pulse-dot::after{animation:none!important}}
+
+/* ══ v9.1 — Baris tabel jadi kartu: harga SELALU terlihat, tanpa geser samping ══ */
+body .rtw{overflow:hidden}
+body .ritase-table,body .ritase-table tbody{display:block;min-width:0;width:100%}
+body .ritase-table thead{display:none}
+body .ritase-table tr.rtr{display:grid;grid-template-columns:28px minmax(0,1fr) auto;grid-template-areas:"no pab uang" "no mu uang";
+  column-gap:10px;align-items:center;padding:11px 12px;border-bottom:1px solid var(--ln);transition:background-color .15s}
+body .ritase-table tr.rtr:last-child{border-bottom:0}
+body .ritase-table tr.rtr>td{display:block;padding:0;border:0;background:none!important;min-width:0}
+body .ritase-table .td-no{grid-area:no;align-self:center}
+body .ritase-table .td-pabrik{grid-area:pab;font-size:13px;line-height:1.25;overflow-wrap:anywhere}
+body .ritase-table .td-muatan{grid-area:mu;margin-top:5px}
+body .ritase-table .uang{grid-area:uang;text-align:right;font-size:15px;white-space:nowrap;align-self:center}
+body .ritase-table .td-act{grid-area:auto;grid-column:2/-1;padding:9px 0 0!important}
+body .ritase-table .act-group{justify-content:flex-end}
+body .muatan-chip{white-space:normal;line-height:1.3;font-size:10.5px}
+body .ritase-table tr.rtr:nth-child(even){background:rgba(255,255,255,.025)}
+html[data-theme="light"] body .ritase-table tr.rtr:nth-child(even){background:rgba(10,123,189,.04)}
+body .ritase-table tr.rtr:hover{background:rgba(0,200,255,.08)}
+body .ritase-table tr.vit-row:hover{background:rgba(255,69,96,.08)}
+body .rtr.row-active{outline:0;background:rgba(0,200,255,.13)!important;box-shadow:inset 3px 0 0 var(--aqua)}
+body .vit-row.row-active{background:rgba(255,69,96,.13)!important;box-shadow:inset 3px 0 0 var(--vit)}
+body .rtw::after{display:none}
+
+/* Tagline 2×2 rapi di HP, bukan baris patah */
+@media (max-width:899px){
+  body .header p.header-tagline{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  body .header-tagline span{text-align:center;padding:9px 6px;font-size:12px}
+  body .header-tagline .tg-hl{font-size:13.5px}
+  /* tombol tema pindah ke pojok atas, tidak menutupi tabel */
+  body .theme-toggle{position:absolute;top:8px;bottom:auto;left:14px;right:auto;width:34px;height:34px;font-size:14px}
+  body .card-sort.with-label{height:32px;font-size:11px}
+}
