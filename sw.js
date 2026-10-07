@@ -14,7 +14,7 @@
    ============================================================ */
 'use strict';
 
-var CACHE_VERSION = '2026-10-06.3';
+var CACHE_VERSION = '2026-10-07.2';
 var APP_CACHE = 'uang-ritase-app-' + CACHE_VERSION;
 var CDN_CACHE = 'uang-ritase-cdn-' + CACHE_VERSION;
 
@@ -27,6 +27,7 @@ var PRECACHE = [
   "img/apple-touch-icon-v2.png",
   "style.css",
   "style-v9.css",
+  "style-v10.css",
   "img/logo1.png",
   "img/logo2.png",
   "app.js",

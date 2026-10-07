@@ -1,0 +1,167 @@
+/* ══════════════════════════════════════════════════════════
+   v10 — "Command Console": HUD logistik, lebih tajam & lebih rapi
+   Ringan untuk Windows 7 / Chrome 109: tanpa blur, tanpa filter,
+   animasi hanya transform/opacity & hanya sekali saat halaman dibuka.
+   Dimuat SETELAH style.css dan style-v9.css.
+   ══════════════════════════════════════════════════════════ */
+:root{
+  --gold-hi:#ffd45a;--ok:#19e68c;
+  --pn1:rgba(17,38,76,.92);--pn2:rgba(6,15,33,.97);
+  --ln2:rgba(120,175,255,.24)
+}
+html[data-theme="light"]{--pn1:#ffffff;--pn2:#eef5fc;--ln2:rgba(30,70,140,.22)}
+body{-webkit-font-smoothing:antialiased;text-rendering:optimizeSpeed}
+
+/* ── Latar: grid HUD sedikit lebih tegas ── */
+.bg-static::before{background-size:40px 40px;
+  background-image:linear-gradient(rgba(130,185,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(130,185,255,.07) 1px,transparent 1px)}
+
+/* ══ HERO ══ */
+body .header{display:block;text-align:left;border-radius:26px;padding:18px 16px 16px;
+  background:
+    radial-gradient(65% 90% at 100% 0%,rgba(0,200,255,.22),transparent 62%),
+    radial-gradient(55% 80% at 0% 100%,rgba(255,69,96,.15),transparent 64%),
+    linear-gradient(150deg,var(--pn1),var(--pn2))}
+body .header-top{margin-bottom:16px}
+
+/* Merek */
+.brand{display:flex;align-items:center;gap:12px;margin:0 0 14px}
+.brand-mark{flex:0 0 auto;width:48px;height:48px;border-radius:15px;display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-d);font-weight:800;font-size:19px;letter-spacing:-.02em;color:#04162b;
+  background:linear-gradient(135deg,#7defff,#00b7ff 55%,#3b7bff);
+  box-shadow:0 8px 18px -8px rgba(0,170,255,.9),inset 0 1px 0 rgba(255,255,255,.55)}
+.brand-txt{min-width:0}
+.brand h1{margin:0;font-family:var(--font-d);font-weight:800;font-size:clamp(24px,7vw,30px);line-height:1.05;letter-spacing:-.025em;color:var(--text-1)}
+.brand-txt span{display:block;margin-top:5px;font-size:12px;line-height:1.35;color:var(--text-3)}
+
+/* Panel angka */
+.hud-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 12px}
+.hs{position:relative;padding:10px 10px 9px 13px;border-radius:14px;background:var(--s2);border:1px solid var(--ln);overflow:hidden;
+  animation:v10in .5s ease-out both}
+.hs::before{content:'';position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:0 3px 3px 0;background:var(--gold)}
+.hs-aqua::before{background:var(--aqua)}
+.hs-vit::before{background:var(--vit)}
+.hs b{display:block;font-family:var(--font-d);font-weight:800;font-size:22px;line-height:1.1;letter-spacing:-.02em;color:var(--text-1);font-variant-numeric:tabular-nums}
+.hs-aqua b{color:var(--aqua)}
+.hs-vit b{color:var(--vit)}
+.hs span{display:block;margin-top:3px;font-size:10.5px;color:var(--text-3);font-weight:600;white-space:nowrap}
+.hs:nth-child(2){animation-delay:.08s}.hs:nth-child(3){animation-delay:.16s}
+@keyframes v10in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* Chip legenda: lebih kecil, satu baris gulir */
+body .header p.header-tagline{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px!important;justify-content:flex-start}
+body .header-tagline span{padding:6px 10px;font-size:11.5px;border-radius:9px;text-align:center}
+body .header-tagline .tg-hl{font-size:12px}
+
+/* Tombol aksi: lebih padat */
+body .action-card{min-height:58px;border-width:1px}
+body .sheet-link{border-color:var(--ln2)}
+body .wa-button{background:linear-gradient(135deg,#2be07a,#0a9d47)}
+
+/* Tanggal & tema */
+body .datetime-pill{font-variant-numeric:tabular-nums;border-radius:10px}
+
+/* ══ FILTER: bar kontrol menempel di atas ══ */
+body .filter-nav{position:sticky;top:6px;z-index:60;display:flex;flex-wrap:nowrap;overflow-x:auto;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;background:var(--s2);border:1px solid var(--ln2);border-radius:16px;padding:5px;gap:3px}
+body .filter-nav::-webkit-scrollbar{display:none}
+body .filter-btn{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;border-radius:11px;padding:9px 15px}
+
+/* ══ Judul seksi ══ */
+body .menu-title{font-size:14px;margin:6px 0 12px}
+body .menu-title i{background:rgba(0,200,255,.14);border:1px solid rgba(0,200,255,.28)}
+
+/* ══ KARTU ACCORDION ══ */
+body .acc-list{gap:12px}
+body .acc-item{background:linear-gradient(180deg,var(--pn1),var(--pn2));border:1px solid var(--ln2);border-radius:18px}
+body .acc-head{min-height:68px}
+body .acc-head-icon{width:44px;height:44px;border-radius:13px}
+body .acc-item.acc-open>.acc-head{background:linear-gradient(90deg,rgba(0,200,255,.10),transparent 70%)}
+body .acc-item.is-vit.acc-open>.acc-head{background:linear-gradient(90deg,rgba(255,69,96,.11),transparent 70%)}
+body .acc-item.is-gold.acc-open>.acc-head{background:linear-gradient(90deg,rgba(255,193,7,.10),transparent 70%)}
+html[data-theme="light"] body .acc-item.acc-open>.acc-head{background:linear-gradient(90deg,rgba(10,123,189,.08),transparent 70%)}
+body .acc-chip{font-variant-numeric:tabular-nums}
+
+/* ══ BARIS HARGA ══ */
+body .rtw{background:rgba(2,8,20,.35);border-color:var(--ln2);border-radius:14px}
+html[data-theme="light"] body .rtw{background:#fff}
+body .ritase-table tr.rtr{padding:12px 12px;column-gap:11px}
+body .no-chip{width:26px;height:26px;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
+body .td-pabrik{font-size:13.5px;letter-spacing:.005em}
+body .muatan-chip{padding:2px 8px;font-size:10.5px}
+body .ritase-table .uang{padding:6px 11px;border-radius:10px;font-size:14.5px;font-variant-numeric:tabular-nums;
+  color:var(--aqua);background:rgba(0,200,255,.10);border:1px solid rgba(0,200,255,.26)}
+body .ritase-table .uang.vit-price{color:#ff7a90;background:rgba(255,69,96,.10);border-color:rgba(255,69,96,.30)}
+html[data-theme="light"] body .ritase-table .uang.vit-price{color:#c81e45}
+body .ritase-table tr.rtr:active{background:var(--hi)}
+
+/* Tombol urutkan */
+body .card-sort.with-label{border-color:var(--ln2);background:var(--s2)}
+
+/* ══ DMS & REFERENSI ══ */
+body .table-container{border-color:var(--ln2);border-radius:14px;background:rgba(2,8,20,.3)}
+html[data-theme="light"] body .table-container{background:#fff}
+body .ref-tab-btn{white-space:nowrap}
+body #dmsTable tbody td,body .ref-table tbody td{font-variant-numeric:tabular-nums}
+
+/* ══ Footer ══ */
+body .footer{border-top:1px solid var(--ln2)}
+
+/* ══ Fokus keyboard ══ */
+body .filter-btn:focus-visible,body .acc-head:focus-visible{outline-offset:-2px}
+
+/* ══ PC ≥ 900px: konsol dua kolom ══ */
+@media (min-width:900px){
+  body .header{display:grid;grid-template-columns:minmax(0,1fr) 300px;column-gap:44px;row-gap:0;
+    grid-template-areas:"top act" "stats act" "tag act";align-items:start;
+    width:min(1240px,calc(100% - 48px));padding:30px 40px 30px;border-radius:30px}
+  body .header>.header-top{grid-area:top!important;margin-bottom:22px}
+  body .header>.hud-stats{grid-area:stats!important;margin-bottom:18px}
+  body .header>.header-tagline{grid-area:tag!important;margin:0!important}
+  body .header>.header-actions{grid-area:act!important;align-self:center;margin:0;min-width:0;display:flex;flex-direction:column;gap:12px}
+  .brand-mark{width:64px;height:64px;border-radius:20px;font-size:26px}
+  .brand h1{font-size:clamp(34px,3.4vw,46px)}
+  .brand-txt span{font-size:14.5px;margin-top:8px}
+  .hud-stats{gap:12px;max-width:560px}
+  .hs{padding:14px 16px 13px 19px;border-radius:16px}
+  .hs b{font-size:30px}
+  .hs span{font-size:12px}
+  body .header-actions .action-card{flex-direction:row;min-height:64px;font-size:14.5px;padding:16px 24px}
+  body .header-tagline span{font-size:13px;padding:7px 13px}
+  body .header-tagline .tg-hl{font-size:14px}
+  body .filter-nav{width:min(1240px,calc(100% - 48px));margin:22px auto 22px;display:flex;justify-content:flex-start;top:10px;padding:6px}
+  body .filter-btn{padding:10px 20px;font-size:13px}
+  body .menu-section{max-width:1288px}
+  body .menu-title{font-size:15.5px}
+  body .acc-list{gap:18px}
+  body .acc-head{min-height:78px;padding:18px 22px 18px 26px}
+  body .acc-head-icon{width:50px;height:50px;border-radius:15px}
+  body .acc-head-text strong{font-size:16.5px}
+  body .acc-head-text span{font-size:12.5px}
+  body .acc-item:hover{border-color:rgba(0,200,255,.42)}
+  body .acc-item.is-vit:hover{border-color:rgba(255,69,96,.45)}
+  body .ritase-table tr.rtr{padding:13px 16px}
+  body .ritase-table .uang{font-size:15.5px;padding:7px 13px}
+}
+@media (min-width:1500px){
+  body .header,body .filter-nav{width:min(1360px,calc(100% - 96px))}
+  body .menu-section{max-width:1408px}
+  body .acc-list{grid-template-columns:repeat(2,1fr)}
+}
+
+/* ══ HP kecil ══ */
+@media (max-width:899px){
+  body .header{margin-top:52px}
+  body .header-actions{gap:8px}
+}
+@media (max-width:360px){
+  .brand-mark{width:42px;height:42px;font-size:17px}
+  .hs b{font-size:19px}
+  .hs span{font-size:9.5px}
+}
+
+@media (prefers-reduced-motion:reduce){.hs{animation:none!important}}
+
+/* Filter menempel: latar solid agar konten di belakang tidak tembus */
+body .filter-nav{background:#0a1630}
+html[data-theme="light"] body .filter-nav{background:#ffffff}

@@ -23,6 +23,7 @@
 <meta name="apple-mobile-web-app-title" content="UangRitase">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="style-v9.css">
+<link rel="stylesheet" href="style-v10.css">
 <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -50,6 +51,11 @@
       <span class="admin-caption" id="adminCaption">Rubah/Edit/Hapus</span>
       <button class="icon-btn hist-btn" id="histBtn" type="button" title="Histori Perubahan" style="display:none"><i class="fas fa-clock-rotate-left"></i></button>
     </div>
+  </div>
+  <div class="hud-stats" aria-label="Ringkasan jumlah rute">
+    <div class="hs hs-all"><b id="stTotal">0</b><span>Total rute</span></div>
+    <div class="hs hs-aqua"><b id="stAqua">0</b><span>Rute AQUA</span></div>
+    <div class="hs hs-vit"><b id="stVit">0</b><span>Rute VIT</span></div>
   </div>
   <p class="header-sub header-tagline"><span class="tg-hl">Rp Ritase</span><i class="tg-sep">-</i><span>Kd Pabrik</span><i class="tg-sep">-</i><span>Kd Sales/Produk</span><i class="tg-sep">-</i><span>Depo Parung</span></p>
   <div class="header-actions">
@@ -412,6 +418,23 @@
 })();
 </script>
 <script type="module" src="app.js"></script>
+<script>
+(function () {
+  var A = ['count-sps-aqua', 'count-galon-aqua'], V = ['count-sps-vit', 'count-galon-vit'];
+  function num(id) { var e = document.getElementById(id); return e ? (parseInt(e.textContent, 10) || 0) : 0; }
+  function put(id, v) { var e = document.getElementById(id); if (e && e.textContent !== String(v)) e.textContent = v; }
+  function upd() {
+    var a = num(A[0]) + num(A[1]), v = num(V[0]) + num(V[1]);
+    put('stAqua', a); put('stVit', v); put('stTotal', a + v);
+  }
+  upd();
+  if (window.MutationObserver) {
+    var mo = new MutationObserver(upd);
+    A.concat(V).forEach(function (id) { var e = document.getElementById(id); if (e) mo.observe(e, { childList: true, characterData: true, subtree: true }); });
+  }
+  setTimeout(upd, 1500);
+})();
+</script>
 
 <!-- ✦ BenyoPromo Notif — diredupkan otomatis saat area tabel sedang dibaca -->
 <script>
