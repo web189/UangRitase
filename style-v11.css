@@ -1,0 +1,59 @@
+/* v11 "Command Console" — lebih tajam & berkelas, tetap ringan untuk Windows 7 / Chrome 109.
+   Tanpa blur, tanpa filter, tanpa animasi berulang. Dimuat paling akhir. */
+:root{--cut:14px;--neon:#22d3ff;--neon2:#7c5cff;--amber:#ffc83d}
+*{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.benyo-link,.pulse-dot,.chat-toggle,.datetime-pill,.header::after,.del-icon,.online-dot,.chat-notif,.modal-hero-ring,.header-title{animation:none!important}
+.pulse-dot{box-shadow:0 0 0 3px rgba(25,230,140,.22)}
+
+/* Latar: dua cahaya statis + grid */
+.bg-static{background:radial-gradient(60% 40% at 85% 0%,rgba(34,211,255,.16),transparent 70%),radial-gradient(50% 40% at 0% 100%,rgba(124,92,255,.16),transparent 70%),#050b18}
+
+/* Hero: garis neon atas + sudut terpotong */
+body .header{border:1px solid rgba(120,175,255,.3);box-shadow:0 18px 50px -24px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,255,255,.07)}
+body .header::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;border-radius:26px 26px 0 0;background:linear-gradient(90deg,var(--neon),var(--neon2) 55%,#ff4560)}
+.brand{margin:0 0 16px}
+.brand h1{font-size:clamp(28px,8vw,36px);letter-spacing:-.03em}
+.brand-mark{background:linear-gradient(135deg,var(--neon),var(--neon2));color:#fff;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));border-radius:0}
+
+/* Angka HUD: lebih besar, potongan sudut */
+.hs{border-radius:0;clip-path:polygon(0 0,calc(100% - var(--cut)) 0,100% var(--cut),100% 100%,var(--cut) 100%,0 calc(100% - var(--cut)));background:linear-gradient(160deg,rgba(34,211,255,.09),rgba(5,12,28,.9))}
+.hs b{font-size:28px}
+body .action-card{border-radius:0;clip-path:polygon(0 0,calc(100% - var(--cut)) 0,100% var(--cut),100% 100%,var(--cut) 100%,0 calc(100% - var(--cut)))}
+body .header-tagline span{border-radius:8px}
+
+/* Kartu harga */
+body .acc-item{border-radius:16px;border-left:3px solid var(--neon)}
+body .acc-item.is-vit{border-left-color:#ff4560}
+body .acc-item.is-gold{border-left-color:var(--amber)}
+body .acc-item.acc-open{box-shadow:0 14px 36px -22px rgba(34,211,255,.55)}
+body .acc-head-text strong{font-size:16px;letter-spacing:.01em}
+body .ritase-table .uang{font-weight:800;letter-spacing:.01em}
+
+/* Mode admin: sangat jelas sedang bisa mengubah data */
+body.admin-mode::before{content:"MODE ADMIN · ubah, hapus, dan simpan data aktif";position:fixed;left:0;right:0;top:0;z-index:70;text-align:center;font:700 11px/22px var(--font-b);color:#2b1c00;background:linear-gradient(90deg,#ffb300,#ffd45a,#ffb300);pointer-events:none}
+body.admin-mode .header{margin-top:26px}
+body.admin-mode .rtr{box-shadow:inset 3px 0 0 rgba(255,200,61,.55)}
+
+/* Tombol Edit / Hapus berlabel, mudah disentuh */
+body .act-group{gap:8px}
+body .act-btn{width:auto;height:38px;padding:0 13px;gap:6px;border-radius:10px;font:700 12px var(--font-b);border-width:1px}
+body .act-btn span{display:inline}
+body .act-edit{background:rgba(255,200,61,.12);color:var(--amber);border-color:rgba(255,200,61,.5)}
+body .act-del{background:rgba(255,59,92,.12);color:#ff7a90;border-color:rgba(255,59,92,.5)}
+body .add-fab-btn{min-height:46px;font-size:13px;font-weight:700}
+body .modal-btns .mbt{min-height:48px}
+body .mbt:disabled{opacity:.7;cursor:wait}
+
+/* HP: ruang bawah agar tombol WA & tema tidak menutupi kartu terakhir */
+body .footer{padding-bottom:104px}
+body .menu-section{padding-bottom:12px}
+body .datetime-pill{font-size:10.5px;max-width:58vw}
+
+/* PC: merek di kolom kiri, di atas angka */
+@media (min-width:900px){
+  body .header{grid-template-areas:"top act" "brand act" "stats act" "tag act"}
+  body .header>.brand{grid-area:brand}
+  body .brand h1{font-size:clamp(40px,4vw,56px)}
+  body .hs b{font-size:36px}
+  body .act-btn{height:36px}
+}

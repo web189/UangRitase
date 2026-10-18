@@ -199,19 +199,33 @@ function toast(msg, type = "info", duration = 3200) {
   setTimeout(() => { el.classList.remove("toast-show"); el.classList.add("toast-hide"); setTimeout(() => el.remove(), 420); }, duration);
 }
 
-/* ---------- Firebase write ---------- */
-function saveRitase() {
-  if (!auth.currentUser) return toast("⚠️ Login admin dulu!", "warn");
-  set(ref(db, "ritase"), {
-    spsAqua: toObj(ritase.spsAqua), galonAqua: toObj(ritase.galonAqua),
-    spsVit: toObj(ritase.spsVit), galonVit: toObj(ritase.galonVit)
-  }).then(() => toast("✅ Data tersimpan!", "success", 2000))
-    .catch(e => toast(e.code === "PERMISSION_DENIED" ? "❌ Permission denied! Cek Firebase Rules" : "❌ Error: " + e.message, "error", 6000));
+/* ---------- Firebase write (v11) ----------
+   Tulis per bagian (ritase/spsAqua dst). Tampilan baru berubah SETELAH server
+   menerima data; kalau gagal, data di layar tidak diubah dan alasannya ditampilkan. */
+const SAVE_TIMEOUT = 12000;
+function explainErr(e) {
+  const em = (auth.currentUser && auth.currentUser.email) || "-";
+  if (e && (e.code === "PERMISSION_DENIED" || /permission/i.test(e.message || ""))) return "Ditolak server: akun " + em + " tidak punya izin menulis. Masuk dengan admin@uangritase.com.";
+  if (e && e.message === "timeout") return "Koneksi lambat atau offline. Data belum tersimpan, coba lagi.";
+  return "Gagal menyimpan: " + ((e && e.message) || e);
 }
-function saveDms() {
-  if (!auth.currentUser) return toast("⚠️ Login admin dulu!", "warn");
-  set(ref(db, "dms"), toObj(dmsList)).then(() => toast("✅ DMS tersimpan!", "success", 2000))
-    .catch(e => toast(e.code === "PERMISSION_DENIED" ? "❌ Permission denied! Cek Firebase Rules" : "❌ Error DMS: " + e.message, "error", 6000));
+function writeWithTimeout(path, val) {
+  return Promise.race([set(ref(db, path), val), new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), SAVE_TIMEOUT))]);
+}
+async function commitRitase(key, next) {
+  if (!auth.currentUser) { toast("Sesi admin habis. Masuk lagi lalu ulangi.", "warn", 5000); return false; }
+  try { await writeWithTimeout("ritase/" + key, toObj(next)); ritase[key] = next; logoutSeconds = 300; return true; }
+  catch (e) { toast(explainErr(e), "error", 8000); return false; }
+}
+async function commitDms(next) {
+  if (!auth.currentUser) { toast("Sesi admin habis. Masuk lagi lalu ulangi.", "warn", 5000); return false; }
+  try { await writeWithTimeout("dms", toObj(next)); dmsList = next; logoutSeconds = 300; return true; }
+  catch (e) { toast(explainErr(e), "error", 8000); return false; }
+}
+function setBusy(btn, on) {
+  if (!btn) return;
+  if (on) { btn.dataset.h = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan…'; }
+  else { btn.disabled = false; if (btn.dataset.h) btn.innerHTML = btn.dataset.h; }
 }
 function pushHistory(action, section, detail) {
   if (!auth.currentUser) return;
@@ -239,8 +253,8 @@ function renderRitaseTable(id, rows) {
         <td class="td-muatan"><span class="muatan-chip">${esc(r[1])}</span></td>
         <td class="${priceCls}">${rupiah(r[2])}</td>
         ${isAdmin ? `<td class="td-act"><div class="act-group">
-          <button class="act-btn act-edit" data-target="${id}" data-i="${i}"><i class="fas fa-pen-to-square"></i></button>
-          <button class="act-btn act-del" data-target="${id}" data-i="${i}"><i class="fas fa-trash-can"></i></button>
+          <button class="act-btn act-edit" data-target="${id}" data-i="${i}" aria-label="Edit" title="Edit"><i class="fas fa-pen-to-square"></i><span>Edit</span></button>
+          <button class="act-btn act-del" data-target="${id}" data-i="${i}" aria-label="Hapus" title="Hapus"><i class="fas fa-trash-can"></i><span>Hapus</span></button>
         </div></td>` : ""}
       </tr>`;
   });
@@ -278,7 +292,7 @@ function enableSwipeDelete(container) {
     tr.addEventListener("touchend", () => {
       dragging = false;
       if (dx < -75) {
-        tr.style.transition = "transform .22s,opacity .22s"; tr.style.transform = "translateX(-120%)"; tr.style.opacity = "0";
+        tr.style.transform = ""; tr.style.opacity = "";
         const target = tr.closest("[id]")?.id, i = +tr.dataset.i;
         setTimeout(() => openDeleteModal("ritase", target, i), 200);
       } else {
@@ -324,30 +338,31 @@ function openRowEdit(target, index) {
   openModal("rowEditModal");
   setTimeout(() => $("rowEditPabrik")?.focus(), 230);
 }
-function submitRowEdit() {
+async function submitRowEdit() {
+  if (!editCtx || editCtx.busy) return;
   const pabrik = $("rowEditPabrik").value.trim().toUpperCase();
   const muatan = $("rowEditMuatan").value.trim().toUpperCase();
-  const harga = parseInt($("rowEditHarga").value.trim());
+  const harga = parseInt($("rowEditHarga").value.trim(), 10);
   clearFieldErrors();
   let ok = true;
   if (!pabrik) { setFieldError("ferrPabrik", "Nama pabrik wajib diisi"); ok = false; }
   if (!muatan) { setFieldError("ferrMuatan", "Muatan wajib diisi"); ok = false; }
   if (!harga || harga <= 0) { setFieldError("ferrHarga", "Harga harus angka > 0"); ok = false; }
   if (!ok) return;
-  const { key, target, index } = editCtx;
-  const isNew = index === -1;
-  const sectionName = SECTION_LABEL[target] || target;
-  if (isNew) { ritase[key].push([pabrik, muatan, harga]); toast(`✦ Rute ditambahkan: ${pabrik}`, "success"); }
-  else { ritase[key][index] = [pabrik, muatan, harga]; toast(`✦ Rute diperbarui: ${pabrik}`, "success"); }
-  pushHistory(isNew ? "tambah" : "edit", sectionName, `${pabrik} · ${muatan} · ${rupiah(harga)}`);
-  saveRitase();
-  closeModal("rowEditModal");
+  const { key, target, index } = editCtx, isNew = index === -1;
+  const next = ritase[key].map(r => [...r]);
+  if (isNew) next.push([pabrik, muatan, harga]); else next[index] = [pabrik, muatan, harga];
+  const btn = $("rowEditConfirm"); editCtx.busy = true; setBusy(btn, true);
+  const saved = await commitRitase(key, next);
+  setBusy(btn, false); if (editCtx) editCtx.busy = false;
+  if (!saved) return;
+  pushHistory(isNew ? "tambah" : "edit", SECTION_LABEL[target] || target, `${pabrik} · ${muatan} · ${rupiah(harga)}`);
+  toast(isNew ? `Rute ditambahkan: ${pabrik}` : `Rute diperbarui: ${pabrik}`, "success");
+  closeModal("rowEditModal"); editCtx = null;
   renderRitaseTable(target, ritase[key]);
- 
   setTimeout(() => {
-    const rows = document.querySelectorAll(`#${target} .rtr`);
-    const idx = isNew ? rows.length - 1 : index;
-    if (rows[idx]) { rows[idx].classList.add("row-highlight"); setTimeout(() => rows[idx]?.classList.remove("row-highlight"), 2500); }
+    const rows = document.querySelectorAll(`#${target} .rtr`), idx = isNew ? rows.length - 1 : index;
+    if (rows[idx]) { rows[idx].classList.add("row-highlight"); setTimeout(() => rows[idx] && rows[idx].classList.remove("row-highlight"), 2500); }
   }, 140);
 }
 
@@ -364,21 +379,19 @@ function openDeleteModal(type, target, index) {
   const el = $("deleteLabel"); if (el) el.textContent = label;
   openModal("deleteModal");
 }
-function confirmDelete() {
-  if (!deleteCtx) return;
-  const { type, key, target, index, row } = deleteCtx;
-  undoStack.push({ ...deleteCtx, ts: Date.now() });
-  deleteCtx = null;
-  closeModal("deleteModal");
-  if (type === "ritase") {
-    ritase[key].splice(index, 1);
-    pushHistory("hapus", SECTION_LABEL[target] || target, `${row[0]} · ${row[1]}`);
-    saveRitase(); renderRitaseTable(target, ritase[key]);
-  } else {
-    dmsList.splice(index, 1);
-    pushHistory("hapus", "DMS", `${row[0]} · ${row[1]}`);
-    saveDms(); renderDmsTable();
-  }
+async function confirmDelete() {
+  if (!deleteCtx || deleteCtx.busy) return;
+  const ctx = deleteCtx, { type, key, target, index, row } = ctx;
+  const btn = $("deleteConfirm"); ctx.busy = true; setBusy(btn, true);
+  const saved = type === "ritase"
+    ? await commitRitase(key, ritase[key].filter((_, i) => i !== index))
+    : await commitDms(dmsList.filter((_, i) => i !== index));
+  setBusy(btn, false); ctx.busy = false;
+  if (!saved) return;
+  undoStack.push({ type, key, target, index, row });
+  deleteCtx = null; closeModal("deleteModal");
+  pushHistory("hapus", type === "ritase" ? (SECTION_LABEL[target] || target) : "DMS", `${row[0]} · ${row[1]}`);
+  if (type === "ritase") renderRitaseTable(target, ritase[key]); else renderDmsTable();
   showUndoBar(`${row[0]} dihapus`);
 }
 function showUndoBar(msg) {
@@ -394,12 +407,16 @@ function showUndoBar(msg) {
   clearTimeout(undoTimer);
   undoTimer = setTimeout(() => bar.classList.remove("undo-show"), 5000);
 }
-function undoDelete() {
-  const item = undoStack.pop(); if (!item) return;
-  clearTimeout(undoTimer); $("undoBar")?.classList.remove("undo-show");
-  if (item.type === "ritase") { ritase[item.key].splice(item.index, 0, item.row); saveRitase(); renderRitaseTable(item.target, ritase[item.key]); }
-  else { dmsList.splice(item.index, 0, item.row); saveDms(); renderDmsTable(); }
-  toast("✦ Data berhasil dipulihkan", "success");
+async function undoDelete() {
+  const item = undoStack[undoStack.length - 1]; if (!item) return;
+  const at = Math.min(item.index, item.type === "ritase" ? ritase[item.key].length : dmsList.length);
+  let saved;
+  if (item.type === "ritase") { const n = ritase[item.key].map(r => [...r]); n.splice(at, 0, item.row); saved = await commitRitase(item.key, n); }
+  else { const n = dmsList.map(r => [...r]); n.splice(at, 0, item.row); saved = await commitDms(n); }
+  if (!saved) return;
+  undoStack.pop(); clearTimeout(undoTimer); $("undoBar")?.classList.remove("undo-show");
+  if (item.type === "ritase") renderRitaseTable(item.target, ritase[item.key]); else renderDmsTable();
+  toast("Data berhasil dipulihkan", "success");
 }
 
 /* ---------- Modal helpers ---------- */
@@ -419,8 +436,8 @@ function renderDmsTable() {
         <td class="dms-td-kode"><span class="kode-chip">${esc(row[0])}</span></td>
         <td class="dms-td-nama">${esc(row[1])}</td>
         ${isAdmin ? `<td class="td-act"><div class="act-group">
-          <button class="act-btn act-edit" data-i="${i}"><i class="fas fa-pen-to-square"></i></button>
-          <button class="act-btn act-del" data-i="${i}"><i class="fas fa-trash-can"></i></button>
+          <button class="act-btn act-edit" data-i="${i}" aria-label="Edit" title="Edit"><i class="fas fa-pen-to-square"></i><span>Edit</span></button>
+          <button class="act-btn act-del" data-i="${i}" aria-label="Hapus" title="Hapus"><i class="fas fa-trash-can"></i><span>Hapus</span></button>
         </div></td>` : ""}`;
     tr.addEventListener("click", e => {
       if (e.target.closest(".act-btn")) return;
@@ -472,20 +489,24 @@ function openDmsEdit(index) {
   clearFieldErrors(); openModal("dmsEditModal");
   setTimeout(() => $("dmsEditKode")?.focus(), 230);
 }
-function submitDmsEdit() {
+async function submitDmsEdit() {
   const kode = $("dmsEditKode").value.trim().toUpperCase();
   const nama = $("dmsEditNama").value.trim().toUpperCase();
-  const index = parseInt($("dmsEditIndex").value);
-  const isNew = index === -1;
+  const index = parseInt($("dmsEditIndex").value, 10), isNew = index === -1;
   clearFieldErrors();
   let ok = true;
   if (!kode) { setFieldError("ferrKode", "Kode wajib diisi"); ok = false; }
   if (!nama) { setFieldError("ferrNama", "Nama pabrik wajib diisi"); ok = false; }
   if (!ok) return;
-  if (isNew) { dmsList.push([kode, nama]); toast(`✦ Pabrik ditambahkan: ${kode}`, "success"); }
-  else { dmsList[index] = [kode, nama]; toast(`✦ Pabrik diperbarui: ${kode}`, "success"); }
+  const next = dmsList.map(r => [...r]);
+  if (isNew) next.push([kode, nama]); else next[index] = [kode, nama];
+  const btn = $("dmsEditConfirm"); if (btn.disabled) return; setBusy(btn, true);
+  const saved = await commitDms(next);
+  setBusy(btn, false);
+  if (!saved) return;
   pushHistory(isNew ? "tambah" : "edit", "DMS", `${kode} · ${nama}`);
-  saveDms(); closeModal("dmsEditModal"); renderDmsTable();
+  toast(isNew ? `Pabrik ditambahkan: ${kode}` : `Pabrik diperbarui: ${kode}`, "success");
+  closeModal("dmsEditModal"); renderDmsTable();
 }
 
 /* ---------- Admin login / countdown ---------- */
@@ -678,7 +699,7 @@ function initRefTabs() {
 /* ---------- Datetime pill & visitor counter ---------- */
 function initClock() {
   const el = $("datetime"); if (!el) return;
-  const tick = () => { el.textContent = new Date().toLocaleString("id-ID", { weekday: "short", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }) + " WIB"; };
+  const tick = () => { el.textContent = new Date().toLocaleString("id-ID", { weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", second: "2-digit" }) + " WIB"; };
   tick(); setInterval(tick, 1000);
 }
 function initVisitorCounter() {
@@ -706,26 +727,31 @@ window.addEventListener("resize", () => {
 
 /* ---------- Firebase listeners ---------- */
 onValue(ref(db, "ritase"), snap => {
-  const v = snap.val();
-  const spsAqua = fromObj(v?.spsAqua), galonAqua = fromObj(v?.galonAqua), spsVit = fromObj(v?.spsVit), galonVit = fromObj(v?.galonVit);
-  ritase.spsAqua = spsAqua.length ? spsAqua : DEFAULT_RITASE.spsAqua.map(r => [...r]);
-  ritase.galonAqua = galonAqua.length ? galonAqua : DEFAULT_RITASE.galonAqua.map(r => [...r]);
-  ritase.spsVit = spsVit.length ? spsVit : DEFAULT_RITASE.spsVit.map(r => [...r]);
-  ritase.galonVit = galonVit.length ? galonVit : DEFAULT_RITASE.galonVit.map(r => [...r]);
+  const v = snap.val(), has = v && typeof v === "object";
+  ["spsAqua", "galonAqua", "spsVit", "galonVit"].forEach(k => {
+    ritase[k] = has ? fromObj(v[k]) : DEFAULT_RITASE[k].map(r => [...r]);
+  });
   renderAllRitase();
-});
+}, err => toast("Gagal membaca data: " + err.message, "error", 6000));
 onValue(ref(db, "dms"), snap => {
   const arr = fromObj(snap.val());
   dmsList = arr.length ? arr : DEFAULT_DMS.map(r => [...r]);
   if (accRendered.dmsPabrik) renderDmsTable();
 });
-onValue(ref(db, "history"), snap => {
-  const v = snap.val();
-  historyList = v ? Object.entries(v).map(([id, h]) => ({ id, ...h })).sort((a, b) => b.ts - a.ts).slice(0, 50) : [];
-  renderHistoryList();
-});
+let histOff = null;
+function syncHistory(user) {
+  if (histOff) { histOff(); histOff = null; }
+  if (!user) { historyList = []; renderHistoryList(); return; }
+  histOff = onValue(ref(db, "history"), snap => {
+    const v = snap.val();
+    historyList = v ? Object.entries(v).map(([id, h]) => ({ id, ...h })).sort((a, b) => b.ts - a.ts).slice(0, 50) : [];
+    renderHistoryList();
+  }, () => {});
+}
 onAuthStateChanged(auth, user => {
   isAdmin = !!user;
+  document.body.classList.toggle("admin-mode", isAdmin);
+  syncHistory(user);
   const histBtn = $("histBtn"); if (histBtn) histBtn.style.display = isAdmin ? "flex" : "none";
   const adminBtn = $("adminBtn");
   if (adminBtn) {
@@ -734,7 +760,7 @@ onAuthStateChanged(auth, user => {
       if (store.get("ur_keep") === "1") { renderAdminKeep(); }
       else {
         logoutSeconds = 300; renderAdminButton();
-        logoutTimer = setInterval(() => { logoutSeconds--; renderAdminButton(); if (logoutSeconds <= 0) { clearInterval(logoutTimer); signOut(auth); } }, 1000);
+        logoutTimer = setInterval(() => { if (!document.querySelector("#rowEditModal.modal-open,#dmsEditModal.modal-open,#deleteModal.modal-open")) logoutSeconds--; renderAdminButton(); if (logoutSeconds <= 0) { clearInterval(logoutTimer); signOut(auth); } }, 1000);
       }
     } else {
       clearInterval(logoutTimer); adminBtn.classList.remove("countdown", "admin-on"); adminBtn.innerHTML = '<i class="fas fa-lock"></i>'; { const cap = $("adminCaption"); if (cap) cap.textContent = "Rubah/Edit/Hapus"; }
