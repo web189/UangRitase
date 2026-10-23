@@ -26,6 +26,7 @@
 <link rel="stylesheet" href="style-v10.css">
 <link rel="stylesheet" href="style-v11.css">
 <link rel="stylesheet" href="style-v12.css">
+<link rel="stylesheet" href="style-v13.css">
 <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,6 +37,7 @@
 </noscript>
 </head>
 <body>
+<div class="scroll-bar" id="scrollBar" aria-hidden="true"></div>
 
 <!-- BG statis: murni gradient CSS, tanpa animasi / blur / JS -->
 <div class="bg-static" aria-hidden="true"></div>
@@ -46,6 +48,7 @@
 
 <!-- HEADER -->
 <header class="header">
+  <span class="hud-deco" aria-hidden="true"></span>
   <div class="header-top">
     <div class="header-badge"><span class="pulse-dot"></span><span>LIVE UPDATE</span></div>
     <div class="admin-pill" id="adminPill">
@@ -73,7 +76,7 @@
     </a>
     <button class="action-card pwa-install-btn" id="pwaInstallBtn" type="button" aria-label="Pasang aplikasi UangRitase ke layar utama">
       <span class="pwa-ic"><i class="fas fa-download"></i></span>
-      <span class="pwa-txt"><strong>Pasang Aplikasi</strong><small>Gratis · buka cepat dari layar utama</small></span>
+      <span class="pwa-txt"><strong>Pasang Aplikasi</strong><small>Gratis · buka cepat dari layar HP</small></span>
       <span class="pwa-go"><i class="fas fa-arrow-down"></i></span>
     </button>
     <a class="action-card wa-button" href="https://wa.me/6282127700502" target="_blank" rel="noopener">
@@ -83,6 +86,18 @@
     </a>
   </div>
 </header>
+
+<!-- TICKER HUD (CSS saja, hanya transform) -->
+<div class="hud-ticker" aria-hidden="true"><div class="hud-ticker-track"><span><i class="fas fa-circle"></i> DEPO PARUNG</span><span>HARGA RITASE AQUA &amp; VIT</span><span>KODE PABRIK · DMS · COUNTER BTB</span><span>DATA REALTIME DARI SERVER</span><span><i class="fas fa-circle"></i> DEPO PARUNG</span><span>HARGA RITASE AQUA &amp; VIT</span><span>KODE PABRIK · DMS · COUNTER BTB</span><span>DATA REALTIME DARI SERVER</span></div></div>
+
+<!-- PENCARIAN GLOBAL: menyaring semua tabel ritase sekaligus -->
+<div class="gsearch" id="gSearch" role="search">
+  <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+  <input id="gsInput" type="search" placeholder="Cari rute, pabrik, atau muatan…" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="Cari di semua harga ritase">
+  <kbd title="Tekan / untuk mencari">/</kbd>
+  <button class="gs-clear" id="gsClear" type="button" hidden aria-label="Hapus pencarian"><i class="fas fa-xmark"></i></button>
+</div>
+<div class="gs-info" id="gsInfo" hidden aria-live="polite"></div>
 
 <!-- FILTER NAV (mengatur kartu harga ritase di bawah) -->
 <nav class="filter-nav">
@@ -247,18 +262,11 @@
 <!-- FOOTER -->
 <footer class="footer">
   <div class="footer-inner">
+    <span class="footer-mark" aria-hidden="true"><i class="fas fa-code"></i></span>
     <p class="footer-copy">
-      © 2026 UangRitase ·
-      Powered by
-      <a href="https://benyoriki.com/" target="_blank" class="benyo-link">@benyoriki</a>
+      © 2026 Sistem &amp; Website developer
+      <a href="https://benyoriki.com/" target="_blank" rel="noopener" class="benyo-link">benyoriki.com</a>
     </p>
-    <div class="mini-player" id="miniPlayer">
-      <div class="mini-info">
-        <div class="mini-icon-wrap"><i class="fas fa-headphones"></i></div>
-        <div class="mini-title" id="musicTitle">Tidak ada lagu</div>
-      </div>
-      <audio id="audioPlayer" preload="auto"></audio>
-    </div>
   </div>
 </footer>
 
@@ -523,6 +531,7 @@
 </script>
 <script src="notif-trading.min.js" defer></script>
 
+<script src="hud.js" defer></script>
 <script src="pwa.js" data-app-name="UangRitase" data-accent="#00c8ff" defer></script>
 </body>
 </html>

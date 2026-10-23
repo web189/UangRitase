@@ -14,7 +14,7 @@
    ============================================================ */
 'use strict';
 
-var CACHE_VERSION = '2026-10-23.13';
+var CACHE_VERSION = '2026-10-23.15';
 var APP_CACHE = 'uang-ritase-app-' + CACHE_VERSION;
 var CDN_CACHE = 'uang-ritase-cdn-' + CACHE_VERSION;
 
@@ -30,6 +30,8 @@ var PRECACHE = [
   "style-v10.css",
   "style-v11.css",
   "style-v12.css",
+  "style-v13.css",
+  "hud.js",
   "img/logo1.png",
   "img/logo2.png",
   "app.js",
