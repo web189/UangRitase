@@ -14,7 +14,7 @@
    ============================================================ */
 'use strict';
 
-var CACHE_VERSION = '2026-10-18.11';
+var CACHE_VERSION = '2026-10-23.12';
 var APP_CACHE = 'uang-ritase-app-' + CACHE_VERSION;
 var CDN_CACHE = 'uang-ritase-cdn-' + CACHE_VERSION;
 

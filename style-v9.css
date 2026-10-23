@@ -134,11 +134,8 @@ body .no-chip{width:24px;height:24px}
 
 /* ── DMS & referensi ── */
 body .dms-wrapper{background:transparent;border:0;padding:0;box-shadow:none}
-body .dms-wrapper::before{display:none}
-body #searchInput{border-radius:14px;padding:13px 44px;background:var(--s2);border:1px solid var(--ln);font-size:14px}
-body #searchInput:focus{border-color:var(--aqua);box-shadow:0 0 0 3px rgba(0,200,255,.18)}
-body .table-container{border:1px solid var(--ln);border-radius:14px}
-body #dmsTable thead tr{background:linear-gradient(90deg,#ffb300,#ffd54f)}
+body .dms-wrapper::before{display:none}body #searchInput,body #btbSearch{border-radius:14px;padding:13px 44px;background:var(--s2);border:1px solid var(--ln);font-size:14px}body #searchInput:focus,body #btbSearch:focus{border-color:var(--aqua);box-shadow:0 0 0 3px rgba(0,200,255,.18)}
+body .table-container{border:1px solid var(--ln);border-radius:14px}body #dmsTable thead tr,body #btbTable thead tr{background:linear-gradient(90deg,#ffb300,#ffd54f)}
 body .ref-table thead tr{background:linear-gradient(90deg,#0b66c3,#13a0e8)}
 body .ref-tabs{gap:6px}
 body .ref-tab-btn{border-radius:999px;padding:7px 14px;font-family:var(--font-d)}

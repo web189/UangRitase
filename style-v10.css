@@ -101,8 +101,7 @@ body .card-sort.with-label{border-color:var(--ln2);background:var(--s2)}
 /* ══ DMS & REFERENSI ══ */
 body .table-container{border-color:var(--ln2);border-radius:14px;background:rgba(2,8,20,.3)}
 html[data-theme="light"] body .table-container{background:#fff}
-body .ref-tab-btn{white-space:nowrap}
-body #dmsTable tbody td,body .ref-table tbody td{font-variant-numeric:tabular-nums}
+body .ref-tab-btn{white-space:nowrap}body #dmsTable tbody td,body .ref-table tbody td,body #btbTable tbody td{font-variant-numeric:tabular-nums}
 
 /* ══ Footer ══ */
 body .footer{border-top:1px solid var(--ln2)}

@@ -83,6 +83,32 @@ const DEFAULT_DMS = [
   ["90A5-9000", "XWH SENTUL"]
 ];
 
+/* ---------- ID BTB DMS Counter PRG (default bila Firebase kosong) ---------- */
+const DEFAULT_BTB = [
+  ["281-COUNTER 2", "WS PELITA DESA"],
+  ["281-COUNTER 3", "MT REVINA GROSIR"],
+  ["281-COUNTER 4", "AHS MHM"],
+  ["281-COUNTER 5", "TOKO RICKY"],
+  ["281-COUNTER 6", "TOKO AMIN SO"],
+  ["281-COUNTER 7", "WS YEYEN"],
+  ["281-COUNTER 8", "TOKO MAKMUR JAYA"],
+  ["281-COUNTER 9", "TOKO ASEP (SO)"],
+  ["281-COUNTER 10", "TOKO SELAMET"],
+  ["281-COUNTER 11", "IBRA WS"],
+  ["281-COUNTER 12", "DK TIRTA SO"],
+  ["281-COUNTER 13", "TOKO MEBBI GROUP"],
+  ["281-COUNTER 14", "TOKO MUSLIM SO"],
+  ["281-COUNTER 15", "TOKO AIR BERLIAN SO"],
+  ["281-COUNTER 16", "PT ABDULAH BANJARAN SUKSES"],
+  ["281-COUNTER 17", "WS ADI TIRTA"],
+  ["281-COUNTER 18", "TOKO RIZKI CISEENG"],
+  ["281-COUNTER 19", "WS SRI ALAM"],
+  ["281-COUNTER 20", "SARI JAYA MANDIRI SO"],
+  ["281-COUNTER 21", "TOKO ASA MANDIRI"],
+  ["281-COUNTER 22", "CV ADHI JAYA KARUNIA UTAMA"],
+  ["281-COUNTER 23", "TOKO PUTRA MANDIRI (SO)"]
+];
+
 /* ---------- Data referensi baru (PT. LOKON PRIMA — update 25 Mei 2026) ---------- */
 /* Statis di sisi klien: tidak perlu edit admin / Firebase, murni tabel lookup. */
 const REF_DATA = {
@@ -169,6 +195,7 @@ let logoutTimer = null, logoutSeconds = 300;
 let sortState = {};
 let ritase = { spsAqua: [], galonAqua: [], spsVit: [], galonVit: [] };
 let dmsList = [];
+let btbList = [];
 let historyList = [];
 let editCtx = null;      // konteks row-edit modal
 let deleteCtx = null;    // konteks delete modal
@@ -215,6 +242,11 @@ function writeWithTimeout(path, val) {
 async function commitRitase(key, next) {
   if (!auth.currentUser) { toast("Sesi admin habis. Masuk lagi lalu ulangi.", "warn", 5000); return false; }
   try { await writeWithTimeout("ritase/" + key, toObj(next)); ritase[key] = next; logoutSeconds = 300; return true; }
+  catch (e) { toast(explainErr(e), "error", 8000); return false; }
+}
+async function commitBtb(next) {
+  if (!auth.currentUser) { toast("Sesi admin habis. Masuk lagi lalu ulangi.", "warn", 5000); return false; }
+  try { await writeWithTimeout("btb", toObj(next)); btbList = next; logoutSeconds = 300; return true; }
   catch (e) { toast(explainErr(e), "error", 8000); return false; }
 }
 async function commitDms(next) {
@@ -373,7 +405,7 @@ function openDeleteModal(type, target, index) {
     const key = camel(target); const row = ritase[key]?.[index]; if (!row) return;
     label = `${row[0]} · ${row[1]}`; deleteCtx = { type, key, target, index, row: [...row] };
   } else {
-    const row = dmsList[index]; if (!row) return;
+    const row = (type === "btb" ? btbList : dmsList)[index]; if (!row) return;
     label = `${row[0]} · ${row[1]}`; deleteCtx = { type, index, row: [...row] };
   }
   const el = $("deleteLabel"); if (el) el.textContent = label;
@@ -385,13 +417,14 @@ async function confirmDelete() {
   const btn = $("deleteConfirm"); ctx.busy = true; setBusy(btn, true);
   const saved = type === "ritase"
     ? await commitRitase(key, ritase[key].filter((_, i) => i !== index))
+    : type === "btb" ? await commitBtb(btbList.filter((_, i) => i !== index))
     : await commitDms(dmsList.filter((_, i) => i !== index));
   setBusy(btn, false); ctx.busy = false;
   if (!saved) return;
   undoStack.push({ type, key, target, index, row });
   deleteCtx = null; closeModal("deleteModal");
-  pushHistory("hapus", type === "ritase" ? (SECTION_LABEL[target] || target) : "DMS", `${row[0]} · ${row[1]}`);
-  if (type === "ritase") renderRitaseTable(target, ritase[key]); else renderDmsTable();
+  pushHistory("hapus", type === "ritase" ? (SECTION_LABEL[target] || target) : type === "btb" ? "BTB COUNTER" : "DMS", `${row[0]} · ${row[1]}`);
+  if (type === "ritase") renderRitaseTable(target, ritase[key]); else if (type === "btb") renderBtbTable(); else renderDmsTable();
   showUndoBar(`${row[0]} dihapus`);
 }
 function showUndoBar(msg) {
@@ -409,13 +442,14 @@ function showUndoBar(msg) {
 }
 async function undoDelete() {
   const item = undoStack[undoStack.length - 1]; if (!item) return;
-  const at = Math.min(item.index, item.type === "ritase" ? ritase[item.key].length : dmsList.length);
+  const at = Math.min(item.index, item.type === "ritase" ? ritase[item.key].length : item.type === "btb" ? btbList.length : dmsList.length);
   let saved;
   if (item.type === "ritase") { const n = ritase[item.key].map(r => [...r]); n.splice(at, 0, item.row); saved = await commitRitase(item.key, n); }
+  else if (item.type === "btb") { const n = btbList.map(r => [...r]); n.splice(at, 0, item.row); saved = await commitBtb(n); }
   else { const n = dmsList.map(r => [...r]); n.splice(at, 0, item.row); saved = await commitDms(n); }
   if (!saved) return;
   undoStack.pop(); clearTimeout(undoTimer); $("undoBar")?.classList.remove("undo-show");
-  if (item.type === "ritase") renderRitaseTable(item.target, ritase[item.key]); else renderDmsTable();
+  if (item.type === "ritase") renderRitaseTable(item.target, ritase[item.key]); else if (item.type === "btb") renderBtbTable(); else renderDmsTable();
   toast("Data berhasil dipulihkan", "success");
 }
 
@@ -507,6 +541,91 @@ async function submitDmsEdit() {
   pushHistory(isNew ? "tambah" : "edit", "DMS", `${kode} · ${nama}`);
   toast(isNew ? `Pabrik ditambahkan: ${kode}` : `Pabrik diperbarui: ${kode}`, "success");
   closeModal("dmsEditModal"); renderDmsTable();
+}
+
+/* ---------- ID BTB DMS Counter PRG (tambah / edit / hapus oleh admin) ---------- */
+function renderBtbTable() {
+  const tbody = document.querySelector("#btbTable tbody"); if (!tbody) return;
+  tbody.innerHTML = "";
+  btbList.forEach((row, i) => {
+    const tr = document.createElement("tr");
+    tr.className = "dms-row"; tr.style.animationDelay = 18 * i + "ms";
+    tr.innerHTML = `
+        <td class="dms-td-kode"><span class="kode-chip">${esc(row[0])}</span></td>
+        <td class="dms-td-nama">${esc(row[1])}</td>
+        ${isAdmin ? `<td class="td-act"><div class="act-group">
+          <button class="act-btn act-edit" data-i="${i}" aria-label="Edit" title="Edit"><i class="fas fa-pen-to-square"></i><span>Edit</span></button>
+          <button class="act-btn act-del" data-i="${i}" aria-label="Hapus" title="Hapus"><i class="fas fa-trash-can"></i><span>Hapus</span></button>
+        </div></td>` : ""}`;
+    tr.addEventListener("click", e => {
+      if (e.target.closest(".act-btn")) return;
+      document.querySelectorAll("#btbTable tbody tr.active-row").forEach(t => t.classList.remove("active-row"));
+      tr.classList.add("active-row");
+      navigator.clipboard?.writeText(row[0]).then(() => toast(`📋 Disalin: ${row[0]} · ${row[1]}`, "info", 2200)).catch(() => {});
+    });
+    tbody.appendChild(tr);
+    requestAnimationFrame(() => tr.classList.add("row-in"));
+  });
+  if (isAdmin) {
+    tbody.querySelectorAll(".act-edit").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); openBtbEdit(+b.dataset.i); }));
+    tbody.querySelectorAll(".act-del").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); openDeleteModal("btb", null, +b.dataset.i); }));
+  }
+  const count = $("btbCount"); if (count) count.textContent = `${btbList.length} counter`;
+  const addWrap = $("btbAddWrap"); if (addWrap) addWrap.style.display = isAdmin ? "flex" : "none";
+  const headRow = document.querySelector("#btbTable thead tr");
+  if (headRow) {
+    const existing = headRow.querySelector(".th-act-dms");
+    if (isAdmin && !existing) { const th = document.createElement("th"); th.className = "th-act-dms th-act"; th.innerHTML = '<i class="fas fa-sliders"></i>'; headRow.appendChild(th); }
+    else if (!isAdmin && existing) existing.remove();
+  }
+  setupBtbSearch();
+  applyBtbFilter();
+  refreshOpenAccordionHeight("btbPrg");
+}
+function applyBtbFilter() {
+  const input = $("btbSearch"); if (!input) return;
+  const table = $("btbTable"), noResult = $("btbNoResult"), noQuery = $("btbNoResultQuery"), count = $("btbCount"), clearBtn = $("btbSearchClear");
+  const q = input.value.toUpperCase().trim();
+  let visible = 0;
+  table.querySelectorAll("tbody tr").forEach(tr => { const match = tr.textContent.toUpperCase().includes(q); tr.style.display = match ? "" : "none"; if (match) visible++; });
+  if (clearBtn) clearBtn.style.display = q ? "flex" : "none";
+  if (noResult) { noResult.classList.toggle("hidden", visible > 0 || !q); if (noQuery) noQuery.textContent = input.value; }
+  if (count) count.textContent = q ? `${visible} dari ${btbList.length} counter` : `${btbList.length} counter`;
+}
+function setupBtbSearch() {
+  const input = $("btbSearch"), clearBtn = $("btbSearchClear");
+  if (!input || input.dataset.ready) return;
+  input.dataset.ready = "1";
+  input.addEventListener("input", applyBtbFilter);
+  clearBtn?.addEventListener("click", () => { input.value = ""; applyBtbFilter(); input.focus(); });
+}
+function openBtbEdit(index) {
+  const isNew = index === -1;
+  const row = isNew ? ["", ""] : btbList[index];
+  const title = $("btbEditTitle"); if (title) title.innerHTML = isNew ? '<i class="fas fa-circle-plus"></i> Tambah Counter' : '<i class="fas fa-pen-to-square"></i> Edit Counter';
+  $("btbEditId").value = row[0]; $("btbEditNama").value = row[1]; $("btbEditIndex").value = index;
+  clearFieldErrors(); openModal("btbEditModal");
+  setTimeout(() => $("btbEditId")?.focus(), 230);
+}
+async function submitBtbEdit() {
+  const id = $("btbEditId").value.trim().toUpperCase();
+  const nama = $("btbEditNama").value.trim().toUpperCase();
+  const index = parseInt($("btbEditIndex").value, 10), isNew = index === -1;
+  clearFieldErrors();
+  let ok = true;
+  if (!id) { setFieldError("ferrBtbId", "ID wajib diisi"); ok = false; }
+  if (!nama) { setFieldError("ferrBtbNama", "Nama counter wajib diisi"); ok = false; }
+  if (!ok) return;
+  if (btbList.some((r, i) => r[0] === id && i !== index)) { setFieldError("ferrBtbId", "ID ini sudah ada"); return; }
+  const next = btbList.map(r => [...r]);
+  if (isNew) next.push([id, nama]); else next[index] = [id, nama];
+  const btn = $("btbEditConfirm"); if (btn.disabled) return; setBusy(btn, true);
+  const saved = await commitBtb(next);
+  setBusy(btn, false);
+  if (!saved) return;
+  pushHistory(isNew ? "tambah" : "edit", "BTB COUNTER", `${id} · ${nama}`);
+  toast(isNew ? `Counter ditambahkan: ${id}` : `Counter diperbarui: ${id}`, "success");
+  closeModal("btbEditModal"); renderBtbTable();
 }
 
 /* ---------- Admin login / countdown ---------- */
@@ -657,6 +776,7 @@ function initAccordion() {
 }
 function renderAccordionContent(key) {
   if (key === "dmsPabrik") { renderDmsTable(); }
+  if (key === "btbPrg") { renderBtbTable(); }
   if (key === "refKode") { initRefTabs(); }
 }
 // re-measure open accordion height after its content re-renders (search, edit, dll)
@@ -737,7 +857,13 @@ onValue(ref(db, "dms"), snap => {
   const arr = fromObj(snap.val());
   dmsList = arr.length ? arr : DEFAULT_DMS.map(r => [...r]);
   if (accRendered.dmsPabrik) renderDmsTable();
+  if (accRendered.btbPrg) renderBtbTable();
 });
+onValue(ref(db, "btb"), snap => {
+  const arr = fromObj(snap.val());
+  btbList = arr.length ? arr : DEFAULT_BTB.map(r => [...r]);
+  if (accRendered.btbPrg) renderBtbTable();
+}, () => { if (!btbList.length) btbList = DEFAULT_BTB.map(r => [...r]); if (accRendered.btbPrg) renderBtbTable(); });
 let histOff = null;
 function syncHistory(user) {
   if (histOff) { histOff(); histOff = null; }
@@ -760,7 +886,7 @@ onAuthStateChanged(auth, user => {
       if (store.get("ur_keep") === "1") { renderAdminKeep(); }
       else {
         logoutSeconds = 300; renderAdminButton();
-        logoutTimer = setInterval(() => { if (!document.querySelector("#rowEditModal.modal-open,#dmsEditModal.modal-open,#deleteModal.modal-open")) logoutSeconds--; renderAdminButton(); if (logoutSeconds <= 0) { clearInterval(logoutTimer); signOut(auth); } }, 1000);
+        logoutTimer = setInterval(() => { if (!document.querySelector("#rowEditModal.modal-open,#dmsEditModal.modal-open,#btbEditModal.modal-open,#deleteModal.modal-open")) logoutSeconds--; renderAdminButton(); if (logoutSeconds <= 0) { clearInterval(logoutTimer); signOut(auth); } }, 1000);
       }
     } else {
       clearInterval(logoutTimer); adminBtn.classList.remove("countdown", "admin-on"); adminBtn.innerHTML = '<i class="fas fa-lock"></i>'; { const cap = $("adminCaption"); if (cap) cap.textContent = "Rubah/Edit/Hapus"; }
@@ -817,6 +943,12 @@ document.addEventListener("DOMContentLoaded", () => {
   ["dmsEditKode", "dmsEditNama"].forEach(id => $(id)?.addEventListener("keydown", e => { if (e.key === "Enter") submitDmsEdit(); }));
   $("dmsEditModal")?.addEventListener("click", e => { if (e.target === $("dmsEditModal")) closeModal("dmsEditModal"); });
   $("dmsAddBtn")?.addEventListener("click", () => openDmsEdit(-1));
+  $("btbEditX")?.addEventListener("click", () => closeModal("btbEditModal"));
+  $("btbEditCancel")?.addEventListener("click", () => closeModal("btbEditModal"));
+  $("btbEditConfirm")?.addEventListener("click", submitBtbEdit);
+  ["btbEditId", "btbEditNama"].forEach(id => $(id)?.addEventListener("keydown", e => { if (e.key === "Enter") submitBtbEdit(); }));
+  $("btbEditModal")?.addEventListener("click", e => { if (e.target === $("btbEditModal")) closeModal("btbEditModal"); });
+  $("btbAddBtn")?.addEventListener("click", () => openBtbEdit(-1));
 
   $("histBtn")?.addEventListener("click", () => openModal("historyModal"));
   $("adminCaption")?.addEventListener("click", () => $("adminBtn")?.click());

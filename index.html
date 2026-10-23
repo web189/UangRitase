@@ -188,6 +188,39 @@
       </div>
     </div>
 
+    <div class="acc-item" data-acc="btbPrg">
+      <button class="acc-head">
+        <span class="acc-head-icon"><i class="fas fa-store"></i></span>
+        <span class="acc-head-text"><strong>ID BTB DMS Counter PRG</strong><span>Daftar ID counter BTB DMS</span></span>
+        <span class="acc-chip" id="btbCount">22 counter</span>
+        <i class="fas fa-chevron-down acc-chevron"></i>
+      </button>
+      <div class="acc-body" id="accBody-btbPrg">
+        <div class="acc-body-inner">
+          <div id="btbAddWrap" class="dms-add-wrap" style="display:none">
+            <button class="add-top-btn" id="btbAddBtn"><i class="fas fa-plus"></i><span>Tambah</span></button>
+          </div>
+          <div class="dms-wrapper">
+            <div class="search-bar">
+              <i class="fas fa-magnifying-glass search-icon"></i>
+              <input type="text" id="btbSearch" placeholder="Cari ID atau nama counter...">
+              <button class="search-clear" id="btbSearchClear" title="Clear"><i class="fas fa-xmark"></i></button>
+            </div>
+            <div class="table-container">
+              <table id="btbTable">
+                <thead><tr><th><i class="fas fa-hashtag"></i> ID</th><th><i class="fas fa-store"></i> NAMA COUNTER</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <div class="no-result hidden" id="btbNoResult">
+              <i class="fas fa-magnifying-glass"></i>
+              <p>Tidak ada hasil untuk "<span id="btbNoResultQuery"></span>"</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="acc-item is-gold" data-acc="refKode">
       <button class="acc-head">
         <span class="acc-head-icon is-gold"><i class="fas fa-barcode"></i></span>
@@ -372,6 +405,33 @@
     <div class="modal-btns" style="margin-top:24px">
       <button class="mbt mbt-ghost" id="dmsEditCancel">Batal</button>
       <button class="mbt mbt-gold" id="dmsEditConfirm"><i class="fas fa-floppy-disk"></i> Simpan</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="btbEditModal">
+  <div class="modal-box edit-modal-box">
+    <button class="modal-x-btn" id="btbEditX"><i class="fas fa-xmark"></i></button>
+    <div class="modal-edit-header">
+      <div class="edit-icon-circle dms-icon-circle"><i class="fas fa-store"></i></div>
+      <div><h3 class="modal-heading-sm" id="btbEditTitle">Edit Counter</h3><span class="section-pill badge-dms">BTB DMS COUNTER</span></div>
+    </div>
+    <input type="hidden" id="btbEditIndex">
+    <div class="field-group">
+      <div class="field-item">
+        <label class="flabel"><i class="fas fa-hashtag"></i> ID Counter</label>
+        <input class="finput monofont" type="text" id="btbEditId" placeholder="Contoh: 281-COUNTER 24" maxlength="30" autocomplete="off">
+        <span class="ferr" id="ferrBtbId"></span>
+      </div>
+      <div class="field-item">
+        <label class="flabel"><i class="fas fa-store"></i> Nama Counter</label>
+        <input class="finput" type="text" id="btbEditNama" placeholder="Contoh: TOKO PUTRA MANDIRI (SO)" maxlength="80" autocomplete="off">
+        <span class="ferr" id="ferrBtbNama"></span>
+      </div>
+    </div>
+    <div class="modal-btns" style="margin-top:24px">
+      <button class="mbt mbt-ghost" id="btbEditCancel">Batal</button>
+      <button class="mbt mbt-gold" id="btbEditConfirm"><i class="fas fa-floppy-disk"></i> Simpan</button>
     </div>
   </div>
 </div>

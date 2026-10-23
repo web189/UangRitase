@@ -8,6 +8,10 @@
       ".read": true,
       ".write": "auth != null && auth.token.email == 'admin@uangritase.com'"
     },
+    "btb": {
+      ".read": true,
+      ".write": "auth != null && auth.token.email == 'admin@uangritase.com'"
+    },
     "history": {
       ".read": "auth != null",
       ".write": "auth != null && auth.token.email == 'admin@uangritase.com'"
