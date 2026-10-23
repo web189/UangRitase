@@ -101,4 +101,57 @@
     else window.addEventListener('load', function () { setTimeout(show, 2500); });
   });
   window.addEventListener('appinstalled', function () { deferred = null; hide(); });
+
+  /* ---- 3. Tombol "Pasang Aplikasi" di halaman ---- */
+  function setupInstallButton() {
+    var btn = document.getElementById('pwaInstallBtn');
+    if (!btn) return;
+    if (isStandalone()) { btn.hidden = true; return; }
+
+    var ua = navigator.userAgent || '';
+    var isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    function guide() {
+      var g = document.createElement('div');
+      g.className = 'pwa-guide';
+      var android = [
+        'Ketuk menu <b>\u22ee</b> (tiga titik) di pojok kanan atas browser.',
+        'Pilih <b>Instal aplikasi</b> atau <b>Tambahkan ke layar utama</b>.',
+        'Ketuk <b>Instal</b>. Ikon UangRitase muncul di layar HP.'
+      ];
+      var ios = [
+        'Buka halaman ini di <b>Safari</b>.',
+        'Ketuk tombol <b>Bagikan</b> (kotak dengan panah ke atas).',
+        'Pilih <b>Tambah ke Layar Utama</b>, lalu ketuk <b>Tambah</b>.'
+      ];
+      var desk = [
+        'Cari ikon <b>Instal</b> di ujung kanan kolom alamat Chrome/Edge.',
+        'Atau buka menu <b>\u22ee</b> lalu pilih <b>Instal UangRitase</b>.',
+        'Klik <b>Instal</b>. Aplikasi terbuka di jendela sendiri.'
+      ];
+      function list(a) { return '<ol>' + a.map(function (x) { return '<li><span>' + x + '</span></li>'; }).join('') + '</ol>'; }
+      g.innerHTML = '<div class="pwa-sheet" role="dialog" aria-label="Cara memasang aplikasi">' +
+        '<h3><i class="fas fa-mobile-screen-button"></i> Pasang ' + APP_NAME + '</h3>' +
+        '<p class="sub">Browser Anda belum menampilkan jendela pasang otomatis. Ikuti langkah singkat ini:</p>' +
+        '<div class="pwa-tabs"><button data-t="a">Android</button><button data-t="i">iPhone</button><button data-t="d">Komputer</button></div>' +
+        '<div class="pwa-body"></div><button class="pwa-close" type="button">Mengerti</button></div>';
+      document.body.appendChild(g);
+      var body = g.querySelector('.pwa-body');
+      function tab(t) {
+        body.innerHTML = list(t === 'i' ? ios : t === 'd' ? desk : android);
+        [].forEach.call(g.querySelectorAll('.pwa-tabs button'), function (b) { b.classList.toggle('on', b.getAttribute('data-t') === t); });
+      }
+      tab(isIOS ? 'i' : (window.matchMedia && window.matchMedia('(min-width: 800px)').matches ? 'd' : 'a'));
+      [].forEach.call(g.querySelectorAll('.pwa-tabs button'), function (b) { b.onclick = function () { tab(b.getAttribute('data-t')); }; });
+      function close() { g.classList.remove('show'); setTimeout(function () { if (g.parentNode) g.parentNode.removeChild(g); }, 260); }
+      g.querySelector('.pwa-close').onclick = close;
+      g.addEventListener('click', function (e) { if (e.target === g) close(); });
+      requestAnimationFrame(function () { requestAnimationFrame(function () { g.classList.add('show'); }); });
+    }
+
+    btn.addEventListener('click', function () { if (!window.pwaInstall()) guide(); });
+    window.addEventListener('appinstalled', function () { btn.hidden = true; });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setupInstallButton);
+  else setupInstallButton();
 })();
