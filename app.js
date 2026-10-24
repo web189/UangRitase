@@ -83,30 +83,33 @@ const DEFAULT_DMS = [
   ["90A5-9000", "XWH SENTUL"]
 ];
 
+/* ID counter: angka menyatu dengan kata COUNTER (tanpa spasi), mis. 281-COUNTER2 */
+const fixBtbId = (s) => String(s).replace(/COUNTER\s+(\d)/gi, "COUNTER$1");
+
 /* ---------- ID BTB DMS Counter PRG (default bila Firebase kosong) ---------- */
 const DEFAULT_BTB = [
-  ["281-COUNTER 2", "WS PELITA DESA"],
-  ["281-COUNTER 3", "MT REVINA GROSIR"],
-  ["281-COUNTER 4", "AHS MHM"],
-  ["281-COUNTER 5", "TOKO RICKY"],
-  ["281-COUNTER 6", "TOKO AMIN SO"],
-  ["281-COUNTER 7", "WS YEYEN"],
-  ["281-COUNTER 8", "TOKO MAKMUR JAYA"],
-  ["281-COUNTER 9", "TOKO ASEP (SO)"],
-  ["281-COUNTER 10", "TOKO SELAMET"],
-  ["281-COUNTER 11", "IBRA WS"],
-  ["281-COUNTER 12", "DK TIRTA SO"],
-  ["281-COUNTER 13", "TOKO MEBBI GROUP"],
-  ["281-COUNTER 14", "TOKO MUSLIM SO"],
-  ["281-COUNTER 15", "TOKO AIR BERLIAN SO"],
-  ["281-COUNTER 16", "PT ABDULAH BANJARAN SUKSES"],
-  ["281-COUNTER 17", "WS ADI TIRTA"],
-  ["281-COUNTER 18", "TOKO RIZKI CISEENG"],
-  ["281-COUNTER 19", "WS SRI ALAM"],
-  ["281-COUNTER 20", "SARI JAYA MANDIRI SO"],
-  ["281-COUNTER 21", "TOKO ASA MANDIRI"],
-  ["281-COUNTER 22", "CV ADHI JAYA KARUNIA UTAMA"],
-  ["281-COUNTER 23", "TOKO PUTRA MANDIRI (SO)"]
+  ["281-COUNTER2", "WS PELITA DESA"],
+  ["281-COUNTER3", "MT REVINA GROSIR"],
+  ["281-COUNTER4", "AHS MHM"],
+  ["281-COUNTER5", "TOKO RICKY"],
+  ["281-COUNTER6", "TOKO AMIN SO"],
+  ["281-COUNTER7", "WS YEYEN"],
+  ["281-COUNTER8", "TOKO MAKMUR JAYA"],
+  ["281-COUNTER9", "TOKO ASEP (SO)"],
+  ["281-COUNTER10", "TOKO SELAMET"],
+  ["281-COUNTER11", "IBRA WS"],
+  ["281-COUNTER12", "DK TIRTA SO"],
+  ["281-COUNTER13", "TOKO MEBBI GROUP"],
+  ["281-COUNTER14", "TOKO MUSLIM SO"],
+  ["281-COUNTER15", "TOKO AIR BERLIAN SO"],
+  ["281-COUNTER16", "PT ABDULAH BANJARAN SUKSES"],
+  ["281-COUNTER17", "WS ADI TIRTA"],
+  ["281-COUNTER18", "TOKO RIZKI CISEENG"],
+  ["281-COUNTER19", "WS SRI ALAM"],
+  ["281-COUNTER20", "SARI JAYA MANDIRI SO"],
+  ["281-COUNTER21", "TOKO ASA MANDIRI"],
+  ["281-COUNTER22", "CV ADHI JAYA KARUNIA UTAMA"],
+  ["281-COUNTER23", "TOKO PUTRA MANDIRI (SO)"]
 ];
 
 /* ---------- Data referensi baru (PT. LOKON PRIMA — update 25 Mei 2026) ---------- */
@@ -170,16 +173,6 @@ const REF_DATA = {
     label: "Item MIZZ", icon: "fa-bottle-water",
     cols: ["Item", "Kode"],
     rows: [["MIZZ ALL 500","145141"],["MIZZ MUC","145143"],["MIZZ COCO BOS","206774"]]
-  },
-  pabrik: {
-    label: "Kode Pabrik (Singkatan)", icon: "fa-industry",
-    cols: ["Pabrik", "Kode"],
-    rows: [
-      ["B / CTR","9013-9000"],["C / SENTUL","9076-9000"],["CJR","9017-9000"],
-      ["E / MKS","9101-9100"],["G / TBP","9105-9100"],["X / CRG","90A0-9000"],
-      ["Z / CHG","9018-9000"],["BTA","9039-9000"],["GIT","9051-9000"],
-      ["KEDEP","9036-9000"],["SSS","90A3-9000"],["TMP","9042-9000"]
-    ]
   },
   dmsLevel: {
     label: "DMS Level", icon: "fa-hashtag",
@@ -585,9 +578,9 @@ function renderBtbTable() {
 function applyBtbFilter() {
   const input = $("btbSearch"); if (!input) return;
   const table = $("btbTable"), noResult = $("btbNoResult"), noQuery = $("btbNoResultQuery"), count = $("btbCount"), clearBtn = $("btbSearchClear");
-  const q = input.value.toUpperCase().trim();
+  const q = input.value.toUpperCase().replace(/\s+/g, "");
   let visible = 0;
-  table.querySelectorAll("tbody tr").forEach(tr => { const match = tr.textContent.toUpperCase().includes(q); tr.style.display = match ? "" : "none"; if (match) visible++; });
+  table.querySelectorAll("tbody tr").forEach(tr => { const match = tr.textContent.toUpperCase().replace(/\s+/g, "").includes(q); tr.style.display = match ? "" : "none"; if (match) visible++; });
   if (clearBtn) clearBtn.style.display = q ? "flex" : "none";
   if (noResult) { noResult.classList.toggle("hidden", visible > 0 || !q); if (noQuery) noQuery.textContent = input.value; }
   if (count) count.textContent = q ? `${visible} dari ${btbList.length} counter` : `${btbList.length} counter`;
@@ -608,7 +601,7 @@ function openBtbEdit(index) {
   setTimeout(() => $("btbEditId")?.focus(), 230);
 }
 async function submitBtbEdit() {
-  const id = $("btbEditId").value.trim().toUpperCase();
+  const id = fixBtbId($("btbEditId").value.trim().toUpperCase());
   const nama = $("btbEditNama").value.trim().toUpperCase();
   const index = parseInt($("btbEditIndex").value, 10), isNew = index === -1;
   clearFieldErrors();
@@ -861,7 +854,7 @@ onValue(ref(db, "dms"), snap => {
 });
 onValue(ref(db, "btb"), snap => {
   const arr = fromObj(snap.val());
-  btbList = arr.length ? arr : DEFAULT_BTB.map(r => [...r]);
+  btbList = (arr.length ? arr : DEFAULT_BTB).map(r => [fixBtbId(r[0]), r[1]]);
   if (accRendered.btbPrg) renderBtbTable();
 }, () => { if (!btbList.length) btbList = DEFAULT_BTB.map(r => [...r]); if (accRendered.btbPrg) renderBtbTable(); });
 let histOff = null;
