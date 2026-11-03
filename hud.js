@@ -87,6 +87,7 @@
         }
         remeasure(item);
       });
+      if (window.urSyncCols) window.urSyncCols();
       if (!q) {
         /* tutup kartu yang tadi dibuka otomatis oleh pencarian */
         openedBySearch.forEach(function (item) { if (item.classList.contains('acc-open')) { var h = item.querySelector('.acc-head'); if (h) h.click(); } });
@@ -135,4 +136,59 @@
       }, { passive: true });
     }
   } catch (e) {}
+})();
+
+
+/* ===== v17: kolom otomatis, dock HP, tautan cepat ===== */
+(function () {
+  'use strict';
+
+  /* Kolom kosong (semua kartunya tersaring) disembunyikan; kalau tinggal satu kolom,
+     kolom itu dilebarkan penuh. Dipanggil oleh filter & pencarian. */
+  window.urSyncCols = function () {
+    var lists = document.querySelectorAll('.acc-list');
+    [].forEach.call(lists, function (list) {
+      var cols = list.querySelectorAll('.acc-col'), shown = 0;
+      [].forEach.call(cols, function (col) {
+        var any = false, items = col.querySelectorAll('.acc-item');
+        [].forEach.call(items, function (it) {
+          if (it.style.display !== 'none' && !it.classList.contains('gs-hide')) any = true;
+        });
+        if (any) { col.removeAttribute('data-empty'); shown++; } else col.setAttribute('data-empty', '');
+      });
+      list.classList.toggle('one-col', shown <= 1);
+    });
+  };
+
+  function go(where) {
+    var el;
+    if (where === 'top') { window.scrollTo(0, 0); return; }
+    if (where === 'data') el = document.getElementById('dataSection');
+    if (where === 'ritase') el = document.getElementById('ritaseSection');
+    if (where === 'search') {
+      el = document.getElementById('gSearch');
+      var inp = document.getElementById('gsInput');
+      if (el && el.scrollIntoView) el.scrollIntoView({ block: 'center' });
+      if (inp) setTimeout(function () { try { inp.focus(); } catch (e) {} }, 250);
+      return;
+    }
+    if (where === 'theme') { var t = document.getElementById('themeToggle'); if (t) t.click(); return; }
+    if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start' });
+  }
+
+  var dock = document.getElementById('dock');
+  if (dock) dock.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('[data-go]') : null;
+    if (!b) return;
+    e.preventDefault();
+    go(b.getAttribute('data-go'));
+  });
+
+  /* tautan cepat dari ikon aplikasi (manifest shortcuts): #cari  #ritase  #data */
+  function hash() {
+    var h = (location.hash || '').replace('#', '');
+    if (h === 'cari') go('search'); else if (h === 'data') go('data'); else if (h === 'ritase') go('ritase');
+  }
+  window.addEventListener('hashchange', hash);
+  if (location.hash) setTimeout(hash, 500);
 })();

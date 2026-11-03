@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#030a17">
+<title>Offline — UangRitase</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;color:#ecf4ff;font:15px/1.55 "Segoe UI",system-ui,Arial,sans-serif;
+  background:radial-gradient(60% 45% at 90% -5%,rgba(34,211,255,.2),transparent 70%),radial-gradient(50% 45% at -5% 105%,rgba(124,92,255,.2),transparent 70%),#030a17}
+.card{max-width:420px;padding:32px 26px;border-radius:26px;border:1px solid rgba(125,175,255,.26);background:linear-gradient(160deg,#0f2447,#081631);box-shadow:0 30px 70px -30px #000}
+.ic{width:72px;height:72px;margin:0 auto 18px;display:grid;place-items:center;border-radius:22px;background:linear-gradient(135deg,#0a5bff,#12b5ff 60%,#25d9c7);color:#fff}
+.ic svg{width:38px;height:38px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+h1{margin:0 0 8px;font-size:21px}
+p{margin:0 0 20px;color:#b3c6e2;font-size:14px}
+button{border:0;border-radius:14px;padding:13px 26px;color:#fff;font:800 14.5px "Segoe UI",Arial,sans-serif;cursor:pointer;background:linear-gradient(120deg,#0a5bff,#12b5ff)}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="ic"><svg viewBox="0 0 24 24"><path d="M2.5 9a14 14 0 0 1 19 0"/><path d="M5.8 12.5a9.4 9.4 0 0 1 12.4 0"/><path d="M9 16a5 5 0 0 1 6 0"/><circle cx="12" cy="19.4" r="1.1"/><path d="M3 3l18 18"/></svg></div>
+  <h1>Tidak ada koneksi internet</h1>
+  <p>Halaman ini belum tersimpan di perangkat. Sambungkan internet sekali, lalu UangRitase akan otomatis tersimpan dan bisa dibuka offline.</p>
+  <button type="button" onclick="location.reload()">Coba lagi</button>
+</div>
+<script>window.addEventListener('online',function(){location.reload()})</script>
+</body>
+</html>

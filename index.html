@@ -3,48 +3,70 @@
 <head>
 <meta charset="UTF-8">
 <script>
+/* tema + mode hemat dipasang sedini mungkin supaya tidak berkedip */
 (function () {
-  var t = 'dark';
+  var d = document.documentElement, t = 'dark', ua = navigator.userAgent || '';
   try { var s = localStorage.getItem('theme'); if (s === 'light' || s === 'dark') t = s; } catch (e) {}
-  document.documentElement.setAttribute('data-theme', t);
+  d.setAttribute('data-theme', t);
+  try {
+    var weak = /Windows NT (5|6\.0|6\.1)/.test(ua) ||
+      (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) ||
+      (navigator.deviceMemory && navigator.deviceMemory <= 2) ||
+      (navigator.connection && navigator.connection.saveData);
+    if (weak) d.className += ' lite';
+  } catch (e) {}
 })();
 </script>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>UangRitase - Pabrik AQUA VIT</title>
 <meta name="description" content="Data DMS terbaru SPS & Galon AQUA dan VIT. Informasi ritase pabrik, SKU dan nominal harga terupdate.">
 <meta name="robots" content="index, follow">
 <meta name="author" content="UangRitase">
+<meta name="color-scheme" content="dark light">
 <link rel="icon" href="favicon.png">
-<meta name="theme-color" content="#071b30" id="metaTheme">
+<meta name="theme-color" content="#030a17" id="metaTheme">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="192x192" href="img/icon-192-v2.png">
 <link rel="apple-touch-icon" href="img/apple-touch-icon-v2.png">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="UangRitase">
-<link rel="stylesheet" href="style.css">
-<link rel="stylesheet" href="style-v9.css">
-<link rel="stylesheet" href="style-v10.css">
-<link rel="stylesheet" href="style-v11.css">
-<link rel="stylesheet" href="style-v12.css">
-<link rel="stylesheet" href="style-v13.css">
+<link rel="stylesheet" href="style-v17.css">
 <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" onload="this.onload=null;this.rel='stylesheet'">
 <noscript>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
 </noscript>
 </head>
-<body>
+<body id="top">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <symbol id="i-install" viewBox="0 0 24 24"><rect x="5.5" y="2.5" width="13" height="19" rx="3.2"/><path d="M12 7v6.4M9 10.8l3 3 3-3"/><path d="M9.6 18.2h4.8"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4.5v14M6 12.8l6 6 6-6"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3.5 11 12 3.8l8.5 7.2v8.7a1.3 1.3 0 0 1-1.3 1.3H15v-6H9v6H4.8a1.3 1.3 0 0 1-1.3-1.3z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 12.4 9 5 9-5"/><path d="m3 16.6 9 5 9-5"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.6A8.5 8.5 0 1 1 9.4 4a7 7 0 0 0 10.6 10.6z"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2.5 4.8 13.4H11L10 21.5l8.2-10.9H12z"/></symbol>
+</defs></svg>
 <div class="scroll-bar" id="scrollBar" aria-hidden="true"></div>
-
-<!-- BG statis: murni gradient CSS, tanpa animasi / blur / JS -->
 <div class="bg-static" aria-hidden="true"></div>
-
-<div class="datetime-pill" id="datetime"></div>
-<button class="theme-toggle" id="themeToggle" type="button" aria-label="Ganti mode terang / gelap" title="Ganti mode terang / gelap"><i class="fas fa-sun ic-sun"></i><i class="fas fa-moon ic-moon"></i></button>
 <div class="toast-container" id="toastContainer"></div>
+
+<!-- APP BAR: status koneksi · jam · tema · pasang aplikasi -->
+<div class="appbar" id="appbar">
+  <div class="appbar-in">
+    <div class="conn is-sync" id="connChip" role="status" aria-live="polite"><i class="conn-dot"></i><span id="connTxt">Menyambung…</span><small class="conn-sub" id="syncTime"></small></div>
+    <span class="appbar-sp"></span>
+    <div class="datetime-pill" id="datetime"></div>
+    <button class="appbar-btn theme-toggle" id="themeToggle" type="button" aria-label="Ganti mode terang / gelap" title="Ganti mode terang / gelap"><svg class="sv ic-sun"><use href="#i-sun"/></svg><svg class="sv ic-moon"><use href="#i-moon"/></svg></button>
+    <button class="appbar-btn pwa-bar-btn js-install" id="pwaBarBtn" type="button" aria-label="Pasang aplikasi UangRitase" title="Pasang aplikasi (bisa offline)"><svg class="sv"><use href="#i-install"/></svg><span class="bar-lab">Pasang Aplikasi</span></button>
+  </div>
+</div>
 
 <!-- HEADER -->
 <header class="header">
@@ -65,7 +87,12 @@
   </div>
   <p class="header-sub header-tagline"><span class="tg-hl">Rp Ritase</span><i class="tg-sep">-</i><span>Kd Pabrik</span><i class="tg-sep">-</i><span>Kd Sales/Produk</span><i class="tg-sep">-</i><span>Depo Parung</span></p>
   <div class="header-actions">
-    <a class="action-card sheet-link" href="https://docs.google.com/spreadsheets/d/1PUt8ki9BXIfZfuwZp3SBa4uOmAvvppvezO8ToetUpT4/htmlview" target="_blank">
+    <button class="action-card pwa-install-btn js-install" id="pwaInstallBtn" type="button" aria-label="Pasang aplikasi UangRitase ke layar utama">
+      <span class="pwa-ic"><svg class="sv"><use href="#i-install"/></svg><i class="pwa-ping"></i></span>
+      <span class="pwa-txt"><strong>Pasang Aplikasi</strong><small>Gratis · Bisa offline · Update otomatis</small></span>
+      <span class="pwa-go"><svg class="sv"><use href="#i-down"/></svg></span>
+    </button>
+    <a class="action-card sheet-link" href="https://docs.google.com/spreadsheets/d/1PUt8ki9BXIfZfuwZp3SBa4uOmAvvppvezO8ToetUpT4/htmlview" target="_blank" rel="noopener">
       <div class="sheet-logos">
         <img src="img/logo1.png" alt="AQUA" onerror="this.style.display='none'">
         <img src="img/logo2.png" alt="VIT" onerror="this.style.display='none'">
@@ -74,11 +101,6 @@
       <span>Cek Google Sheet</span>
       <i class="fas fa-arrow-up-right-from-square"></i>
     </a>
-    <button class="action-card pwa-install-btn" id="pwaInstallBtn" type="button" aria-label="Pasang aplikasi UangRitase ke layar utama">
-      <span class="pwa-ic"><i class="fas fa-download"></i></span>
-      <span class="pwa-txt"><strong>Pasang Aplikasi</strong><small>Gratis · buka cepat dari layar HP</small></span>
-      <span class="pwa-go"><i class="fas fa-arrow-down"></i></span>
-    </button>
     <a class="action-card wa-button" href="https://wa.me/6282127700502" target="_blank" rel="noopener">
       <i class="fab fa-whatsapp"></i>
       <span>WA Logistik TUA</span>
@@ -87,10 +109,10 @@
   </div>
 </header>
 
-<!-- TICKER HUD (CSS saja, hanya transform) -->
+<!-- TICKER HUD -->
 <div class="hud-ticker" aria-hidden="true"><div class="hud-ticker-track"><span><i class="fas fa-circle"></i> DEPO PARUNG</span><span>HARGA RITASE AQUA &amp; VIT</span><span>KODE PABRIK · DMS · COUNTER BTB</span><span>DATA REALTIME DARI SERVER</span><span><i class="fas fa-circle"></i> DEPO PARUNG</span><span>HARGA RITASE AQUA &amp; VIT</span><span>KODE PABRIK · DMS · COUNTER BTB</span><span>DATA REALTIME DARI SERVER</span></div></div>
 
-<!-- PENCARIAN GLOBAL: menyaring semua tabel ritase sekaligus -->
+<!-- PENCARIAN GLOBAL -->
 <div class="gsearch" id="gSearch" role="search">
   <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
   <input id="gsInput" type="search" placeholder="Cari rute, pabrik, atau muatan…" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="Cari di semua harga ritase">
@@ -99,7 +121,7 @@
 </div>
 <div class="gs-info" id="gsInfo" hidden aria-live="polite"></div>
 
-<!-- FILTER NAV (mengatur kartu harga ritase di bawah) -->
+<!-- FILTER NAV -->
 <nav class="filter-nav">
   <button class="filter-btn active" data-filter="all"><i class="fas fa-border-all"></i> Semua</button>
   <button class="filter-btn" data-filter="aqua"><i class="fas fa-droplet"></i> AQUA</button>
@@ -108,154 +130,159 @@
   <button class="filter-btn" data-filter="galon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 13c1.7-1.2 3.3 1.2 5 0s3.3-1.2 5 0V20a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2z" fill="currentColor" fill-opacity=".28" stroke="none"/><path d="M10 2h4v2.2c0 .6.3 1.1.8 1.5C16.2 6.7 17 8 17 9.6V20a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V9.6c0-1.6.8-2.9 2.2-3.9.5-.4.8-.9.8-1.5z"/><path d="M7 13c1.7-1.2 3.3 1.2 5 0s3.3-1.2 5 0"/></svg> Galon</button>
 </nav>
 
-<!-- HARGA RITASE — accordion, semua tabel tertutup sampai di-tap -->
+<!-- HARGA RITASE — kiri AQUA, kanan VIT (HP: ditumpuk) -->
 <section class="menu-section" id="ritaseSection">
   <div class="menu-title"><i class="fas fa-route"></i> Harga Ritase (tap untuk buka)</div>
   <div class="acc-list" id="mainContainer">
-    <div class="acc-item" data-acc="rt-sps-aqua" data-category="aqua sps">
-      <button class="acc-head">
-        <span class="acc-head-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7 12 11.5V21.5L3.5 17z" fill="currentColor" fill-opacity=".22" stroke="none"/><path d="M12 2.5 3.5 7v10L12 21.5 20.5 17V7z"/><path d="M3.5 7 12 11.5 20.5 7M12 11.5v10"/><path d="M7.75 4.75l8.5 4.5"/></svg></span>
-        <span class="acc-head-text"><strong>SPS AQUA</strong><span>Harga uang ritase per pabrik</span></span>
-        <span class="acc-chip" id="count-sps-aqua">0 rute</span>
-        <i class="fas fa-chevron-down acc-chevron"></i>
-      </button>
-      <div class="acc-body" id="accBody-rt-sps-aqua">
-        <div class="acc-body-inner">
-          <div class="rt-toolbar"><button class="card-sort with-label" data-target="sps-aqua" title="Urutkan harga"><i class="fas fa-sort"></i><span>Urutkan harga</span></button></div>
-          <div id="sps-aqua"></div>
+    <div class="acc-col" data-col="aqua">
+      <div class="acc-item" data-acc="rt-sps-aqua" data-category="aqua sps">
+        <button class="acc-head" type="button" aria-expanded="false">
+          <span class="acc-head-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7 12 11.5V21.5L3.5 17z" fill="currentColor" fill-opacity=".22" stroke="none"/><path d="M12 2.5 3.5 7v10L12 21.5 20.5 17V7z"/><path d="M3.5 7 12 11.5 20.5 7M12 11.5v10"/><path d="M7.75 4.75l8.5 4.5"/></svg></span>
+          <span class="acc-head-text"><strong>SPS AQUA</strong><span>Harga uang ritase per pabrik</span></span>
+          <span class="acc-chip" id="count-sps-aqua">0 rute</span>
+          <i class="fas fa-chevron-down acc-chevron"></i>
+        </button>
+        <div class="acc-body" id="accBody-rt-sps-aqua">
+          <div class="acc-body-inner">
+            <div class="rt-toolbar"><button class="card-sort with-label" data-target="sps-aqua" title="Urutkan harga"><i class="fas fa-sort"></i><span>Urutkan harga</span></button></div>
+            <div id="sps-aqua"></div>
+          </div>
+        </div>
+      </div>
+      <div class="acc-item" data-acc="rt-galon-aqua" data-category="aqua galon">
+        <button class="acc-head" type="button" aria-expanded="false">
+          <span class="acc-head-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 13c1.7-1.2 3.3 1.2 5 0s3.3-1.2 5 0V20a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2z" fill="currentColor" fill-opacity=".28" stroke="none"/><path d="M10 2h4v2.2c0 .6.3 1.1.8 1.5C16.2 6.7 17 8 17 9.6V20a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V9.6c0-1.6.8-2.9 2.2-3.9.5-.4.8-.9.8-1.5z"/><path d="M7 13c1.7-1.2 3.3 1.2 5 0s3.3-1.2 5 0"/></svg></span>
+          <span class="acc-head-text"><strong>GALON AQUA</strong><span>Harga uang ritase per pabrik</span></span>
+          <span class="acc-chip" id="count-galon-aqua">0 rute</span>
+          <i class="fas fa-chevron-down acc-chevron"></i>
+        </button>
+        <div class="acc-body" id="accBody-rt-galon-aqua">
+          <div class="acc-body-inner">
+            <div class="rt-toolbar"><button class="card-sort with-label" data-target="galon-aqua" title="Urutkan harga"><i class="fas fa-sort"></i><span>Urutkan harga</span></button></div>
+            <div id="galon-aqua"></div>
+          </div>
         </div>
       </div>
     </div>
-    <div class="acc-item" data-acc="rt-galon-aqua" data-category="aqua galon">
-      <button class="acc-head">
-        <span class="acc-head-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 13c1.7-1.2 3.3 1.2 5 0s3.3-1.2 5 0V20a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2z" fill="currentColor" fill-opacity=".28" stroke="none"/><path d="M10 2h4v2.2c0 .6.3 1.1.8 1.5C16.2 6.7 17 8 17 9.6V20a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V9.6c0-1.6.8-2.9 2.2-3.9.5-.4.8-.9.8-1.5z"/><path d="M7 13c1.7-1.2 3.3 1.2 5 0s3.3-1.2 5 0"/></svg></span>
-        <span class="acc-head-text"><strong>GALON AQUA</strong><span>Harga uang ritase per pabrik</span></span>
-        <span class="acc-chip" id="count-galon-aqua">0 rute</span>
-        <i class="fas fa-chevron-down acc-chevron"></i>
-      </button>
-      <div class="acc-body" id="accBody-rt-galon-aqua">
-        <div class="acc-body-inner">
-          <div class="rt-toolbar"><button class="card-sort with-label" data-target="galon-aqua" title="Urutkan harga"><i class="fas fa-sort"></i><span>Urutkan harga</span></button></div>
-          <div id="galon-aqua"></div>
+    <div class="acc-col" data-col="vit">
+      <div class="acc-item is-vit" data-acc="rt-sps-vit" data-category="vit sps">
+        <button class="acc-head" type="button" aria-expanded="false">
+          <span class="acc-head-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7 12 11.5V21.5L3.5 17z" fill="currentColor" fill-opacity=".22" stroke="none"/><path d="M12 2.5 3.5 7v10L12 21.5 20.5 17V7z"/><path d="M3.5 7 12 11.5 20.5 7M12 11.5v10"/><path d="M7.75 4.75l8.5 4.5"/></svg></span>
+          <span class="acc-head-text"><strong>SPS VIT</strong><span>Harga uang ritase per pabrik</span></span>
+          <span class="acc-chip" id="count-sps-vit">0 rute</span>
+          <i class="fas fa-chevron-down acc-chevron"></i>
+        </button>
+        <div class="acc-body" id="accBody-rt-sps-vit">
+          <div class="acc-body-inner">
+            <div class="rt-toolbar"><button class="card-sort with-label" data-target="sps-vit" title="Urutkan harga"><i class="fas fa-sort"></i><span>Urutkan harga</span></button></div>
+            <div id="sps-vit"></div>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="acc-item is-vit" data-acc="rt-sps-vit" data-category="vit sps">
-      <button class="acc-head">
-        <span class="acc-head-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7 12 11.5V21.5L3.5 17z" fill="currentColor" fill-opacity=".22" stroke="none"/><path d="M12 2.5 3.5 7v10L12 21.5 20.5 17V7z"/><path d="M3.5 7 12 11.5 20.5 7M12 11.5v10"/><path d="M7.75 4.75l8.5 4.5"/></svg></span>
-        <span class="acc-head-text"><strong>SPS VIT</strong><span>Harga uang ritase per pabrik</span></span>
-        <span class="acc-chip" id="count-sps-vit">0 rute</span>
-        <i class="fas fa-chevron-down acc-chevron"></i>
-      </button>
-      <div class="acc-body" id="accBody-rt-sps-vit">
-        <div class="acc-body-inner">
-          <div class="rt-toolbar"><button class="card-sort with-label" data-target="sps-vit" title="Urutkan harga"><i class="fas fa-sort"></i><span>Urutkan harga</span></button></div>
-          <div id="sps-vit"></div>
-        </div>
-      </div>
-    </div>
-    <div class="acc-item is-vit" data-acc="rt-galon-vit" data-category="vit galon">
-      <button class="acc-head">
-        <span class="acc-head-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 13c1.7-1.2 3.3 1.2 5 0s3.3-1.2 5 0V20a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2z" fill="currentColor" fill-opacity=".28" stroke="none"/><path d="M10 2h4v2.2c0 .6.3 1.1.8 1.5C16.2 6.7 17 8 17 9.6V20a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V9.6c0-1.6.8-2.9 2.2-3.9.5-.4.8-.9.8-1.5z"/><path d="M7 13c1.7-1.2 3.3 1.2 5 0s3.3-1.2 5 0"/></svg></span>
-        <span class="acc-head-text"><strong>GALON VIT</strong><span>Harga uang ritase per pabrik</span></span>
-        <span class="acc-chip" id="count-galon-vit">0 rute</span>
-        <i class="fas fa-chevron-down acc-chevron"></i>
-      </button>
-      <div class="acc-body" id="accBody-rt-galon-vit">
-        <div class="acc-body-inner">
-          <div class="rt-toolbar"><button class="card-sort with-label" data-target="galon-vit" title="Urutkan harga"><i class="fas fa-sort"></i><span>Urutkan harga</span></button></div>
-          <div id="galon-vit"></div>
+      <div class="acc-item is-vit" data-acc="rt-galon-vit" data-category="vit galon">
+        <button class="acc-head" type="button" aria-expanded="false">
+          <span class="acc-head-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 13c1.7-1.2 3.3 1.2 5 0s3.3-1.2 5 0V20a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2z" fill="currentColor" fill-opacity=".28" stroke="none"/><path d="M10 2h4v2.2c0 .6.3 1.1.8 1.5C16.2 6.7 17 8 17 9.6V20a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V9.6c0-1.6.8-2.9 2.2-3.9.5-.4.8-.9.8-1.5z"/><path d="M7 13c1.7-1.2 3.3 1.2 5 0s3.3-1.2 5 0"/></svg></span>
+          <span class="acc-head-text"><strong>GALON VIT</strong><span>Harga uang ritase per pabrik</span></span>
+          <span class="acc-chip" id="count-galon-vit">0 rute</span>
+          <i class="fas fa-chevron-down acc-chevron"></i>
+        </button>
+        <div class="acc-body" id="accBody-rt-galon-vit">
+          <div class="acc-body-inner">
+            <div class="rt-toolbar"><button class="card-sort with-label" data-target="galon-vit" title="Urutkan harga"><i class="fas fa-sort"></i><span>Urutkan harga</span></button></div>
+            <div id="galon-vit"></div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ══════════ MENU DATA LAINNYA — accordion, tabel baru dimuat saat dibuka ══════════ -->
-<section class="menu-section">
+<!-- DATA LAINNYA — tabel baru dimuat saat dibuka -->
+<section class="menu-section" id="dataSection">
   <div class="menu-title"><i class="fas fa-layer-group"></i> Data Lainnya (tap untuk buka)</div>
   <div class="acc-list" id="accList">
-
-    <div class="acc-item" data-acc="dmsPabrik">
-      <button class="acc-head">
-        <span class="acc-head-icon"><i class="fas fa-building"></i></span>
-        <span class="acc-head-text"><strong>DMS Kode Pabrik</strong><span>Nama lengkap pabrik & kode DMS</span></span>
-        <span class="acc-chip" id="dmsCount">23 pabrik</span>
-        <i class="fas fa-chevron-down acc-chevron"></i>
-      </button>
-      <div class="acc-body" id="accBody-dmsPabrik">
-        <div class="acc-body-inner">
-          <div id="dmsAddWrap" class="dms-add-wrap" style="display:none">
-            <button class="add-top-btn" id="dmsAddBtn"><i class="fas fa-plus"></i><span>Tambah</span></button>
+    <div class="acc-col" data-col="dms">
+      <div class="acc-item" data-acc="dmsPabrik">
+        <button class="acc-head">
+          <span class="acc-head-icon"><i class="fas fa-building"></i></span>
+          <span class="acc-head-text"><strong>DMS Kode Pabrik</strong><span>Nama lengkap pabrik & kode DMS</span></span>
+          <span class="acc-chip" id="dmsCount">23 pabrik</span>
+          <i class="fas fa-chevron-down acc-chevron"></i>
+        </button>
+        <div class="acc-body" id="accBody-dmsPabrik">
+          <div class="acc-body-inner">
+            <div id="dmsAddWrap" class="dms-add-wrap" style="display:none">
+              <button class="add-top-btn" id="dmsAddBtn"><i class="fas fa-plus"></i><span>Tambah</span></button>
+            </div>
+            <div class="dms-wrapper">
+              <div class="search-bar">
+                <i class="fas fa-magnifying-glass search-icon"></i>
+                <input type="text" id="searchInput" placeholder="Cari kode atau nama pabrik...">
+                <button class="search-clear" id="searchClear" title="Clear"><i class="fas fa-xmark"></i></button>
+              </div>
+              <div class="table-container">
+                <table id="dmsTable">
+                  <thead><tr><th><i class="fas fa-hashtag"></i> KODE</th><th><i class="fas fa-industry"></i> NAMA PABRIK</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+              <div class="no-result hidden" id="noResult">
+                <i class="fas fa-magnifying-glass"></i>
+                <p>Tidak ada hasil untuk "<span id="noResultQuery"></span>"</p>
+              </div>
+            </div>
           </div>
-          <div class="dms-wrapper">
-            <div class="search-bar">
-              <i class="fas fa-magnifying-glass search-icon"></i>
-              <input type="text" id="searchInput" placeholder="Cari kode atau nama pabrik...">
-              <button class="search-clear" id="searchClear" title="Clear"><i class="fas fa-xmark"></i></button>
+        </div>
+      </div>
+
+      <div class="acc-item" data-acc="btbPrg">
+        <button class="acc-head">
+          <span class="acc-head-icon"><i class="fas fa-store"></i></span>
+          <span class="acc-head-text"><strong>ID BTB DMS Counter PRG</strong><span>Daftar ID counter BTB DMS</span></span>
+          <span class="acc-chip" id="btbCount">22 counter</span>
+          <i class="fas fa-chevron-down acc-chevron"></i>
+        </button>
+        <div class="acc-body" id="accBody-btbPrg">
+          <div class="acc-body-inner">
+            <div id="btbAddWrap" class="dms-add-wrap" style="display:none">
+              <button class="add-top-btn" id="btbAddBtn"><i class="fas fa-plus"></i><span>Tambah</span></button>
             </div>
-            <div class="table-container">
-              <table id="dmsTable">
-                <thead><tr><th><i class="fas fa-hashtag"></i> KODE</th><th><i class="fas fa-industry"></i> NAMA PABRIK</th></tr></thead>
-                <tbody></tbody>
-              </table>
-            </div>
-            <div class="no-result hidden" id="noResult">
-              <i class="fas fa-magnifying-glass"></i>
-              <p>Tidak ada hasil untuk "<span id="noResultQuery"></span>"</p>
+            <div class="dms-wrapper">
+              <div class="search-bar">
+                <i class="fas fa-magnifying-glass search-icon"></i>
+                <input type="text" id="btbSearch" placeholder="Cari ID atau nama counter...">
+                <button class="search-clear" id="btbSearchClear" title="Clear"><i class="fas fa-xmark"></i></button>
+              </div>
+              <div class="table-container">
+                <table id="btbTable">
+                  <thead><tr><th><i class="fas fa-hashtag"></i> ID</th><th><i class="fas fa-store"></i> NAMA COUNTER</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+              <div class="no-result hidden" id="btbNoResult">
+                <i class="fas fa-magnifying-glass"></i>
+                <p>Tidak ada hasil untuk "<span id="btbNoResultQuery"></span>"</p>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-
-    <div class="acc-item" data-acc="btbPrg">
-      <button class="acc-head">
-        <span class="acc-head-icon"><i class="fas fa-store"></i></span>
-        <span class="acc-head-text"><strong>ID BTB DMS Counter PRG</strong><span>Daftar ID counter BTB DMS</span></span>
-        <span class="acc-chip" id="btbCount">22 counter</span>
-        <i class="fas fa-chevron-down acc-chevron"></i>
-      </button>
-      <div class="acc-body" id="accBody-btbPrg">
-        <div class="acc-body-inner">
-          <div id="btbAddWrap" class="dms-add-wrap" style="display:none">
-            <button class="add-top-btn" id="btbAddBtn"><i class="fas fa-plus"></i><span>Tambah</span></button>
-          </div>
-          <div class="dms-wrapper">
-            <div class="search-bar">
-              <i class="fas fa-magnifying-glass search-icon"></i>
-              <input type="text" id="btbSearch" placeholder="Cari ID atau nama counter...">
-              <button class="search-clear" id="btbSearchClear" title="Clear"><i class="fas fa-xmark"></i></button>
-            </div>
-            <div class="table-container">
-              <table id="btbTable">
-                <thead><tr><th><i class="fas fa-hashtag"></i> ID</th><th><i class="fas fa-store"></i> NAMA COUNTER</th></tr></thead>
-                <tbody></tbody>
-              </table>
-            </div>
-            <div class="no-result hidden" id="btbNoResult">
-              <i class="fas fa-magnifying-glass"></i>
-              <p>Tidak ada hasil untuk "<span id="btbNoResultQuery"></span>"</p>
-            </div>
+    <div class="acc-col" data-col="ref">
+      <div class="acc-item is-gold" data-acc="refKode">
+        <button class="acc-head">
+          <span class="acc-head-icon is-gold"><i class="fas fa-barcode"></i></span>
+          <span class="acc-head-text"><strong>Referensi Kode PT. Lokon Prima</strong><span>Kode galon, SPS, item SKU, pabrik & DMS level</span></span>
+          <i class="fas fa-chevron-down acc-chevron"></i>
+        </button>
+        <div class="acc-body" id="accBody-refKode">
+          <div class="acc-body-inner">
+            <div class="ref-tabs" id="refTabs"></div>
+            <div id="refPanels"></div>
           </div>
         </div>
       </div>
     </div>
-
-    <div class="acc-item is-gold" data-acc="refKode">
-      <button class="acc-head">
-        <span class="acc-head-icon is-gold"><i class="fas fa-barcode"></i></span>
-        <span class="acc-head-text"><strong>Referensi Kode PT. Lokon Prima</strong><span>Kode galon, SPS, item SKU, pabrik & DMS level</span></span>
-        <i class="fas fa-chevron-down acc-chevron"></i>
-      </button>
-      <div class="acc-body" id="accBody-refKode">
-        <div class="acc-body-inner">
-          <div class="ref-tabs" id="refTabs"></div>
-          <div id="refPanels"></div>
-        </div>
-      </div>
-    </div>
-
   </div>
 </section>
 
@@ -269,6 +296,23 @@
     </p>
   </div>
 </footer>
+
+<!-- BANNER UPDATE -->
+<div class="updbar" id="updBar" role="status" aria-live="polite" hidden>
+  <svg class="sv"><use href="#i-bolt"/></svg>
+  <span class="up-msg" id="updMsg">Versi terbaru siap dipakai</span>
+  <button class="up-go" id="updBtn" type="button">Perbarui</button>
+  <button class="up-x" id="updX" type="button" aria-label="Tutup">×</button>
+</div>
+
+<!-- DOCK NAVIGASI (HP) -->
+<nav class="dock" id="dock" aria-label="Navigasi cepat">
+  <a class="dk" href="#top" data-go="top"><svg class="sv"><use href="#i-home"/></svg><span>Beranda</span></a>
+  <button class="dk" type="button" data-go="data"><svg class="sv"><use href="#i-layers"/></svg><span>Data</span></button>
+  <button class="dk dk-main js-install" id="pwaDockBtn" type="button" aria-label="Pasang aplikasi"><span class="dk-orb"><svg class="sv"><use href="#i-install"/></svg></span><span>Pasang</span></button>
+  <button class="dk" type="button" data-go="search"><svg class="sv"><use href="#i-search"/></svg><span>Cari</span></button>
+  <button class="dk" type="button" data-go="theme"><svg class="sv"><use href="#i-sun"/></svg><span>Tema</span></button>
+</nav>
 
 <!-- CHAT TOGGLE -->
 <button class="chat-toggle" id="chatToggle"><i class="fab fa-whatsapp"></i><span class="chat-notif">1</span></button>
@@ -475,14 +519,14 @@
   </div>
 </div>
 
-<audio id="chatSound"><source src="https://assets.mixkit.co/sfx/preview/mixkit-click-pop-1114.mp3" type="audio/mpeg"></audio>
+<audio id="chatSound" preload="none"><source src="https://assets.mixkit.co/sfx/preview/mixkit-click-pop-1114.mp3" type="audio/mpeg"></audio>
 
 <script>
 (function () {
   var btn = document.getElementById('themeToggle'), meta = document.getElementById('metaTheme');
   function paint(t) {
     document.documentElement.setAttribute('data-theme', t);
-    if (meta) meta.setAttribute('content', t === 'light' ? '#eaf2fb' : '#071b30');
+    if (meta) meta.setAttribute('content', t === 'light' ? '#e8f0fa' : '#030a17');
     if (btn) btn.title = t === 'light' ? 'Ganti ke mode gelap' : 'Ganti ke mode terang';
   }
   paint(document.documentElement.getAttribute('data-theme') || 'dark');
@@ -515,7 +559,7 @@
 <!-- ✦ BenyoPromo Notif — diredupkan otomatis saat area tabel sedang dibaca -->
 <script>
 (function () {
-  var targets = document.querySelectorAll(".glass-card, .dms-wrapper, .acc-item");
+  var targets = document.querySelectorAll(".dms-wrapper, .acc-item");
   if (!targets.length || !("IntersectionObserver" in window)) return;
   var active = new Set();
   var io = new IntersectionObserver(function (entries) {
@@ -532,6 +576,6 @@
 <script src="notif-trading.min.js" defer></script>
 
 <script src="hud.js" defer></script>
-<script src="pwa.js" data-app-name="UangRitase" data-accent="#00c8ff" defer></script>
+<script src="pwa.js" data-app-name="UangRitase" data-accent="#12b5ff" defer></script>
 </body>
 </html>

@@ -9,11 +9,12 @@
      accordion & baru dirender saat pertama kali dibuka (lazy render)
    ========================================================================== */
 
-/* ---------- Firebase ---------- */
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-import { getDatabase, ref, set, push, onValue } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
-
+/* ---------- Firebase (dimuat dinamis & aman) ----------
+   Dimuat lewat import() di dalam try/catch: kalau perangkat offline dan
+   modul Firebase belum tersimpan, halaman TETAP tampil memakai data yang
+   disimpan di perangkat — tidak lagi layar kosong. */
+const FB_VER = "11.0.0";
+const FB = "https://www.gstatic.com/firebasejs/" + FB_VER + "/";
 const firebaseConfig = {
   apiKey: "AIzaSyDth7CHrLlloGLKegjEzkU-jcUiWxCq828",
   authDomain: "uangritase.firebaseapp.com",
@@ -23,9 +24,15 @@ const firebaseConfig = {
   messagingSenderId: "398064880612",
   appId: "1:398064880612:web:106b463bcec509d5c255f1"
 };
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-const auth = getAuth(app);
+let db = null, auth = null;
+let ref, set, push, onValue, signInWithEmailAndPassword, signOut, onAuthStateChanged;
+async function loadFirebase() {
+  const [a, d, u] = await Promise.all([import(FB + "firebase-app.js"), import(FB + "firebase-database.js"), import(FB + "firebase-auth.js")]);
+  const app = a.initializeApp(firebaseConfig);
+  db = d.getDatabase(app); auth = u.getAuth(app);
+  ({ ref, set, push, onValue } = d);
+  ({ signInWithEmailAndPassword, signOut, onAuthStateChanged } = u);
+}
 
 /* ---------- Preferensi login (tersimpan di perangkat ini saja) ---------- */
 const store = {
@@ -33,6 +40,30 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
   del(k) { try { localStorage.removeItem(k); } catch (e) {} }
 };
+
+/* ---------- Cache data di perangkat (mode offline) ----------
+   Setiap kali server mengirim data baru, salinannya disimpan di sini.
+   Saat dibuka tanpa internet, tabel langsung terisi dari salinan terakhir. */
+const CACHE_KEY = "ur_data_v17";
+let lastSync = 0, dataSource = "none";   // none | cache | server | default
+function saveCache() {
+  store.set(CACHE_KEY, JSON.stringify({ t: Date.now(), ritase, dms: dmsList, btb: btbList }));
+}
+function loadCache() {
+  try {
+    const c = JSON.parse(store.get(CACHE_KEY) || "null");
+    if (!c || !c.ritase) return false;
+    ["spsAqua", "galonAqua", "spsVit", "galonVit"].forEach(k => { ritase[k] = Array.isArray(c.ritase[k]) ? c.ritase[k] : []; });
+    if (Array.isArray(c.dms)) dmsList = c.dms;
+    if (Array.isArray(c.btb)) btbList = c.btb;
+    lastSync = c.t || 0; dataSource = "cache";
+    return true;
+  } catch (e) { return false; }
+}
+function announce(kind) {
+  /* kabar untuk UI (pwa.js): kind = "server" | "cache" | "default" */
+  window.dispatchEvent(new CustomEvent("ur:data", { detail: { kind, t: lastSync } }));
+}
 
 /* ---------- Helper kecil ---------- */
 const $ = (id) => document.getElementById(id);
@@ -218,13 +249,14 @@ function toast(msg, type = "info", duration = 3200) {
   requestAnimationFrame(() => el.classList.add("toast-show"));
   setTimeout(() => { el.classList.remove("toast-show"); el.classList.add("toast-hide"); setTimeout(() => el.remove(), 420); }, duration);
 }
+window.urToast = toast;   // dipakai pwa.js (offline / update / pasang)
 
 /* ---------- Firebase write (v11) ----------
    Tulis per bagian (ritase/spsAqua dst). Tampilan baru berubah SETELAH server
    menerima data; kalau gagal, data di layar tidak diubah dan alasannya ditampilkan. */
 const SAVE_TIMEOUT = 12000;
 function explainErr(e) {
-  const em = (auth.currentUser && auth.currentUser.email) || "-";
+  const em = (auth && auth.currentUser && auth.currentUser.email) || "-";
   if (e && (e.code === "PERMISSION_DENIED" || /permission/i.test(e.message || ""))) return "Ditolak server: akun " + em + " tidak punya izin menulis. Masuk dengan admin@uangritase.com.";
   if (e && e.message === "timeout") return "Koneksi lambat atau offline. Data belum tersimpan, coba lagi.";
   return "Gagal menyimpan: " + ((e && e.message) || e);
@@ -232,17 +264,25 @@ function explainErr(e) {
 function writeWithTimeout(path, val) {
   return Promise.race([set(ref(db, path), val), new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), SAVE_TIMEOUT))]);
 }
+function writeBlocked() {
+  if (!auth || !db) { toast("Fitur ubah data belum siap (server belum terhubung). Coba lagi saat online.", "warn", 5000); return true; }
+  if (typeof navigator !== "undefined" && navigator.onLine === false) { toast("Sedang offline. Ubah / hapus data hanya bisa saat online.", "warn", 5000); return true; }
+  return false;
+}
 async function commitRitase(key, next) {
+  if (writeBlocked()) return false;
   if (!auth.currentUser) { toast("Sesi admin habis. Masuk lagi lalu ulangi.", "warn", 5000); return false; }
   try { await writeWithTimeout("ritase/" + key, toObj(next)); ritase[key] = next; logoutSeconds = 300; return true; }
   catch (e) { toast(explainErr(e), "error", 8000); return false; }
 }
 async function commitBtb(next) {
+  if (writeBlocked()) return false;
   if (!auth.currentUser) { toast("Sesi admin habis. Masuk lagi lalu ulangi.", "warn", 5000); return false; }
   try { await writeWithTimeout("btb", toObj(next)); btbList = next; logoutSeconds = 300; return true; }
   catch (e) { toast(explainErr(e), "error", 8000); return false; }
 }
 async function commitDms(next) {
+  if (writeBlocked()) return false;
   if (!auth.currentUser) { toast("Sesi admin habis. Masuk lagi lalu ulangi.", "warn", 5000); return false; }
   try { await writeWithTimeout("dms", toObj(next)); dmsList = next; logoutSeconds = 300; return true; }
   catch (e) { toast(explainErr(e), "error", 8000); return false; }
@@ -253,7 +293,7 @@ function setBusy(btn, on) {
   else { btn.disabled = false; if (btn.dataset.h) btn.innerHTML = btn.dataset.h; }
 }
 function pushHistory(action, section, detail) {
-  if (!auth.currentUser) return;
+  if (!auth || !auth.currentUser) return;
   push(ref(db, "history"), { action, section, detail, email: auth.currentUser.email, ts: Date.now() }).catch(() => {});
 }
 
@@ -645,6 +685,7 @@ async function submitAdminLogin() {
   const okBtn = $("adminConfirm"), okHtml = okBtn ? okBtn.innerHTML : "";
   if (okBtn) { okBtn.disabled = true; okBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memeriksa…'; }
   try {
+    if (!auth) throw { code: "auth/offline" };
     await signInWithEmailAndPassword(auth, email, pass);
     loginFailCount = 0;
     store.set("ur_email", email);
@@ -652,6 +693,7 @@ async function submitAdminLogin() {
   } catch (e) {
     loginFailCount++;
     let msg = "Email atau password salah";
+    if (e.code === "auth/offline" || e.code === "auth/network-request-failed") msg = "Tidak ada koneksi internet. Login admin butuh online.";
     if (e.code === "auth/too-many-requests") msg = "Terlalu banyak percobaan gagal. Coba lagi beberapa saat lagi.";
     if (loginFailCount >= LOGIN_MAX_ATTEMPTS) {
       loginLockUntil = Date.now() + LOGIN_LOCK_MS;
@@ -734,6 +776,7 @@ function initFilterNav() {
     btns.forEach(b => b.classList.remove("active")); btn.classList.add("active");
     const f = btn.dataset.filter;
     cards.forEach(c => { c.style.display = (f === "all" || (c.dataset.category || "").includes(f)) ? "" : "none"; });
+    if (window.urSyncCols) window.urSyncCols();
   }));
 }
 function initSortButtons() {
@@ -758,6 +801,7 @@ function initAccordion() {
     head.addEventListener("click", () => {
       const opening = !item.classList.contains("acc-open");
       item.classList.toggle("acc-open", opening);
+      head.setAttribute("aria-expanded", opening ? "true" : "false");
       if (opening) {
         if (!accRendered[key]) { renderAccordionContent(key); accRendered[key] = true; }
         body.style.maxHeight = body.scrollHeight + "px";
@@ -816,8 +860,8 @@ function initClock() {
   tick(); setInterval(tick, 1000);
 }
 function initVisitorCounter() {
-  let total = parseInt(localStorage.getItem("visCount") || "1540") + 1;
-  localStorage.setItem("visCount", total);
+  let total = (parseInt(store.get("visCount") || "1540", 10) || 1540) + 1;
+  store.set("visCount", total);
   const el = $("visitorNumber"); if (!el) return;
   let n = total - 20;
   const step = () => { n++; el.textContent = n; if (n < total) requestAnimationFrame(step); };
@@ -839,24 +883,36 @@ window.addEventListener("resize", () => {
 }, { passive: true });
 
 /* ---------- Firebase listeners ---------- */
-onValue(ref(db, "ritase"), snap => {
-  const v = snap.val(), has = v && typeof v === "object";
-  ["spsAqua", "galonAqua", "spsVit", "galonVit"].forEach(k => {
-    ritase[k] = has ? fromObj(v[k]) : DEFAULT_RITASE[k].map(r => [...r]);
+function startListeners() {
+  /* status koneksi server (untuk lencana Online / Offline di atas) */
+  onValue(ref(db, ".info/connected"), snap => {
+    window.dispatchEvent(new CustomEvent("ur:conn", { detail: { server: !!snap.val() } }));
   });
-  renderAllRitase();
-}, err => toast("Gagal membaca data: " + err.message, "error", 6000));
-onValue(ref(db, "dms"), snap => {
-  const arr = fromObj(snap.val());
-  dmsList = arr.length ? arr : DEFAULT_DMS.map(r => [...r]);
-  if (accRendered.dmsPabrik) renderDmsTable();
-  if (accRendered.btbPrg) renderBtbTable();
-});
-onValue(ref(db, "btb"), snap => {
-  const arr = fromObj(snap.val());
-  btbList = (arr.length ? arr : DEFAULT_BTB).map(r => [fixBtbId(r[0]), r[1]]);
-  if (accRendered.btbPrg) renderBtbTable();
-}, () => { if (!btbList.length) btbList = DEFAULT_BTB.map(r => [...r]); if (accRendered.btbPrg) renderBtbTable(); });
+  onValue(ref(db, "ritase"), snap => {
+    const v = snap.val(), has = v && typeof v === "object";
+    ["spsAqua", "galonAqua", "spsVit", "galonVit"].forEach(k => {
+      ritase[k] = has ? fromObj(v[k]) : DEFAULT_RITASE[k].map(r => [...r]);
+    });
+    gotServer.ritase = true; lastSync = Date.now(); dataSource = "server";
+    renderAllRitase(); saveCache(); announce("server");
+  }, err => { toast("Gagal membaca data: " + err.message, "error", 6000); });
+  onValue(ref(db, "dms"), snap => {
+    const arr = fromObj(snap.val());
+    dmsList = arr.length ? arr : DEFAULT_DMS.map(r => [...r]);
+    gotServer.dms = true;
+    if (accRendered.dmsPabrik) renderDmsTable();
+    saveCache();
+  });
+  onValue(ref(db, "btb"), snap => {
+    const arr = fromObj(snap.val());
+    btbList = (arr.length ? arr : DEFAULT_BTB).map(r => [fixBtbId(r[0]), r[1]]);
+    gotServer.btb = true;
+    if (accRendered.btbPrg) renderBtbTable();
+    saveCache();
+  }, () => { if (!btbList.length) btbList = DEFAULT_BTB.map(r => [...r]); if (accRendered.btbPrg) renderBtbTable(); });
+  onAuthStateChanged(auth, onAuth);
+}
+const gotServer = { ritase: false, dms: false, btb: false };
 let histOff = null;
 function syncHistory(user) {
   if (histOff) { histOff(); histOff = null; }
@@ -867,7 +923,7 @@ function syncHistory(user) {
     renderHistoryList();
   }, () => {});
 }
-onAuthStateChanged(auth, user => {
+function onAuth(user) {
   isAdmin = !!user;
   document.body.classList.toggle("admin-mode", isAdmin);
   syncHistory(user);
@@ -879,7 +935,7 @@ onAuthStateChanged(auth, user => {
       if (store.get("ur_keep") === "1") { renderAdminKeep(); }
       else {
         logoutSeconds = 300; renderAdminButton();
-        logoutTimer = setInterval(() => { if (!document.querySelector("#rowEditModal.modal-open,#dmsEditModal.modal-open,#btbEditModal.modal-open,#deleteModal.modal-open")) logoutSeconds--; renderAdminButton(); if (logoutSeconds <= 0) { clearInterval(logoutTimer); signOut(auth); } }, 1000);
+        logoutTimer = setInterval(() => { if (!document.querySelector("#rowEditModal.modal-open,#dmsEditModal.modal-open,#btbEditModal.modal-open,#deleteModal.modal-open")) logoutSeconds--; renderAdminButton(); if (logoutSeconds <= 0) { clearInterval(logoutTimer); if (signOut && auth) signOut(auth); } }, 1000);
       }
     } else {
       clearInterval(logoutTimer); adminBtn.classList.remove("countdown", "admin-on"); adminBtn.innerHTML = '<i class="fas fa-lock"></i>'; { const cap = $("adminCaption"); if (cap) cap.textContent = "Rubah/Edit/Hapus"; }
@@ -887,7 +943,29 @@ onAuthStateChanged(auth, user => {
   }
   renderAllRitase();
   if (accRendered.dmsPabrik) renderDmsTable();
-});
+  if (accRendered.btbPrg) renderBtbTable();
+}
+
+/* Tabel langsung tampil dari salinan terakhir (cepat & bisa offline),
+   lalu diperbarui begitu server menjawab. */
+function bootData() {
+  if (loadCache()) { renderAllRitase(); announce("cache"); }
+  /* belum ada salinan sama sekali + server tak menjawab → pakai data bawaan supaya tidak kosong */
+  setTimeout(() => {
+    if (gotServer.ritase || dataSource === "cache") return;
+    Object.keys(DEFAULT_RITASE).forEach(k => { ritase[k] = DEFAULT_RITASE[k].map(r => [...r]); });
+    if (!dmsList.length) dmsList = DEFAULT_DMS.map(r => [...r]);
+    if (!btbList.length) btbList = DEFAULT_BTB.map(r => [...r]);
+    dataSource = "default"; renderAllRitase(); announce("default");
+  }, 6000);
+  /* dms/btb belum ada dari server & belum ada cache → isi bawaan saat dibuka */
+  if (!dmsList.length) dmsList = DEFAULT_DMS.map(r => [...r]);
+  if (!btbList.length) btbList = DEFAULT_BTB.map(r => [...r]);
+  loadFirebase().then(startListeners).catch(err => {
+    if (window.console) console.warn("[UangRitase] Firebase tidak termuat (offline?):", err && err.message);
+    window.dispatchEvent(new CustomEvent("ur:conn", { detail: { server: false, failed: true } }));
+  });
+}
 
 /* ---------- Init ---------- */
 document.addEventListener("DOMContentLoaded", () => {
@@ -905,7 +983,7 @@ document.addEventListener("DOMContentLoaded", () => {
     $("adminPassToggle").innerHTML = wasHidden ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>'; $("adminPassToggle").setAttribute("aria-label", wasHidden ? "Sembunyikan password" : "Tampilkan password");
   });
   $("adminBtn")?.addEventListener("click", () => {
-    if (isAdmin) { store.del("ur_keep"); signOut(auth); toast("Logout berhasil", "info"); return; }
+    if (isAdmin) { store.del("ur_keep"); if (signOut && auth) signOut(auth); toast("Logout berhasil", "info"); return; }
     $("adminEmailInput").value = store.get("ur_email") || ""; $("adminPassInput").value = "";
     if ($("adminKeep")) $("adminKeep").checked = store.get("ur_keep") === "1";
     const err = $("adminError"); if (err) err.textContent = "";
@@ -949,5 +1027,5 @@ document.addEventListener("DOMContentLoaded", () => {
   $("historyModal")?.addEventListener("click", e => { if (e.target === $("historyModal")) closeModal("historyModal"); });
 
   document.querySelectorAll(".glass-card").forEach((c, i) => { c.style.animationDelay = 0.07 * i + "s"; });
-  setTimeout(() => toast("Menghubungkan ke Firebase… ✦", "info", 2000), 400);
+  bootData();
 });
