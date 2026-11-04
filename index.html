@@ -3,6 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <script>
+/* Tangkap event instal SEJAK AWAL (sebelum skrip lain selesai dimuat) — kunci agar tombol Instal berfungsi di Windows 7 */
+window.__bip=null;window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__bip=e;});
+window.addEventListener('appinstalled',function(){window.__pwaInstalled=true;});
+</script>
+<script>
 /* tema + mode hemat dipasang sedini mungkin supaya tidak berkedip */
 (function () {
   var d = document.documentElement, t = 'dark', ua = navigator.userAgent || '';
@@ -49,15 +54,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="UangRitase">
-<link rel="stylesheet" href="style-v17.css">
-<link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-<noscript>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
-</noscript>
+<link rel="preload" as="font" type="font/woff2" crossorigin href="fonts/sora-latin-wght-normal.woff2">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="fonts/dm-sans-latin-wght-normal.woff2">
+<link rel="stylesheet" href="app.css">
 </head>
 <body id="top">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
@@ -590,9 +589,6 @@
   targets.forEach(function (t) { io.observe(t); });
 })();
 </script>
-<script src="notif-trading.min.js" defer></script>
-
-<script src="hud.js" defer></script>
-<script src="pwa.js" data-app-name="UangRitase" data-accent="#12b5ff" defer></script>
+<script src="ur.js" defer></script>
 </body>
 </html>
