@@ -20,7 +20,7 @@
    ============================================================ */
 'use strict';
 
-var BUILD = '2026-11-03.17.0';
+var BUILD = '2026-11-04.17.1';
 var SHELL = 'ur-shell-' + BUILD;      /* file milik situs (diganti tiap BUILD)      */
 var CDN   = 'ur-cdn-v1';              /* pustaka luar berversi (awet antar BUILD)    */
 
@@ -33,9 +33,9 @@ var PRECACHE = [
   './', 'offline.html', 'manifest.json', 'style-v17.css',
   'app.js', 'hud.js', 'pwa.js', 'notif-trading.min.js',
   'favicon.png', 'img/logo1.png', 'img/logo2.png',
-  'img/icon-192-v2.png', 'img/icon-512-v2.png',
-  'img/icon-192-maskable-v2.png', 'img/icon-512-maskable-v2.png',
-  'img/apple-touch-icon-v2.png'
+  'img/icon-192-v3.png', 'img/icon-512-v3.png',
+  'img/icon-192-maskable-v3.png', 'img/icon-512-maskable-v3.png',
+  'img/apple-touch-icon-v3.png'
 ];
 
 /* Pustaka luar yang disimpan di muka supaya kunjungan pertama pun siap offline */
