@@ -1,6 +1,6 @@
 /* ============================================================
-   pwa.js — UangRitase v17
-   1) Mendaftarkan service worker (offline + update otomatis)
+   pwa.js — UangRitase v18
+   1) Mendaftarkan service worker (offline + update otomatis atomik)
    2) Lencana Online / Offline + waktu sinkron terakhir
    3) Tombol "Pasang Aplikasi" (hero, app bar, dock HP) + panduan
    4) Banner "Versi baru siap" + muat ulang otomatis saat aman
@@ -59,7 +59,7 @@
     paintConn();
   });
   window.addEventListener('offline', function () {
-    st.online = false; paintConn();
+    st.online = false; paintConn(); queueSync();
     toast('Anda offline. Data terakhir tetap bisa dilihat.', 'warn', 3600);
   });
   window.addEventListener('online', function () {
@@ -73,16 +73,32 @@
   var reg = null, refreshing = false, updateReady = false, lastCheck = 0;
   var hadController = !!(navigator.serviceWorker && navigator.serviceWorker.controller);
 
-  /* cek cepat ke server untuk file-file utama (balasan 304 = hampir gratis).
-     Service worker membandingkan versinya dan mengabari bila ada yang baru. */
-  var WATCH = ['./', 'app.js', 'style-v17.css', 'hud.js', 'pwa.js'];
-  function checkForUpdate(force) {
+  /* Minta service worker memeriksa seluruh file inti. Pembaruan diunduh utuh dulu,
+     baru diganti sekaligus (atomik), lalu halaman diberi tahu. */
+  function swTarget() {
+    return (reg && (reg.active || reg.waiting)) || (navigator.serviceWorker && navigator.serviceWorker.controller) || null;
+  }
+  function post(m) { var t = swTarget(); if (t) { try { t.postMessage(m); return true; } catch (e) {} } return false; }
+  function checkForUpdate(force, manual) {
     var now = Date.now();
     if (!force && now - lastCheck < 60000) return;
-    if (st.online === false) return;
+    if (st.online === false) { queueSync(); return; }
     lastCheck = now;
     try { if (reg && reg.update) reg.update().catch(function () {}); } catch (e) {}
-    WATCH.forEach(function (u) { try { fetch(u, { credentials: 'same-origin' }).catch(function () {}); } catch (e) {} });
+    post({ type: 'CHECK_UPDATE', force: !!force, manual: !!manual });
+  }
+  /* Offline sekarang → minta browser memeriksa begitu internet kembali (tab boleh ditutup) */
+  function queueSync() {
+    try { if (reg && reg.sync) reg.sync.register('ur-update').catch(function () {}); } catch (e) {}
+  }
+  function setupBackground() {
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {}); } catch (e) {}
+    try {
+      if (reg && reg.periodicSync && reg.periodicSync.register) {
+        reg.periodicSync.register('ur-periodic', { minInterval: 12 * 60 * 60 * 1000 }).catch(function () {});
+      }
+    } catch (e) {}
+    if (st.online === false) queueSync();
   }
 
   function isBusy() {
@@ -135,6 +151,48 @@
       showVersion(d.build);
     }
     if (d.type === 'VERSION') showVersion(d.build);
+    if (d.type === 'SW_PROGRESS' && !root.classList.contains('offline-ready') && sub) {
+      sub.textContent = '· menyimpan ' + d.done + '/' + d.total;
+    }
+    if (d.type === 'SW_ACTIVE' && d.status) { info = d.status; paintInfo(); }
+    if (d.type === 'STATUS') {
+      info = d; paintInfo();
+      if (d.repaired) toast(d.ready ? 'Penyimpanan offline diperbaiki ✓' : 'Sebagian file belum tersimpan — coba lagi saat online.', d.ready ? 'success' : 'warn', 4200);
+    }
+    if (d.type === 'CHECK_RESULT') {
+      if (d.statusInfo) { info = d.statusInfo; paintInfo(); }
+      if (d.manual) {
+        if (d.status === 'current') toast('Sudah versi terbaru ✓', 'success', 2800);
+        else if (d.status === 'offline') toast('Belum terhubung ke server. Akan dicek otomatis saat online.', 'warn', 3600);
+      }
+      if (d.status === 'offline') queueSync();
+    }
+  }
+
+  /* ── panel status offline di footer ── */
+  var info = null;
+  function fmtKB(b) { return b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.round(b / 1024) + ' KB'; }
+  function paintInfo() {
+    var inner = document.querySelector('.footer-inner'); if (!inner) return;
+    var box = inner.querySelector('.offbox');
+    if (!box) {
+      box = document.createElement('div'); box.className = 'offbox';
+      box.innerHTML = '<small class="off-st" role="status"></small><span class="off-act">' +
+        '<button type="button" class="off-btn" data-a="check">Periksa pembaruan</button>' +
+        '<button type="button" class="off-btn" data-a="repair">Perbaiki offline</button></span>';
+      inner.appendChild(box);
+      box.addEventListener('click', function (e) {
+        var a = e.target && e.target.getAttribute && e.target.getAttribute('data-a');
+        if (a === 'check') { if (st.online === false) { toast('Anda sedang offline.', 'warn', 2600); queueSync(); } else { toast('Memeriksa pembaruan…', 'info', 1600); lastCheck = 0; checkForUpdate(true, true); } }
+        if (a === 'repair') { if (st.online === false) toast('Perbaikan butuh internet.', 'warn', 2600); else { toast('Menyimpan ulang semua file…', 'info', 2200); post({ type: 'REPAIR' }); } }
+      });
+    }
+    var t = box.querySelector('.off-st');
+    if (!info) { t.textContent = ''; return; }
+    var ready = info.ready;
+    root.classList.toggle('offline-ready', !!ready);
+    t.textContent = (ready ? 'Siap offline · ' + info.cached + ' file (' + fmtKB(info.bytes) + ')' : 'Offline belum lengkap · ' + info.cached + '/' + info.total + ' file') +
+      (info.lastCheck ? ' · dicek ' + hhmm(info.lastCheck) : '');
   }
 
   function showVersion(b) {
@@ -159,6 +217,8 @@
           try { navigator.serviceWorker.controller.postMessage({ type: 'GET_VERSION' }); } catch (e) {}
           root.classList.add('offline-ready');
         }
+        setupBackground();
+        if (navigator.serviceWorker.controller) post({ type: 'GET_STATUS' });
         setTimeout(function () { checkForUpdate(true); }, 3000);
       }).catch(function (err) { if (window.console) console.warn('[PWA] service worker gagal didaftarkan:', err); });
     } catch (e) {}
