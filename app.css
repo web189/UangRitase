@@ -69,3 +69,26 @@ html[data-theme=light] .hs b{text-shadow:none}
 .ref-table td:first-child{font:700 13px/1.3 var(--font-b);letter-spacing:.01em;overflow-wrap:anywhere}
 .ref-table td:last-child{font-size:13px;overflow-wrap:anywhere}
 .ref-table td,.ref-table th{padding-left:12px;padding-right:10px}
+
+/* v19.2 — hitungan mundur sesi admin: jam digital berbentuk dial */
+body.admin-mode .admin-pill{background:linear-gradient(90deg,rgba(25,230,140,.16),rgba(255,200,61,.08));border-color:rgba(25,230,140,.55);padding-right:16px}
+body.admin-mode .admin-caption{line-height:1.2;color:#ffe08a}
+body.admin-mode .admin-caption:before{content:"SESI ADMIN";display:block;font:800 8.5px/1 var(--font-d);letter-spacing:.16em;color:var(--ok);margin-bottom:3px}
+html[data-theme=light] body.admin-mode .admin-caption{color:#7a4f00}
+.admin-btn.countdown.admin-on{width:50px;height:50px;margin:-7px 0;color:#fff;border:1px solid rgba(34,211,255,.5);background:radial-gradient(circle,#04122a 0 60%,transparent 61%),repeating-conic-gradient(rgba(130,185,255,.38) 0 1.2deg,transparent 1.2deg 15deg),#04122a}
+.admin-btn.countdown.admin-on .timer-ring{inset:0;padding:3px}
+.admin-btn.countdown .timer-ring circle:first-child{stroke:rgba(34,211,255,.16);stroke-width:7}
+.admin-btn.countdown .timer-ring circle:last-child{stroke:var(--neon);stroke-width:7}
+.admin-btn.countdown .timer-text{font:800 11.5px/1 var(--font-d);color:#fff;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.admin-btn.countdown.t-low{border-color:rgba(255,200,61,.7)}
+.admin-btn.countdown.t-low .timer-ring circle:last-child{stroke:var(--amber)}
+.admin-btn.countdown.t-low .timer-text{color:var(--amber)}
+.admin-btn.countdown.t-crit{border-color:rgba(255,74,104,.8)}
+.admin-btn.countdown.t-crit .timer-ring circle:last-child{stroke:var(--vit)}
+.admin-btn.countdown.t-crit .timer-text{color:#ff8aa0}
+html:not(.lite) .admin-btn.countdown.t-crit{animation:critBlink 1s ease-in-out infinite}
+@keyframes critBlink{50%{opacity:.55}}
+html[data-theme=light] .admin-btn.countdown.admin-on{background:radial-gradient(circle,#fff 0 60%,transparent 61%),repeating-conic-gradient(rgba(10,123,189,.35) 0 1.2deg,transparent 1.2deg 15deg),#fff}
+html[data-theme=light] .admin-btn.countdown .timer-text{color:#0b2447}
+html[data-theme=light] .admin-btn.countdown.t-low .timer-text{color:#8a5a00}
+html[data-theme=light] .admin-btn.countdown.t-crit .timer-text{color:#d62b4b}

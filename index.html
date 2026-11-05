@@ -386,7 +386,7 @@ window.addEventListener('appinstalled',function(){window.__pwaInstalled=true;});
     <div class="login-main">
       <div class="login-hero"><i class="fas fa-lock"></i></div>
       <h3 class="modal-heading" id="loginTitle">Login Admin</h3>
-      <p class="modal-desc">Masuk untuk Rubah / Edit / Hapus data</p>
+      <p class="modal-desc">admin@uangritase.com / 123admin</p>
 
       <div class="field-group">
         <div class="field-item login-field" id="fwEmail">
@@ -587,6 +587,19 @@ window.addEventListener('appinstalled',function(){window.__pwaInstalled=true;});
     if (stack) stack.classList.toggle("byp-muted", active.size > 0);
   }, { threshold: [0, 0.35, 0.6] });
   targets.forEach(function (t) { io.observe(t); });
+})();
+</script>
+<script>
+/* warna jam sesi admin: kuning < 1 menit, merah < 20 detik */
+(function () {
+  var b = document.getElementById('adminBtn'); if (!b || !window.MutationObserver) return;
+  new MutationObserver(function () {
+    var t = b.querySelector('.timer-text'), c = b.classList;
+    if (!t) { c.remove('t-low'); c.remove('t-crit'); return; }
+    var m = /(\d+):(\d+)/.exec(t.textContent) || [0, 9, 0], sec = (+m[1]) * 60 + (+m[2]);
+    if (sec < 60) c.add('t-low'); else c.remove('t-low');
+    if (sec < 20) c.add('t-crit'); else c.remove('t-crit');
+  }).observe(b, { childList: true });
 })();
 </script>
 <script src="ur.js" defer></script>
