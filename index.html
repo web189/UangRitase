@@ -91,7 +91,7 @@ window.addEventListener('appinstalled',function(){window.__pwaInstalled=true;});
     <div class="header-badge"><span class="pulse-dot"></span><span>LIVE UPDATE</span></div>
     <div class="admin-pill" id="adminPill">
       <button class="icon-btn admin-btn" id="adminBtn" type="button" title="Admin Login" aria-label="Login admin: Rubah, Edit, Hapus"><i class="fas fa-lock"></i></button>
-      <span class="admin-caption" id="adminCaption">Rubah/Edit/Hapus</span>
+      <div class="admin-info"><span class="sess-top"><b>SESI ADMIN</b><em class="sess-sec" id="sessSec">00:30.0</em></span><span class="admin-caption" id="adminCaption">Rubah/Edit/Hapus</span><span class="sess-bar" id="sessBar"><i></i></span></div>
       <button class="icon-btn hist-btn" id="histBtn" type="button" title="Histori Perubahan" style="display:none"><i class="fas fa-clock-rotate-left"></i></button>
     </div>
   </div>
@@ -379,7 +379,7 @@ window.addEventListener('appinstalled',function(){window.__pwaInstalled=true;});
         <li><i class="fas fa-pen-to-square"></i> Rubah &amp; edit harga ritase</li>
         <li><i class="fas fa-trash-can"></i> Hapus data (bisa dipulihkan)</li>
         <li><i class="fas fa-clock-rotate-left"></i> Histori perubahan tercatat</li>
-        <li><i class="fas fa-hourglass-half"></i> Keluar otomatis 5 menit</li>
+        <li><i class="fas fa-hourglass-half"></i> Keluar otomatis 30 detik</li>
       </ul>
     </aside>
 
@@ -420,7 +420,7 @@ window.addEventListener('appinstalled',function(){window.__pwaInstalled=true;});
         <button class="mbt mbt-ghost" id="adminCancel" type="button">Batal</button>
         <button class="mbt mbt-primary" id="adminConfirm" type="button"><i class="fas fa-right-to-bracket"></i> Masuk</button>
       </div>
-      <p class="login-note"><i class="fas fa-shield-halved"></i> Khusus admin. Tanpa centang, sesi keluar otomatis setelah 5 menit.</p>
+      <p class="login-note"><i class="fas fa-shield-halved"></i> Khusus admin. Tanpa centang, sesi keluar otomatis setelah 30 detik.</p>
     </div>
   </div>
 </div>
@@ -587,19 +587,6 @@ window.addEventListener('appinstalled',function(){window.__pwaInstalled=true;});
     if (stack) stack.classList.toggle("byp-muted", active.size > 0);
   }, { threshold: [0, 0.35, 0.6] });
   targets.forEach(function (t) { io.observe(t); });
-})();
-</script>
-<script>
-/* warna jam sesi admin: kuning < 1 menit, merah < 20 detik */
-(function () {
-  var b = document.getElementById('adminBtn'); if (!b || !window.MutationObserver) return;
-  new MutationObserver(function () {
-    var t = b.querySelector('.timer-text'), c = b.classList;
-    if (!t) { c.remove('t-low'); c.remove('t-crit'); return; }
-    var m = /(\d+):(\d+)/.exec(t.textContent) || [0, 9, 0], sec = (+m[1]) * 60 + (+m[2]);
-    if (sec < 60) c.add('t-low'); else c.remove('t-low');
-    if (sec < 20) c.add('t-crit'); else c.remove('t-crit');
-  }).observe(b, { childList: true });
 })();
 </script>
 <script src="ur.js" defer></script>

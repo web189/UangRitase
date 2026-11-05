@@ -73,22 +73,49 @@ html[data-theme=light] .hs b{text-shadow:none}
 /* v19.2 — hitungan mundur sesi admin: jam digital berbentuk dial */
 body.admin-mode .admin-pill{background:linear-gradient(90deg,rgba(25,230,140,.16),rgba(255,200,61,.08));border-color:rgba(25,230,140,.55);padding-right:16px}
 body.admin-mode .admin-caption{line-height:1.2;color:#ffe08a}
-body.admin-mode .admin-caption:before{content:"SESI ADMIN";display:block;font:800 8.5px/1 var(--font-d);letter-spacing:.16em;color:var(--ok);margin-bottom:3px}
 html[data-theme=light] body.admin-mode .admin-caption{color:#7a4f00}
-.admin-btn.countdown.admin-on{width:50px;height:50px;margin:-7px 0;color:#fff;border:1px solid rgba(34,211,255,.5);background:radial-gradient(circle,#04122a 0 60%,transparent 61%),repeating-conic-gradient(rgba(130,185,255,.38) 0 1.2deg,transparent 1.2deg 15deg),#04122a}
-.admin-btn.countdown.admin-on .timer-ring{inset:0;padding:3px}
-.admin-btn.countdown .timer-ring circle:first-child{stroke:rgba(34,211,255,.16);stroke-width:7}
-.admin-btn.countdown .timer-ring circle:last-child{stroke:var(--neon);stroke-width:7}
-.admin-btn.countdown .timer-text{font:800 11.5px/1 var(--font-d);color:#fff;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
-.admin-btn.countdown.t-low{border-color:rgba(255,200,61,.7)}
-.admin-btn.countdown.t-low .timer-ring circle:last-child{stroke:var(--amber)}
-.admin-btn.countdown.t-low .timer-text{color:var(--amber)}
-.admin-btn.countdown.t-crit{border-color:rgba(255,74,104,.8)}
-.admin-btn.countdown.t-crit .timer-ring circle:last-child{stroke:var(--vit)}
-.admin-btn.countdown.t-crit .timer-text{color:#ff8aa0}
-html:not(.lite) .admin-btn.countdown.t-crit{animation:critBlink 1s ease-in-out infinite}
-@keyframes critBlink{50%{opacity:.55}}
-html[data-theme=light] .admin-btn.countdown.admin-on{background:radial-gradient(circle,#fff 0 60%,transparent 61%),repeating-conic-gradient(rgba(10,123,189,.35) 0 1.2deg,transparent 1.2deg 15deg),#fff}
-html[data-theme=light] .admin-btn.countdown .timer-text{color:#0b2447}
-html[data-theme=light] .admin-btn.countdown.t-low .timer-text{color:#8a5a00}
-html[data-theme=light] .admin-btn.countdown.t-crit .timer-text{color:#d62b4b}
+
+/* v20 — hitungan mundur sesi admin 30 detik: dial HUD */
+.admin-pill{--sc:var(--neon);--sg:rgba(34,211,255,.55)}
+.admin-pill[data-st=low]{--sc:var(--amber);--sg:rgba(255,200,61,.6)}
+.admin-pill[data-st=crit]{--sc:#ff4a68;--sg:rgba(255,74,104,.65)}
+.admin-info{display:grid;gap:4px;min-width:116px}
+.sess-top{display:none;align-items:center;justify-content:space-between;gap:10px;font:800 8.5px/1 var(--font-d);letter-spacing:.16em;color:var(--ok)}
+.sess-top b{font-weight:800}
+body.admin-mode .sess-top{display:flex}
+.sess-sec{display:none;font:700 10.5px/1 var(--mono);font-style:normal;letter-spacing:.03em;color:var(--sc);font-variant-numeric:tabular-nums;text-shadow:0 0 8px var(--sg)}
+.admin-pill[data-st] .sess-sec{display:inline}
+.sess-bar{display:none;height:5px;border-radius:9px;overflow:hidden;background:rgba(130,185,255,.2);position:relative}
+.admin-pill[data-st] .sess-bar{display:block}
+.sess-bar i{display:block;height:100%;width:100%;transform-origin:left center;border-radius:inherit;background:linear-gradient(90deg,var(--sc),rgba(255,255,255,.7));box-shadow:0 0 8px var(--sg);will-change:transform}
+body.admin-mode .admin-pill{gap:10px;padding:6px 14px 6px 6px;background:linear-gradient(135deg,rgba(4,18,42,.85),rgba(10,44,86,.6));border:1px solid var(--sg);box-shadow:0 0 22px -8px var(--sg);transition:border-color .4s,box-shadow .4s}
+html[data-theme=light] body.admin-mode .admin-pill{background:linear-gradient(135deg,#fff,#e6f4ff)}
+html[data-theme=light] .admin-pill{--sc:#0a7bbd;--sg:rgba(10,123,189,.5)}
+html[data-theme=light] .admin-pill[data-st=low]{--sc:#b87500;--sg:rgba(224,150,0,.55)}
+html[data-theme=light] .admin-pill[data-st=crit]{--sc:#e0294b;--sg:rgba(224,41,75,.55)}
+html[data-theme=light] .sess-bar{background:rgba(10,60,120,.12)}
+.admin-btn.countdown.admin-on{position:relative;display:grid;place-items:center;width:64px;height:64px;margin:-4px 0;padding:0;border:0;border-radius:50%;color:#fff;overflow:visible;background:radial-gradient(circle at 50% 42%,#0b2c59 0,#04122a 72%);box-shadow:0 0 0 1px var(--sg),0 0 16px -2px var(--sg),inset 0 0 12px rgba(34,211,255,.16);transition:box-shadow .4s}
+.sd{position:absolute;inset:0;width:100%;height:100%;overflow:visible;z-index:0}
+.sd-t{stroke:var(--sc);stroke-width:2.2;stroke-linecap:round;transition:opacity .3s,stroke .4s}
+.sd-t.off{opacity:.16;stroke:rgba(150,195,255,.7)}
+.sd-orbit{fill:none;stroke:rgba(150,195,255,.32);stroke-width:.7;stroke-dasharray:1.5 3.5;transform-origin:50px 50px}
+.sd-track{fill:none;stroke:rgba(150,195,255,.14);stroke-width:6}
+.sd-arc{fill:none;stroke:var(--sc);stroke-width:6;stroke-linecap:round;transition:stroke .4s;filter:drop-shadow(0 0 3px var(--sg))}
+.sd-head circle{fill:#fff;filter:drop-shadow(0 0 3px var(--sc))}
+.sd-core{position:relative;z-index:2;display:grid;place-items:center;line-height:1;pointer-events:none}
+.sd-num{font:800 22px/1 var(--font-d);color:#fff;font-variant-numeric:tabular-nums;letter-spacing:-.02em;text-shadow:0 0 10px var(--sg)}
+.sd-lbl{margin-top:3px;font:800 6.5px/1 var(--font-d);letter-spacing:.22em;padding-left:.22em;color:var(--sc);transition:color .4s}
+.admin-btn.sd-pause .sd-arc,.admin-btn.sd-pause .sd-head{opacity:.45}
+.admin-btn.sd-pause .sd-lbl{color:var(--amber)}
+html:not(.lite) .admin-btn.countdown.admin-on:after{content:"";position:absolute;inset:10px;z-index:1;border-radius:50%;pointer-events:none;opacity:.5;background:conic-gradient(from 0deg,transparent 0 72%,var(--sg) 100%);animation:sdSpin 2.4s linear infinite}
+html:not(.lite) .sd-orbit{animation:sdSpin 14s linear infinite reverse}
+html:not(.lite) .sd-num.pa{animation:sdPopA .32s ease-out}
+html:not(.lite) .sd-num.pb{animation:sdPopB .32s ease-out}
+html:not(.lite) .admin-btn.t-crit.countdown.admin-on{animation:sdBeat 1s ease-in-out infinite}
+html:not(.lite) .admin-pill[data-st=crit] .sess-bar i{animation:sdBlink .5s steps(2) infinite}
+@keyframes sdSpin{to{transform:rotate(360deg)}}
+@keyframes sdPopA{0%{transform:scale(1.28);opacity:.5}100%{transform:scale(1);opacity:1}}
+@keyframes sdPopB{0%{transform:scale(1.28);opacity:.5}100%{transform:scale(1);opacity:1}}
+@keyframes sdBeat{0%,100%{box-shadow:0 0 0 1px var(--sg),0 0 14px -2px var(--sg),inset 0 0 12px rgba(255,74,104,.2)}50%{box-shadow:0 0 0 2px var(--sg),0 0 28px 2px var(--sg),inset 0 0 18px rgba(255,74,104,.35)}}
+@keyframes sdBlink{50%{opacity:.55}}
+@media (prefers-reduced-motion:reduce){.admin-btn.countdown.admin-on:after,.sd-orbit,.sd-num,.admin-btn.t-crit{animation:none!important}}
