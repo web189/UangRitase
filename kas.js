@@ -40,6 +40,7 @@ const IC = {
   next: '<svg class="ksv" viewBox="0 0 24 24"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg>',
   copy: '<svg class="ksv" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="12" rx="2.2"/><path d="M15.5 8.5v-2a2 2 0 0 0-2-2h-7a2 2 0 0 0-2 2v9.5a2 2 0 0 0 2 2h2"/></svg>',
   print: '<svg class="ksv" viewBox="0 0 24 24"><path d="M7 9V4.5h10V9M7 17H5.2A1.7 1.7 0 0 1 3.5 15.3v-5A1.7 1.7 0 0 1 5.2 8.6h13.6a1.7 1.7 0 0 1 1.7 1.7v5a1.7 1.7 0 0 1-1.7 1.7H17"/><rect x="7" y="13.5" width="10" height="6" rx="1"/></svg>',
+  calc: '<svg class="ksv" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7.5h7"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01" stroke-width="2.6"/></svg>',
   user: '<svg class="ksv" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.6-3.6 3.5-5.6 7.2-5.6s6.6 2 7.2 5.6"/></svg>',
   edit: '<svg class="ksv" viewBox="0 0 24 24"><path d="M4 20h4.2L19.4 8.8a2.2 2.2 0 0 0 0-3.1l-1.1-1.1a2.2 2.2 0 0 0-3.1 0L4 15.8z"/><path d="m13.5 6.3 4.2 4.2"/></svg>',
   del: '<svg class="ksv" viewBox="0 0 24 24"><path d="M4.5 7h15M9.5 7V4.8h5V7M6.5 7l.8 12.2a1.6 1.6 0 0 0 1.6 1.5h6.2a1.6 1.6 0 0 0 1.6-1.5L17.5 7M10 11v6M14 11v6"/></svg>',
@@ -229,6 +230,140 @@ function bindAmt(inp) {
   inp.addEventListener("input", () => { const v = fmtIn(inp.value); if (v !== inp.value) inp.value = v; });
 }
 
+/* ───────── KALKULATOR SEDERHANA ───────── */
+const Calc = (() => {
+  let ov = null, opener = null;
+  const st = { expr: "", prev: "", fresh: false, err: "" };
+  const ROWS = [["(", ")", "%", "AC"], ["7", "8", "9", "÷"], ["4", "5", "6", "×"], ["1", "2", "3", "−"], ["0", ",", "=", "+"]];
+  const OPK = { "÷": "/", "×": "*", "−": "-", "+": "+" };
+  const isOp = (c) => c === "+" || c === "-" || c === "*" || c === "/";
+
+  function evalExpr(src) {
+    /* "200+10%" → 220 (persen dari angka sebelumnya) */
+    src = src.replace(/(\d+(?:\.\d+)?)([+-])(\d+(?:\.\d+)?)%/g, "$1$2($1*$3/100)");
+    const toks = src.match(/\d+\.?\d*|\.\d+|[-+*/()%]/g) || [];
+    const out = [], ops = [], prec = { "+": 1, "-": 1, "*": 2, "/": 2, u: 3 };
+    let prev = null;                                  /* n=angka, o=operator, (=kurung buka */
+    const push = (op) => { while (ops.length) { const t = ops[ops.length - 1]; if (t !== "(" && prec[t] >= prec[op]) out.push(ops.pop()); else break; } ops.push(op); };
+    for (const tk of toks) {
+      if (/^[\d.]/.test(tk)) { if (prev === "n") push("*"); out.push(parseFloat(tk)); prev = "n"; }
+      else if (tk === "%") { if (prev !== "n") throw 0; out.push("%"); }
+      else if (tk === "(") { if (prev === "n") push("*"); ops.push("("); prev = "("; }
+      else if (tk === ")") { while (ops.length && ops[ops.length - 1] !== "(") out.push(ops.pop()); if (!ops.length) throw 0; ops.pop(); prev = "n"; }
+      else if ((tk === "-" || tk === "+") && (prev === null || prev === "o" || prev === "(")) { if (tk === "-") { ops.push("u"); } prev = "o"; }
+      else { if (prev !== "n") throw 0; push(tk); prev = "o"; }
+    }
+    if (prev === "o") throw 0;
+    while (ops.length) { const o = ops.pop(); if (o === "(") throw 0; out.push(o); }
+    const s = [];
+    for (const x of out) {
+      if (typeof x === "number") s.push(x);
+      else if (x === "%") s.push(s.pop() / 100);
+      else if (x === "u") s.push(-s.pop());
+      else { const b = s.pop(), a = s.pop(); if (a === undefined || b === undefined) throw 0; s.push(x === "+" ? a + b : x === "-" ? a - b : x === "*" ? a * b : a / b); }
+    }
+    if (s.length !== 1 || !isFinite(s[0])) throw 0;
+    return Math.round(s[0] * 1e10) / 1e10;
+  }
+  const grp = (m) => { const p = m.split("."); const g = p[0].replace(/\B(?=(\d{3})+(?!\d))/g, "."); return p.length > 1 ? g + "," + p[1] : g; };
+  const show = (e) => e.replace(/\d+\.?\d*|\.\d+/g, grp).replace(/\*/g, "×").replace(/\//g, "÷").replace(/-/g, "−");
+
+  function paint() {
+    const m = $("kcMain"); if (!m) return;
+    const t = st.err || show(st.expr) || "0";
+    m.textContent = t; m.className = "kc-main" + (t.length > 18 ? " s2" : t.length > 11 ? " s1" : "");
+    $("kcPrev").textContent = st.prev ? show(st.prev) : "";
+  }
+  function lastNum() { const m = st.expr.match(/\d*\.?\d*$/); return m ? m[0] : ""; }
+  function press(k) {
+    st.err = "";
+    if (k === "AC") { st.expr = ""; st.prev = ""; st.fresh = false; return paint(); }
+    if (k === "bs") { if (st.fresh) { st.prev = ""; st.fresh = false; } st.expr = st.expr.slice(0, -1); return paint(); }
+    if (k === "=") {
+      if (!st.expr) return;
+      let e = st.expr; while (isOp(e.slice(-1))) e = e.slice(0, -1);
+      const open = (e.match(/\(/g) || []).length - (e.match(/\)/g) || []).length; for (let i = 0; i < open; i++) e += ")";
+      try { const r = evalExpr(e); if (Math.abs(r) >= 1e15) throw 0; st.prev = e + " ="; st.expr = String(r); st.fresh = true; }
+      catch { st.err = "Tidak valid"; }
+      return paint();
+    }
+    const l = st.expr.slice(-1);
+    if (/\d/.test(k)) {
+      if (st.fresh) { st.expr = ""; st.prev = ""; st.fresh = false; }
+      if (lastNum() === "0") st.expr = st.expr.slice(0, -1);
+      if (l === ")" || l === "%") st.expr += "*";
+      if (lastNum().replace(".", "").length >= 15) return;
+      st.expr += k;
+    } else if (k === ",") {
+      if (st.fresh) { st.expr = ""; st.prev = ""; st.fresh = false; }
+      const n = lastNum(); if (n.indexOf(".") > -1) return;
+      st.expr += (n === "" ? "0." : ".");
+    } else if (OPK[k]) {
+      const op = OPK[k];
+      st.fresh = false;
+      if (!st.expr) { if (op === "-") st.expr = "-"; return paint(); }
+      if (st.expr === "-") return;
+      if (isOp(l)) { if (op === "-" && (l === "*" || l === "/")) st.expr += op; else st.expr = st.expr.slice(0, -1) + op; }
+      else if (l === "(") { if (op === "-") st.expr += op; }
+      else st.expr += op;
+    } else if (k === "(") {
+      if (st.fresh) { st.expr = ""; st.prev = ""; st.fresh = false; }
+      if (/[\d)%]/.test(l)) st.expr += "*";
+      st.expr += "(";
+    } else if (k === ")") {
+      const open = (st.expr.match(/\(/g) || []).length - (st.expr.match(/\)/g) || []).length;
+      if (open > 0 && /[\d)%]/.test(l)) st.expr += ")";
+    } else if (k === "%") {
+      if (/[\d)]/.test(l)) st.expr += "%";
+    }
+    paint();
+  }
+  function useAmount() {
+    let v;
+    try { let e = st.expr; while (isOp(e.slice(-1))) e = e.slice(0, -1); v = e ? evalExpr(e) : 0; } catch { st.err = "Tidak valid"; return paint(); }
+    v = Math.round(v);
+    if (!(v > 0)) { toast("Hasil harus lebih dari 0 untuk dipakai sebagai jumlah.", "warn", 3000); return; }
+    close();
+    if (S.tab !== "day") setTab("day");
+    const a = $("kaAmt"); if (a) { a.value = fmtIn(String(v)); a.focus(); }
+  }
+  function build() {
+    ov = document.createElement("div"); ov.id = "kcOv"; ov.className = "kc-ov"; ov.hidden = true;
+    ov.innerHTML =
+      '<div class="kc" role="dialog" aria-modal="true" aria-label="Kalkulator" tabindex="-1">' +
+        '<div class="kc-top"><b>Kalkulator</b><button type="button" class="kc-x" data-k="close" aria-label="Tutup">' + IC.x + '</button></div>' +
+        '<div class="kc-disp"><div class="kc-prev" id="kcPrev"></div><div class="kc-main" id="kcMain">0</div></div>' +
+        '<div class="kc-pad">' + ROWS.map((r) => r.map((k) => {
+          const c = k === "=" ? "kc-eq" : (k === "AC" || OPK[k] || k === "%" || k === "(" || k === ")") ? "kc-op" : "kc-num";
+          return '<button type="button" class="kc-k ' + c + '" data-k="' + k + '">' + k + '</button>';
+        }).join("")).join("") + '</div>' +
+        '<div class="kc-foot"><button type="button" class="kc-f" data-k="bs">⌫ Hapus</button><button type="button" class="kc-f kc-use" data-k="use">Pakai di Jumlah</button></div>' +
+      '</div>';
+    document.body.appendChild(ov);
+    ov.addEventListener("click", (e) => {
+      if (e.target === ov) return close();
+      const b = e.target.closest("[data-k]"); if (!b) return;
+      const k = b.dataset.k;
+      if (k === "close") close(); else if (k === "use") useAmount(); else press(k);
+    });
+    document.addEventListener("keydown", onKey);
+  }
+  function onKey(e) {
+    if (!ov || ov.hidden) return;
+    const k = e.key;
+    if (k === "Escape") { e.preventDefault(); return close(); }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    let m = null;
+    if (/^\d$/.test(k)) m = k; else if (k === "." || k === ",") m = ","; else if (k === "+") m = "+"; else if (k === "-") m = "−";
+    else if (k === "*" || k === "x" || k === "X") m = "×"; else if (k === "/") m = "÷"; else if (k === "Enter" || k === "=") m = "=";
+    else if (k === "Backspace") m = "bs"; else if (k === "%" || k === "(" || k === ")") m = k; else if (k === "Delete") m = "AC";
+    if (m) { e.preventDefault(); press(m); }
+  }
+  function open(btn) { if (!ov) build(); opener = btn || null; ov.hidden = false; paint(); const d = ov.querySelector(".kc"); if (d) d.focus(); }
+  function close() { if (ov) ov.hidden = true; if (opener && opener.focus) opener.focus(); }
+  return { open, close, evalExpr };
+})();
+
 /* ───────── rangka halaman ───────── */
 function mount() {
   const host = $("kasApp"); if (!host) return false;
@@ -248,6 +383,7 @@ function mount() {
             '<button type="button" role="tab" data-tab="log" aria-selected="false">Riwayat</button>' +
           '</div>' +
           '<button class="kbtn kbtn-ghost" type="button" id="kasToday">Hari ini</button>' +
+          '<button class="kbtn kbtn-icon" type="button" id="kasCalc" aria-label="Kalkulator" title="Kalkulator">' + IC.calc + '</button>' +
           '<a class="kbtn kbtn-bkb" href="https://web189.github.io/E-Book/index.html#/dms-manual" target="_blank" rel="noopener noreferrer">' + IC.print + '<span>Cetak BKB Manual</span></a>' +
         '</div>' +
         '<div id="kasView"></div>' +
@@ -289,8 +425,9 @@ function renderDayShell() {
   const v = $("kasView"); if (!v) return;
   const amtIn = (id, ph) => '<div class="amt"><span>Rp</span><input id="' + id + '" inputmode="numeric" enterkeyhint="done" placeholder="' + ph + '"></div>';
   v.innerHTML =
-    '<div class="kd">' +
-      '<section class="kk" aria-label="Ringkasan kas">' +
+    '<div class="kd" id="kdRoot">' +
+      '<div class="kd-mini" id="kdMini"><span>Sisa uang</span><b id="kmSisa">Rp 0</b><small id="kmInfo"></small></div>' +
+      '<section class="kk" id="kkBox" aria-label="Ringkasan kas">' +
         '<div class="kk-c kk-terima"><label for="ksTerima">Uang diterima</label>' + amtIn("ksTerima", "0") + '</div>' +
         '<div class="kk-c kk-total"><span class="k">Total diserahkan ' + IC.lock + '</span><b id="ksTotal">Rp 0</b><small id="ksCount">0 baris</small></div>' +
         '<div class="kk-c kk-sisa"><span class="k">Sisa uang ' + IC.lock + '</span><b id="ksSisa">Rp 0</b></div>' +
@@ -315,6 +452,11 @@ function renderDayShell() {
       '<div class="kd-list" id="kdList"></div>' +
     '</div>';
 
+  if (miniIO) { try { miniIO.disconnect(); } catch { /* */ } miniIO = null; }
+  if ("IntersectionObserver" in window) {
+    miniIO = new IntersectionObserver((en) => { const e = en[0], r = $("kdRoot"); if (r) r.classList.toggle("mini-on", !e.isIntersecting && e.boundingClientRect.bottom < 60); });
+    miniIO.observe($("kkBox"));
+  }
   const nama = $("kaNama"), po = $("kaPo"), amt = $("kaAmt");
   bindAmt(amt); bindAmt($("ksTerima")); bindAmt($("ksFisik"));
   nama.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); po.focus(); } });
@@ -358,6 +500,9 @@ function renderSummary(c) {
   setIfIdle($("ksFisik"), c.fisik == null ? "" : nf.format(c.fisik));
   $("ksTotal").textContent = "Rp " + rp(c.total);
   $("ksCount").textContent = c.rows.length + " baris";
+  $("kmSisa").textContent = (c.sisa < 0 ? "−" : "") + "Rp " + rp(Math.abs(c.sisa));
+  $("kmInfo").textContent = c.rows.length + " baris · Rp " + rp(c.total);
+  $("kdMini").classList.toggle("is-neg", c.sisa < 0);
   $("ksSisa").textContent = (c.sisa < 0 ? "−" : "") + "Rp " + rp(Math.abs(c.sisa));
   $("ksSisa").parentNode.classList.toggle("is-neg", c.sisa < 0);
   const d = $("ksDiff"), sel = $("ksSel"), tag = $("ksTag");
@@ -429,7 +574,7 @@ async function commitEdit(rowEl) {
   if (ok) { S.editId = null; renderList(); }
 }
 
-let savedTimer = null;
+let savedTimer = null, miniIO = null;
 function flashSaved() {
   const b = document.querySelector(".kd-addbtn"); if (!b) return;
   b.classList.add("saved"); b.querySelector("span").textContent = "Tersimpan";
@@ -612,6 +757,7 @@ function wire() {
   const pick = $("kasPick");
   pick.addEventListener("change", () => { if (pick.value) setDate(pick.value, true); });
   pick.addEventListener("click", () => { try { pick.showPicker && pick.showPicker(); } catch { /* */ } });
+  $("kasCalc").addEventListener("click", (e) => Calc.open(e.currentTarget));
   $("kasToday").addEventListener("click", () => { setTab("day"); setDate(todayWIB(), true); });
   document.querySelectorAll(".kas-tabs [data-tab]").forEach((b) => b.addEventListener("click", () => setTab(b.dataset.tab)));
 
@@ -648,4 +794,4 @@ function boot() {
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
 
 /* untuk pengujian */
-window.__kas = { drawSheet, calc, rowsOf, up, num, fmtIn, isKasbon };
+window.__kas = { Calc, drawSheet, calc, rowsOf, up, num, fmtIn, isKasbon };

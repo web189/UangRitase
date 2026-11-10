@@ -35,3 +35,9 @@ Bagian atas `kas.js`: `WA_NAME` dan `WA_NUM` (format 62…, tanpa + dan tanpa 0 
 - Kolom "Nama penginput" dihapus; diganti tombol **Cetak BKB Manual** (buka tab baru ke https://web189.github.io/E-Book/index.html#/dms-manual). Riwayat kini mencatat penginput sebagai "Tamu".
 - Tata letak dirombak: satu alur (tanggal → kartu ringkasan → form → daftar) yang sama untuk HP, HP mode desktop, tablet, dan PC.
 - Ringan untuk Windows 7: tanpa blur, tanpa bayangan besar, animasi minimal.
+
+## Perubahan v23
+- Tombol ikon **Kalkulator** di BREAKDOWN Online (+ − × ÷ % ( ), dukung keyboard, tombol "Pakai di Jumlah" mengisi kolom Jumlah).
+- **Ringkasan mengambang**: saat menggulir daftar, bilah emas kecil berisi Sisa uang tetap terlihat di atas.
+- Baris alat dirapikan (Hari ini · Kalkulator · Cetak BKB Manual).
+- `sw.js` VERSION dinaikkan ke v23 agar browser mengganti file lama (WAJIB dinaikkan tiap rilis).
