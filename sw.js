@@ -8,12 +8,12 @@
    • Firebase / situs lain TIDAK disentuh (data tetap langsung ke server).
    ES5 — aman untuk Chrome 109 / Windows 7.
    ========================================================================== */
-var VERSION = "v20-sesi30s";
+var VERSION = "v21-kas-harian";
 var APP = "uangritase";
 var SHELL = APP + "-shell-" + VERSION;
 var MEDIA = APP + "-media-v1";
 var TIMEOUT = 3500;
-var CORE = ["./index.html","./app.css","./app.js","./favicon.png","./fonts/dm-sans-latin-wght-normal.woff2","./fonts/fa-brands.woff2","./fonts/fa-solid.woff2","./fonts/sora-latin-wght-normal.woff2","./img/icon-192-v3.png","./img/logo1.png","./img/logo2.png","./manifest.json","./ur.js","./vendor/fb-auth.js","./vendor/fb-core.js","./vendor/fb-db.js"];          /* wajib ada, kalau gagal pembaruan dibatalkan (versi lama tetap utuh) */
+var CORE = ["./index.html","./app.css","./app.js","./kas.js","./kas.css","./favicon.png","./fonts/dm-sans-latin-wght-normal.woff2","./fonts/fa-brands.woff2","./fonts/fa-solid.woff2","./fonts/sora-latin-wght-normal.woff2","./img/icon-192-v3.png","./img/logo1.png","./img/logo2.png","./manifest.json","./ur.js","./vendor/fb-auth.js","./vendor/fb-core.js","./vendor/fb-db.js"];          /* wajib ada, kalau gagal pembaruan dibatalkan (versi lama tetap utuh) */
 var OPTIONAL = ["./img/apple-touch-icon-v3.png"];  /* dicoba, boleh gagal */
 var LATER = [];        /* diunduh pelan-pelan setelah halaman jalan */
 var BYPASS = [];      /* bagian situs lain di bawah folder yang sama */

@@ -1,0 +1,275 @@
+/* ==========================================================================
+   KAS RITASE HARIAN — kas.css
+   Memakai variabel tema yang sama dengan app.css (gelap & terang).
+   Warna emas = batang tanggal & "Sisa uang", mengikuti lembar Excel yang biasa dipakai.
+   ========================================================================== */
+#kas { scroll-margin-top: 64px; }
+
+.kas {
+  --k-gold1: #ffd978; --k-gold2: #ffb300; --k-ink: #2b1c00;
+  --k-in: #02081473; --k-row: rgba(var(--acc-rgb), .055);
+  --k-ok: var(--ok); --k-bad: var(--danger); --k-warn: var(--amber);
+  color: var(--tx1); font-family: var(--font-b);
+}
+html[data-theme=light] .kas { --k-in: #fff; --k-row: rgba(var(--acc-rgb), .07); }
+
+.ksv { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.ksv-lock { width: 12px; height: 12px; stroke-width: 2.2; opacity: .7; vertical-align: -1px; }
+
+/* ── batang tanggal ── */
+.kas-bar {
+  display: grid; grid-template-columns: 52px minmax(0, 1fr) 52px; align-items: center;
+  min-height: 66px; border-radius: 18px 18px 0 0;
+  background: linear-gradient(135deg, var(--k-gold1), var(--k-gold2)); color: var(--k-ink);
+}
+.kb-nav {
+  width: 44px; height: 44px; margin: 0 4px; border: 0; border-radius: 14px; cursor: pointer;
+  display: grid; place-items: center; background: transparent; color: var(--k-ink); transition: background .15s, transform .15s;
+}
+.kb-nav:hover { background: rgba(43, 28, 0, .12); }
+.kb-nav:active { transform: scale(.92); }
+.kb-nav:focus-visible, .kas input:focus-visible, .kas button:focus-visible { outline: 2px solid var(--neon); outline-offset: 2px; }
+.kb-date { position: relative; text-align: center; display: flex; flex-direction: column; gap: 1px; padding: 8px 4px; cursor: pointer; }
+.kb-dow { font: 700 12.5px var(--font-b); opacity: .75; }
+.kb-date strong { font: 800 clamp(18px, 5vw, 26px)/1.15 var(--font-d); letter-spacing: .005em; }
+.kb-date input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; }
+
+.kas-body {
+  border: 1px solid var(--ln2); border-top: 0; border-radius: 0 0 18px 18px; padding: 12px;
+  background: linear-gradient(160deg, var(--pn1), var(--pn2));
+}
+
+/* ── tab + alat ── */
+.kas-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.kas-tabs { display: flex; flex: 1 1 100%; gap: 4px; padding: 4px; border: 1px solid var(--ln2); border-radius: 14px; background: rgba(var(--acc-rgb), .06); }
+.kas-tabs button {
+  flex: 1; min-height: 40px; border: 1px solid transparent; border-radius: 10px; cursor: pointer;
+  font: 700 13.5px var(--font-b); color: var(--tx2); background: transparent; transition: background .15s, color .15s;
+}
+.kas-tabs button[aria-selected=true] { background: rgba(var(--acc-rgb), .18); border-color: var(--neon); color: var(--tx1); }
+.kas[data-tab=rekap] .kas-bar { display: none; }
+.kas[data-tab=rekap] .kas-body { border-top: 1px solid var(--ln2); border-radius: 18px; }
+
+.kbtn {
+  min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px;
+  border-radius: 13px; cursor: pointer; font: 800 13.5px var(--font-b); transition: transform .15s, filter .15s;
+}
+.kbtn:active { transform: scale(.97); }
+.kbtn-ghost { color: var(--tx1); border: 1px solid var(--ln2); background: rgba(127, 150, 190, .14); }
+.kas-who {
+  flex: 1 1 160px; min-width: 0; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px;
+  border: 1px solid var(--ln2); border-radius: 13px; background: var(--k-in); color: var(--tx3);
+}
+.kas-who input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; color: var(--tx1); font: 600 14px var(--font-b); }
+.kas-who:focus-within { border-color: var(--neon); }
+
+@media (min-width: 700px) {
+  .kas-tabs { flex: 0 0 auto; width: 440px; }
+  .kas-who { flex: 0 1 260px; margin-left: auto; }
+}
+
+/* ── input umum ── */
+.kas input[type=text], .kas input:not([type]), .kas input[list], .kas input[inputmode] {
+  font-family: var(--font-b);
+}
+.kf { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.kf label, .ks-in label { font: 700 12.5px var(--font-b); color: var(--tx2); }
+.kf input, .amt input, .ke {
+  width: 100%; height: 46px; padding: 0 12px; border: 1px solid var(--ln2); border-radius: 12px; outline: 0;
+  background: var(--k-in); color: var(--tx1); font: 600 16px var(--font-b); transition: border-color .15s, box-shadow .15s;
+}
+.kf input:focus, .amt input:focus, .ke:focus { border-color: var(--neon); box-shadow: 0 0 0 3px rgba(var(--acc-rgb), .2); }
+.kf input::placeholder, .amt input::placeholder { color: var(--tx3); font-weight: 500; }
+.amt { position: relative; }
+.amt > span { position: absolute; left: 12px; top: 0; height: 100%; display: flex; align-items: center; font: 800 12.5px var(--font-d); color: var(--tx3); pointer-events: none; }
+.amt input { padding-left: 38px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+
+/* ── tata letak harian ── */
+.kd { display: grid; gap: 14px; }
+.kd .ks { order: -1; }
+@media (min-width: 960px) {
+  .kd { grid-template-columns: minmax(0, 1fr) 340px; align-items: start; gap: 18px; }
+  .kd .ks { order: 0; position: sticky; top: 70px; }
+}
+
+.kd-add {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px; border-radius: 16px;
+  border: 1px dashed var(--ln2); background: rgba(var(--acc-rgb), .05);
+}
+.kd-add .kf-nama, .kd-add .kd-addbtn, .kd-add .kd-err { grid-column: 1 / -1; }
+@media (min-width: 700px) {
+  .kd-add { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr) minmax(0, 1fr) auto; align-items: end; }
+  .kd-add .kf-nama, .kd-add .kd-addbtn { grid-column: auto; }
+  .kd-add .kd-err { grid-column: 1 / -1; }
+}
+.kd-addbtn {
+  min-height: 46px; padding: 0 20px; border: 0; border-radius: 12px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font: 800 14px var(--font-b); color: #fff; background: linear-gradient(135deg, #0a5bff, #12b5ff); box-shadow: 0 12px 18px -14px #12b5ffe6; transition: transform .15s;
+}
+.kd-addbtn:active { transform: scale(.97); }
+.kd-addbtn.saved { background: linear-gradient(135deg, #0e9f63, #19e68c); color: #04281a; box-shadow: 0 12px 18px -14px #19e68ce6; }
+.kd-err { margin: 0; min-height: 0; font: 700 12.5px var(--font-b); color: var(--k-bad); }
+.kd-err:empty { display: none; }
+
+.kd-head { display: flex; align-items: center; justify-content: space-between; margin: 14px 2px 8px; font: 800 13.5px var(--font-d); color: var(--tx1); }
+
+/* ── daftar baris ── */
+.kd-list { border: 1px solid var(--ln2); border-radius: 14px; overflow: hidden; background: var(--pn1); }
+.kd-listhead { display: none; }
+.kr {
+  display: grid; align-items: center; gap: 0 10px; padding: 6px 6px 6px 4px; border-bottom: 1px solid var(--ln);
+  grid-template-columns: 34px minmax(0, 1fr) auto; grid-template-areas: "no nama amt" ". po act";
+}
+.kr:last-child { border-bottom: 0; }
+.kr:nth-child(even) { background: var(--k-row); }
+.kr-no { grid-area: no; text-align: center; font: 800 12px var(--font-d); color: var(--tx3); font-variant-numeric: tabular-nums; }
+.kr-nama { grid-area: nama; font: 800 15px var(--font-b); overflow-wrap: anywhere; }
+.kr-po { grid-area: po; min-width: 0; font: 600 13.5px var(--font-b); color: var(--tx2); overflow-wrap: anywhere; }
+.kr-po em { font-style: normal; font-family: var(--mono); font-weight: 700; font-size: 13px; letter-spacing: .01em; }
+.kr-none { color: var(--tx3); font-style: normal; }
+.kr-amt { grid-area: amt; display: flex; align-items: baseline; justify-content: space-between; gap: 6px; font-variant-numeric: tabular-nums; }
+.kr-amt small { font: 700 11.5px var(--font-d); color: var(--tx3); }
+.kr-amt b { font: 800 15.5px var(--font-d); }
+.kr-act { grid-area: act; display: flex; justify-content: flex-end; gap: 4px; }
+.kib {
+  width: 40px; height: 40px; display: grid; place-items: center; border: 1px solid transparent; border-radius: 12px; cursor: pointer;
+  background: transparent; color: var(--neon); transition: background .15s, border-color .15s, transform .15s;
+}
+.kib:hover { background: rgba(var(--acc-rgb), .14); border-color: var(--ln2); }
+.kib:active { transform: scale(.92); }
+.kib-del { color: var(--k-bad); }
+.kib-del:hover { background: rgba(255, 74, 104, .14); }
+.kib-ok { color: var(--k-ok); background: rgba(25, 230, 140, .14); border-color: rgba(25, 230, 140, .4); }
+.kr.is-kasbon .kr-po em {
+  display: inline-block; padding: 2px 10px; border-radius: 8px; background: var(--k-bad); color: #fff; font-family: var(--font-b); font-weight: 800; letter-spacing: .02em;
+}
+.kr-edit { background: rgba(var(--acc-rgb), .1) !important; padding-top: 12px; padding-bottom: 12px; }
+.kr-edit { grid-template-columns: 34px minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "no nama nama" ". po po" ". amt amt" ". act act"; gap: 8px 10px; }
+.kr-edit .kr-nama { grid-area: nama; } .kr-edit .kr-po { grid-area: po; } .kr-edit .kr-amt { grid-area: amt; display: block; }
+.kr-err { grid-column: 2 / -1; font: 700 12.5px var(--font-b); color: var(--k-bad); }
+.kr-err:empty { display: none; }
+
+@media (min-width: 700px) {
+  .kd-listhead {
+    display: grid; grid-template-columns: 40px minmax(0, 1.1fr) minmax(0, 1.5fr) 150px 92px; gap: 10px; padding: 9px 8px 9px 4px;
+    border: 1px solid var(--ln2); border-bottom: 0; border-radius: 14px 14px 0 0; background: rgba(var(--acc-rgb), .16);
+    font: 800 12.5px var(--font-b); color: var(--tx1);
+  }
+  .kd-listhead span:first-child { text-align: center; }
+  .kd-listhead span:nth-child(4) { text-align: right; }
+  .kd-list { border-radius: 0 0 14px 14px; }
+  .kr { grid-template-columns: 40px minmax(0, 1.1fr) minmax(0, 1.5fr) 150px 92px; grid-template-areas: "no nama po amt act"; padding: 8px 8px 8px 4px; }
+  .kr-edit { grid-template-columns: 40px minmax(0, 1.1fr) minmax(0, 1.5fr) 150px 92px; grid-template-areas: "no nama po amt act" ". err err err err"; }
+  .kr-edit .kr-nama { grid-area: nama; } .kr-edit .kr-po { grid-area: po; } .kr-edit .kr-amt { grid-area: amt; } .kr-edit .kr-err { grid-area: err; }
+  .kr-amt b { font-size: 15px; }
+}
+.kd-empty { display: flex; flex-direction: column; gap: 4px; align-items: center; text-align: center; padding: 34px 18px; color: var(--tx2); font: 600 13.5px var(--font-b); }
+.kd-empty b { color: var(--tx1); font: 800 14.5px var(--font-d); }
+
+/* ── ringkasan ── */
+.ks { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--ln2); border-radius: 16px; background: var(--pn1); }
+.ks-row { display: flex; flex-direction: column; gap: 5px; }
+.ks-auto { flex-direction: row; align-items: baseline; justify-content: space-between; gap: 10px; padding: 8px 4px; }
+.ks .k { font: 700 12.5px var(--font-b); color: var(--tx2); }
+.ks-auto b { font: 800 17px var(--font-d); font-variant-numeric: tabular-nums; }
+.ks-sisa {
+  display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 14px; color: var(--k-ink);
+  background: linear-gradient(135deg, var(--k-gold1), var(--k-gold2));
+}
+.ks-sisa .k { color: var(--k-ink); opacity: .8; }
+.ks-sisa b { font: 800 clamp(26px, 7.5vw, 34px)/1.1 var(--font-d); font-variant-numeric: tabular-nums; }
+.ks-sisa.is-neg { background: linear-gradient(135deg, #ff8fa1, var(--k-bad)); color: #fff; }
+.ks-sisa.is-neg .k { color: #fff; }
+.ks-fisik .amt input { background: rgba(255, 74, 104, .1); border-color: rgba(255, 74, 104, .45); }
+html[data-theme=light] .ks-fisik .amt input { background: #fff1f3; }
+.ks-diff { align-items: center; border-radius: 12px; padding: 8px 10px; flex-wrap: wrap; }
+.ks-diff em { font: 800 12px var(--font-b); font-style: normal; padding: 3px 10px; border-radius: 99px; margin-left: auto; }
+.ks-diff.none em { color: var(--tx3); font-weight: 600; }
+.ks-diff.ok { background: rgba(25, 230, 140, .12); } .ks-diff.ok b, .ks-diff.ok em { color: var(--k-ok); }
+.ks-diff.ok em { background: rgba(25, 230, 140, .18); }
+.ks-diff.less { background: rgba(255, 74, 104, .12); } .ks-diff.less b, .ks-diff.less em { color: var(--k-bad); }
+.ks-diff.less em { background: rgba(255, 74, 104, .16); }
+.ks-diff.more { background: rgba(255, 200, 61, .14); } .ks-diff.more b, .ks-diff.more em { color: var(--k-warn); }
+.ks-diff.more em { background: rgba(255, 200, 61, .18); }
+.ks-copy { width: 100%; margin-top: 2px; }
+.ks-note { display: flex; gap: 8px; align-items: flex-start; margin: 4px 2px 0; font: 600 12px/1.45 var(--font-b); color: var(--tx3); }
+.ks-note .ksv-lock { margin-top: 2px; }
+
+
+/* HP & tablet: ringkasan 2 kolom supaya form input tetap dekat */
+@media (max-width: 959px) {
+  .ks { grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+  .ks-sisa, .ks-copy, .ks-note { grid-column: 1 / -1; }
+  .ks-auto { flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px; padding: 6px 4px; }
+  .ks-auto b { font-size: 16px; }
+  .ks-diff { align-items: flex-start; padding: 8px 10px; }
+  .ks-diff em { margin-left: 0; }
+  .ks-in label { font-size: 12px; }
+}
+
+/* ── rekap bulan ── */
+.kr-month { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.kr-month strong { font: 800 clamp(16px, 4.4vw, 20px) var(--font-d); }
+.kb-nav-s { color: var(--tx1); border: 1px solid var(--ln2); margin: 0; }
+.kb-nav-s:hover { background: rgba(var(--acc-rgb), .14); }
+.kt-wrap { overflow-x: auto; border: 1px solid var(--ln2); border-radius: 14px; background: var(--pn1); -webkit-overflow-scrolling: touch; }
+.kt { width: 100%; min-width: 600px; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.kt th, .kt td { padding: 10px 12px; text-align: right; border-bottom: 1px solid var(--ln); font: 700 14px var(--font-b); white-space: nowrap; vertical-align: top; background: var(--pn1); }
+.kt thead th { background: linear-gradient(rgba(var(--acc-rgb), .16), rgba(var(--acc-rgb), .16)), var(--pn1); font: 800 12.5px var(--font-b); color: var(--tx1); border-bottom: 1px solid var(--ln2); }
+.kt tbody tr { cursor: pointer; }
+.kt tbody tr:nth-child(even) > * { background: linear-gradient(var(--k-row), var(--k-row)), var(--pn1); }
+.kt tbody tr:hover > *, .kt tbody tr:focus-visible > * { background: linear-gradient(rgba(var(--acc-rgb), .16), rgba(var(--acc-rgb), .16)), var(--pn1); }
+.kt tbody tr:focus-visible { outline: 2px solid var(--neon); outline-offset: -2px; }
+.kt th:first-child, .kt td:first-child { text-align: left; position: sticky; left: 0; }
+.kt tbody th b { font: 800 15px var(--font-d); margin-right: 6px; }
+.kt small { display: block; font: 600 11.5px var(--font-b); color: var(--tx3); }
+.kt tbody th small { display: inline; }
+.kt .kt-sisa { color: var(--k-warn); font-weight: 800; }
+html[data-theme=light] .kt .kt-sisa { color: #8a5a00; }
+.kt-sel.ok { color: var(--k-ok); } .kt-sel.less { color: var(--k-bad); } .kt-sel.more { color: var(--k-warn); } .kt-sel.none { color: var(--tx3); }
+.kt tfoot th, .kt tfoot td { border-bottom: 0; border-top: 1px solid var(--ln2); background: linear-gradient(rgba(255, 179, 0, .24), rgba(255, 179, 0, .24)), var(--pn1); font-weight: 800; }
+
+/* ── riwayat ── */
+.kh-sum { margin: 2px 2px 10px; font: 600 13px/1.5 var(--font-b); color: var(--tx2); }
+.kh { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.kh-i { display: grid; gap: 4px 10px; grid-template-columns: auto minmax(0, 1fr); padding: 10px 12px; border: 1px solid var(--ln2); border-left-width: 4px; border-radius: 12px; background: var(--pn1); }
+.kh-tag { grid-row: span 2; align-self: start; font: 800 11.5px var(--font-b); padding: 3px 10px; border-radius: 99px; background: rgba(var(--acc-rgb), .14); color: var(--neon); white-space: nowrap; }
+.kh-txt { font: 700 14px/1.4 var(--font-b); overflow-wrap: anywhere; }
+.kh-meta { font: 600 12px var(--font-b); color: var(--tx3); font-variant-numeric: tabular-nums; }
+.kh-ok { border-left-color: var(--k-ok); } .kh-ok .kh-tag { background: rgba(25, 230, 140, .15); color: var(--k-ok); }
+.kh-warn { border-left-color: var(--k-warn); } .kh-warn .kh-tag { background: rgba(255, 200, 61, .16); color: var(--k-warn); }
+.kh-bad { border-left-color: var(--k-bad); } .kh-bad .kh-tag { background: rgba(255, 74, 104, .15); color: var(--k-bad); }
+.kh-info { border-left-color: var(--neon); }
+.kh-viol { border-left-color: var(--violet); } .kh-viol .kh-tag { background: rgba(124, 92, 255, .16); color: var(--violet); }
+
+/* ── bar pulihkan ── */
+.kas-undo {
+  position: fixed; left: 50%; bottom: calc(var(--dockh) + 14px + env(safe-area-inset-bottom)); z-index: 95; max-width: calc(100vw - 24px);
+  display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 16px; border: 1px solid var(--ln2); border-radius: 16px; background: var(--pn1); color: var(--tx1);
+  font: 700 13px var(--font-b); opacity: 0; pointer-events: none; transform: translate(-50%, 30px); transition: opacity .25s, transform .25s var(--ease);
+  box-shadow: 0 22px 18px -16px #000000e6;
+}
+.kas-undo.show { opacity: 1; pointer-events: auto; transform: translate(-50%, 0); }
+.kas-undo button { min-height: 40px; padding: 0 16px; border: 0; border-radius: 11px; cursor: pointer; font: 800 13px var(--font-b); color: var(--k-ink, #2b1c00); background: linear-gradient(135deg, #ffd978, #ffb300); }
+
+/* ── kartu pintasan di header ── */
+.kas-link .kas-link-ic { width: 38px; height: 38px; flex: none; display: grid; place-items: center; border-radius: 12px; color: #2b1c00; background: linear-gradient(135deg, #ffd978, #ffb300); }
+.kas-link .kas-link-ic .ksv { width: 22px; height: 22px; }
+.kas-link strong { display: block; font: 800 14px var(--font-b); }
+.kas-link small { display: block; font: 600 11.5px var(--font-b); color: var(--tx3); }
+
+@media (max-width: 420px) {
+  .kas-body { padding: 10px; }
+  .kas-bar { grid-template-columns: 48px minmax(0, 1fr) 48px; }
+}
+@media (prefers-reduced-motion: reduce) { .kas-undo { transition: none; } }
+@media print {
+  .kas-tools, .kd-add, .kr-act, .ks-copy, .kb-nav, .kas-undo { display: none !important; }
+  .kd { grid-template-columns: 1fr; }
+}
+
+/* tombol chat WhatsApp mengambang menutupi angka saat bekerja di Kas */
+body.kas-focus .chat-toggle { opacity: 0; pointer-events: none; }
+
+.kt-hint { display: none; margin: 8px 2px 0; font: 600 12px var(--font-b); color: var(--tx3); }
+@media (max-width: 699px) { .kt-hint { display: block; } }

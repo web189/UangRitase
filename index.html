@@ -57,6 +57,7 @@ window.addEventListener('appinstalled',function(){window.__pwaInstalled=true;});
 <link rel="preload" as="font" type="font/woff2" crossorigin href="fonts/sora-latin-wght-normal.woff2">
 <link rel="preload" as="font" type="font/woff2" crossorigin href="fonts/dm-sans-latin-wght-normal.woff2">
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="kas.css">
 </head>
 <body id="top">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
@@ -67,6 +68,7 @@ window.addEventListener('appinstalled',function(){window.__pwaInstalled=true;});
   <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 12.4 9 5 9-5"/><path d="m3 16.6 9 5 9-5"/></symbol>
   <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"/></symbol>
   <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.6A8.5 8.5 0 1 1 9.4 4a7 7 0 0 0 10.6 10.6z"/></symbol>
+  <symbol id="i-kas" viewBox="0 0 24 24"><rect x="3.5" y="6" width="17" height="12.5" rx="2.6"/><circle cx="12" cy="12.25" r="2.8"/><path d="M7 9.2v.1M17 15.3v.1"/></symbol>
   <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2.5 4.8 13.4H11L10 21.5l8.2-10.9H12z"/></symbol>
 </defs></svg>
 <div class="scroll-bar" id="scrollBar" aria-hidden="true"></div>
@@ -103,6 +105,10 @@ window.addEventListener('appinstalled',function(){window.__pwaInstalled=true;});
   </div>
   <p class="header-sub header-tagline"><span class="tg-hl">Rp Ritase</span><i class="tg-sep">-</i><span>Kd Pabrik</span><i class="tg-sep">-</i><span>Kd Sales/Produk</span><i class="tg-sep">-</i><span>Depo Parung</span></p>
   <div class="header-actions">
+    <a class="action-card kas-link" href="#kas" aria-label="Buka Kas Ritase Harian">
+      <span class="kas-link-ic"><svg class="sv"><use href="#i-kas"/></svg></span>
+      <span class="kas-link-tx"><strong>Kas Ritase Harian</strong><small>Input uang driver &amp; rekap per tanggal</small></span>
+    </a>
     <button class="action-card pwa-install-btn js-install" id="pwaInstallBtn" type="button" aria-label="Pasang aplikasi UangRitase ke layar utama">
       <span class="pwa-ic"><svg class="sv"><use href="#i-install"/></svg><i class="pwa-ping"></i></span>
       <span class="pwa-txt"><strong>Pasang Aplikasi</strong><small>Gratis · Bisa offline · Update otomatis</small></span>
@@ -302,6 +308,12 @@ window.addEventListener('appinstalled',function(){window.__pwaInstalled=true;});
   </div>
 </section>
 
+<!-- KAS RITASE HARIAN — input terbuka, rekap per tanggal, riwayat -->
+<section class="menu-section" id="kas" aria-label="Kas Ritase Harian">
+  <div class="menu-title"><i class="fas fa-coins"></i> Kas Ritase Harian</div>
+  <div id="kasApp"><div class="kd-empty">Memuat kas…</div></div>
+</section>
+
 <!-- FOOTER -->
 <footer class="footer">
   <div class="footer-inner">
@@ -323,7 +335,7 @@ window.addEventListener('appinstalled',function(){window.__pwaInstalled=true;});
 
 <!-- DOCK NAVIGASI (HP) -->
 <nav class="dock" id="dock" aria-label="Navigasi cepat">
-  <a class="dk" href="#top" data-go="top"><svg class="sv"><use href="#i-home"/></svg><span>Beranda</span></a>
+  <button class="dk" type="button" data-go="kas"><svg class="sv"><use href="#i-kas"/></svg><span>Kas</span></button>
   <button class="dk" type="button" data-go="data"><svg class="sv"><use href="#i-layers"/></svg><span>Data</span></button>
   <button class="dk dk-main js-install" id="pwaDockBtn" type="button" aria-label="Pasang aplikasi"><span class="dk-orb"><svg class="sv"><use href="#i-install"/></svg></span><span>Pasang</span></button>
   <button class="dk" type="button" data-go="search"><svg class="sv"><use href="#i-search"/></svg><span>Cari</span></button>
@@ -554,6 +566,7 @@ window.addEventListener('appinstalled',function(){window.__pwaInstalled=true;});
 })();
 </script>
 <script type="module" src="app.js"></script>
+<script type="module" src="kas.js"></script>
 <script>
 (function () {
   var A = ['count-sps-aqua', 'count-galon-aqua'], V = ['count-sps-vit', 'count-galon-vit'];

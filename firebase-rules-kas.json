@@ -1,0 +1,62 @@
+{
+  "rules": {
+    "ritase": {
+      ".read": true,
+      ".write": "auth != null && (auth.token.email == 'admin@uangritase.com' || auth.token.email == 'admin@gudang.com')"
+    },
+    "dms": {
+      ".read": true,
+      ".write": "auth != null && (auth.token.email == 'admin@uangritase.com' || auth.token.email == 'admin@gudang.com')"
+    },
+    "btb": {
+      ".read": true,
+      ".write": "auth != null && (auth.token.email == 'admin@uangritase.com' || auth.token.email == 'admin@gudang.com')"
+    },
+    "history": {
+      ".read": "auth != null",
+      ".write": "auth != null && (auth.token.email == 'admin@uangritase.com' || auth.token.email == 'admin@gudang.com')"
+    },
+
+    "kas": {
+      ".read": true,
+      "$bulan": {
+        "$hari": {
+          ".write": "$bulan.matches(/^[0-9]{4}-[0-9]{2}$/) && $hari.matches(/^[0-9]{2}$/)",
+          "diterima": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000000000" },
+          "fisik":    { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000000000" },
+          "rows": {
+            "$id": {
+              ".validate": "newData.hasChildren(['nama','jumlah','ts'])",
+              "nama":   { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 60" },
+              "po":     { ".validate": "newData.isString() && newData.val().length <= 60" },
+              "jumlah": { ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= 1000000000" },
+              "ts":     { ".validate": "newData.isNumber()" },
+              "by":     { ".validate": "newData.isString() && newData.val().length <= 24" },
+              "ets":    { ".validate": "newData.isNumber()" },
+              "eby":    { ".validate": "newData.isString() && newData.val().length <= 24" },
+              "$other": { ".validate": false }
+            }
+          },
+          "$other": { ".validate": false }
+        }
+      }
+    },
+
+    "kasLog": {
+      ".read": true,
+      "$bulan": {
+        "$hari": {
+          "$id": {
+            ".write": "!data.exists() && newData.exists() && $bulan.matches(/^[0-9]{4}-[0-9]{2}$/) && $hari.matches(/^[0-9]{2}$/)",
+            ".validate": "newData.hasChildren(['act','detail','ts'])",
+            "act":    { ".validate": "newData.isString() && (newData.val() == 'tambah' || newData.val() == 'edit' || newData.val() == 'hapus' || newData.val() == 'pulih' || newData.val() == 'diterima' || newData.val() == 'fisik')" },
+            "detail": { ".validate": "newData.isString() && newData.val().length <= 200" },
+            "by":     { ".validate": "newData.isString() && newData.val().length <= 24" },
+            "ts":     { ".validate": "newData.isNumber() && newData.val() >= now - 300000 && newData.val() <= now + 300000" },
+            "$other": { ".validate": false }
+          }
+        }
+      }
+    }
+  }
+}
