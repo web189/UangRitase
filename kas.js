@@ -314,7 +314,7 @@ function renderDayShell() {
           '<button class="kbtn kbtn-wa" type="button" id="ksWa"><i class="fab fa-whatsapp"></i><span>Kirim ke WhatsApp ' + esc(WA_NAME) + '</span></button>' +
           '<button class="kbtn kbtn-ghost" type="button" id="ksCopy">' + IC.copy + '<span>Salin teks</span></button>' +
         '</div>' +
-        '<p class="ks-hint">Gambar rekap otomatis terunduh, lalu WhatsApp terbuka. Lampirkan gambarnya dari galeri.</p>' +
+        '<p class="ks-hint">Yang dikirim berupa gambar. Pilih WhatsApp lalu Ibu Alda di menu bagikan; jika tidak muncul, gambar terunduh dan chat terbuka untuk dilampirkan.</p>' +
         '<p class="ks-note">' + IC.lock + '<span>Angka bergembok dihitung otomatis dan tidak bisa diubah.</span></p>' +
       '</aside>' +
     '</div>';
@@ -444,7 +444,7 @@ function flashSaved() {
 function drawSheet(c, date) {
   const SERIF = '"Times New Roman","Liberation Serif",Tinos,serif';
   const X = [0, 44, 320, 600, 1380, 1600], W = 1600, RH = 39, TH = 69, HH = 35;
-  const n = Math.max(30, c.rows.length + 1);
+  const n = c.rows.length + 3;            /* baris terisi + 3 baris kosong */
   const H = TH + HH + n * RH + RH * 5;
   const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
   const g = cv.getContext("2d");
@@ -494,21 +494,32 @@ function sendWA() {
   if (S.day === undefined) { toast("Data belum dimuat. Tunggu sebentar.", "warn"); return; }
   const c = calc(S.day);
   if (!c.rows.length) { toast("Belum ada catatan untuk dikirim.", "warn"); return; }
-  const date = S.date;
-  /* 1) gambar rekap otomatis terunduh (dibuat sinkron agar tidak diblokir browser) */
-  try {
-    const a = document.createElement("a");
-    a.href = drawSheet(c, date).toDataURL("image/png");
-    a.download = "Kas-Ritase-" + date + ".png";
-    document.body.appendChild(a); a.click(); a.remove();
-  } catch (e) { toast("Gagal membuat gambar: " + (e && e.message), "error", 6000); return; }
-  /* 2) buka chat WhatsApp tujuan */
-  const msg = "Halo " + WA_NAME + ", berikut rekap kas ritase " + dowOf(date) + ", " + titleDate(date) + ".\n" +
-    "Total diserahkan: Rp " + rp(c.total) + "\nSisa uang: " + (c.sisa < 0 ? "-" : "") + "Rp " + rp(Math.abs(c.sisa)) + "\n(gambar rekap saya lampirkan)";
-  const url = "https://wa.me/" + WA_NUM + "?text=" + encodeURIComponent(msg);
-  const w = window.open(url, "_blank");
-  if (!w) location.href = url;
-  toast("Gambar terunduh. Di WhatsApp, ketuk ikon lampiran lalu pilih gambar Kas-Ritase-" + date + ".png", "success", 7000);
+  const date = S.date, name = "Kas-Ritase-" + date + ".png";
+  const cv = drawSheet(c, date);
+  /* cadangan: unduh gambar + buka chat WhatsApp tujuan (tanpa teks) */
+  const fallback = (blob) => {
+    try {
+      const a = document.createElement("a");
+      a.href = blob ? URL.createObjectURL(blob) : cv.toDataURL("image/png"); a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+    } catch (e) { toast("Gagal membuat gambar: " + (e && e.message), "error", 6000); return; }
+    const url = "https://wa.me/" + WA_NUM;
+    const w = window.open(url, "_blank"); if (!w) location.href = url;
+    toast("Gambar terunduh. Di chat " + WA_NAME + ", ketuk ikon lampiran lalu pilih " + name, "success", 8000);
+  };
+  cv.toBlob(async (blob) => {
+    if (!blob) return fallback(null);
+    /* utama: kirim FILE GAMBAR lewat menu Bagikan (tanpa teks) */
+    try {
+      const file = new File([blob], name, { type: "image/png" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        toast("Pilih WhatsApp, lalu kontak " + WA_NAME, "info", 4000);
+        await navigator.share({ files: [file] });
+        return;
+      }
+    } catch (e) { if (e && e.name === "AbortError") return; }
+    fallback(blob);
+  }, "image/png");
 }
 
 async function copyReport() {
