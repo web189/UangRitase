@@ -191,20 +191,29 @@ html[data-theme=light] .ks-fisik .amt input { background: #fff1f3; }
 .ks-diff.less em { background: rgba(255, 74, 104, .16); }
 .ks-diff.more { background: rgba(255, 200, 61, .14); } .ks-diff.more b, .ks-diff.more em { color: var(--k-warn); }
 .ks-diff.more em { background: rgba(255, 200, 61, .18); }
-.ks-copy { width: 100%; margin-top: 2px; }
+.ks-actions { display: grid; gap: 8px; grid-template-columns: 1fr; margin-top: 2px; }
+.kbtn-wa { color: #fff; border: 0; background: linear-gradient(135deg, #12a150, #25d366); box-shadow: 0 12px 18px -14px #25d366e6; text-align: center; line-height: 1.2; }
+.kbtn-wa i { font-size: 18px; width: auto; }
+.ks-hint { margin: 0 2px; font: 600 12px/1.45 var(--font-b); color: var(--tx3); }
 .ks-note { display: flex; gap: 8px; align-items: flex-start; margin: 4px 2px 0; font: 600 12px/1.45 var(--font-b); color: var(--tx3); }
 .ks-note .ksv-lock { margin-top: 2px; }
 
 
-/* HP & tablet: ringkasan 2 kolom supaya form input tetap dekat */
+/* HP & tablet: ringkasan dipadatkan supaya form input tetap dekat */
 @media (max-width: 959px) {
-  .ks { grid-template-columns: 1fr 1fr; gap: 8px 10px; }
-  .ks-sisa, .ks-copy, .ks-note { grid-column: 1 / -1; }
-  .ks-auto { flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px; padding: 6px 4px; }
+  .ks { grid-template-columns: 1fr 1fr; gap: 6px 10px; padding: 10px; }
+  .ks-sisa, .ks-actions, .ks-hint { grid-column: 1 / -1; }
+  .ks-sisa { flex-direction: row; align-items: center; justify-content: space-between; padding: 8px 14px; }
+  .ks-sisa b { font-size: clamp(22px, 6.5vw, 30px); }
+  .ks-auto { flex-direction: column; align-items: flex-start; justify-content: flex-end; gap: 2px; padding: 0 4px 4px; }
   .ks-auto b { font-size: 16px; }
-  .ks-diff { align-items: flex-start; padding: 8px 10px; }
-  .ks-diff em { margin-left: 0; }
+  .ks-diff { align-items: flex-start; justify-content: flex-end; padding: 6px 10px; gap: 2px; }
+  .ks-diff em { margin-left: 0; padding: 2px 9px; }
   .ks-in label { font-size: 12px; }
+  .ks-actions { grid-template-columns: 1.7fr 1fr; }
+  .ks-actions .kbtn { padding: 0 10px; font-size: 13px; }
+  .ks-note { display: none; }
+  .kas-who { flex-basis: 140px; }
 }
 
 /* ── rekap bulan ── */

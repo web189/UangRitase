@@ -33,6 +33,7 @@ const nf = new Intl.NumberFormat("id-ID");
 const rp = (n) => nf.format(Math.round(Number(n) || 0));
 const pad = (n) => String(n).padStart(2, "0");
 const MAX_AMT = 1e9;
+const WA_NAME = "Ibu Alda", WA_NUM = "6285773634651";   /* tujuan kirim WhatsApp (format 62…, tanpa + dan 0) */
 
 const IC = {
   prev: '<svg class="ksv" viewBox="0 0 24 24"><path d="m14.5 5.5-6.5 6.5 6.5 6.5"/></svg>',
@@ -307,9 +308,13 @@ function renderDayShell() {
         '<div class="ks-row ks-in"><label for="ksTerima">Uang diterima</label><div class="amt"><span>Rp</span><input id="ksTerima" inputmode="numeric" enterkeyhint="done" placeholder="0"></div></div>' +
         '<div class="ks-row ks-auto"><span class="k">Total diserahkan ' + IC.lock + '</span><b id="ksTotal">Rp 0</b></div>' +
         '<div class="ks-sisa"><span class="k">Sisa uang ' + IC.lock + '</span><b id="ksSisa">Rp 0</b></div>' +
-        '<div class="ks-row ks-in ks-fisik"><label for="ksFisik">Fisik uang (hasil hitung)</label><div class="amt"><span>Rp</span><input id="ksFisik" inputmode="numeric" enterkeyhint="done" placeholder="Isi setelah menghitung uang"></div></div>' +
+        '<div class="ks-row ks-in ks-fisik"><label for="ksFisik">Fisik uang</label><div class="amt"><span>Rp</span><input id="ksFisik" inputmode="numeric" enterkeyhint="done" placeholder="Hasil hitung"></div></div>' +
         '<div class="ks-row ks-auto ks-diff" id="ksDiff"><span class="k">Selisih ' + IC.lock + '</span><b id="ksSel">—</b><em id="ksTag"></em></div>' +
-        '<button class="kbtn kbtn-ghost ks-copy" type="button" id="ksCopy">' + IC.copy + '<span>Salin laporan untuk WhatsApp</span></button>' +
+        '<div class="ks-actions">' +
+          '<button class="kbtn kbtn-wa" type="button" id="ksWa"><i class="fab fa-whatsapp"></i><span>Kirim ke WhatsApp ' + esc(WA_NAME) + '</span></button>' +
+          '<button class="kbtn kbtn-ghost" type="button" id="ksCopy">' + IC.copy + '<span>Salin teks</span></button>' +
+        '</div>' +
+        '<p class="ks-hint">Gambar rekap otomatis terunduh, lalu WhatsApp terbuka. Lampirkan gambarnya dari galeri.</p>' +
         '<p class="ks-note">' + IC.lock + '<span>Angka bergembok dihitung otomatis dan tidak bisa diubah.</span></p>' +
       '</aside>' +
     '</div>';
@@ -336,6 +341,7 @@ function renderDayShell() {
     el.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); el.blur(); } });
   });
   $("ksCopy").addEventListener("click", copyReport);
+  $("ksWa").addEventListener("click", sendWA);
   $("kdList").addEventListener("click", onListClick);
   $("kdList").addEventListener("keydown", onListKey);
   onDay();
@@ -359,7 +365,7 @@ function renderSummary(c) {
   $("ksSisa").parentNode.classList.toggle("is-neg", c.sisa < 0);
   const d = $("ksDiff"), sel = $("ksSel"), tag = $("ksTag");
   d.classList.remove("ok", "less", "more", "none");
-  if (c.selisih == null) { d.classList.add("none"); sel.textContent = "—"; tag.textContent = "isi fisik uang dulu"; }
+  if (c.selisih == null) { d.classList.add("none"); sel.textContent = "—"; tag.textContent = "isi fisik dulu"; }
   else if (c.selisih === 0) { d.classList.add("ok"); sel.textContent = "Rp 0"; tag.textContent = "Cocok"; }
   else if (c.selisih < 0) { d.classList.add("less"); sel.textContent = "−Rp " + rp(-c.selisih); tag.textContent = "Uang kurang"; }
   else { d.classList.add("more"); sel.textContent = "Rp " + rp(c.selisih); tag.textContent = "Uang lebih"; }
@@ -431,6 +437,78 @@ function flashSaved() {
   b.classList.add("saved"); b.querySelector("span").textContent = "Tersimpan";
   clearTimeout(savedTimer);
   savedTimer = setTimeout(() => { b.classList.remove("saved"); b.querySelector("span").textContent = "Tambah baris"; }, 1100);
+}
+
+
+/* ───────── GAMBAR REKAP (meniru lembar Excel) + KIRIM WHATSAPP ───────── */
+function drawSheet(c, date) {
+  const SERIF = '"Times New Roman","Liberation Serif",Tinos,serif';
+  const X = [0, 44, 320, 600, 1380, 1600], W = 1600, RH = 39, TH = 69, HH = 35;
+  const n = Math.max(30, c.rows.length + 1);
+  const H = TH + HH + n * RH + RH * 5;
+  const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const g = cv.getContext("2d");
+  g.fillStyle = "#fff"; g.fillRect(0, 0, W, H);
+  const line = "#b9b9b9";
+  const rect = (x0, y0, x1, y1, fill) => { g.fillStyle = fill; g.fillRect(x0, y0, x1 - x0, y1 - y0); };
+  const box = (x0, y0, x1, y1) => { g.strokeStyle = line; g.lineWidth = 1; g.strokeRect(x0 + .5, y0 + .5, x1 - x0, y1 - y0); };
+  const fit = (t, px, maxW) => { let f = px; do { g.font = "bold " + f + "px " + SERIF; f--; } while (g.measureText(t).width > maxW && f > 10); };
+  const mid = (t, x0, x1, y, px, color) => { g.fillStyle = color || "#000"; fit(t, px, x1 - x0 - 16); g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(t, (x0 + x1) / 2, y); };
+  const money = (v, x0, x1, y, px, color) => {
+    g.fillStyle = color || "#000"; g.textBaseline = "middle";
+    g.font = "bold " + px + "px " + SERIF; g.textAlign = "left"; g.fillText("Rp", x0 + 10, y);
+    fit(v, px, x1 - x0 - 70); g.textAlign = "right"; g.fillText(v, x1 - 10, y);
+  };
+  const d = pd(date), title = pad(d.getUTCDate()) + " " + (d.getUTCMonth() === 10 ? "Nopember" : MONTHS[d.getUTCMonth()]) + " " + d.getUTCFullYear();
+
+  rect(X[1], 0, W, TH, "#ffff1a"); box(X[1], 0, W - 1, TH);
+  mid(title, X[1], W, TH / 2, 30);
+  rect(X[1], TH, W, TH + HH, "#92cddc");
+  ["Uang Diterima", "NAMA", "NO PO", "JUMLAH"].forEach((t, i) => { box(X[i + 1], TH, X[i + 2] - 1, TH + HH); mid(t, X[i + 1], X[i + 2], TH + HH / 2, 22); });
+
+  for (let i = 0; i < n; i++) {
+    const y = TH + HH + i * RH, cy = y + RH / 2, r = c.rows[i];
+    for (let k = 0; k < 5; k++) box(X[k], y, X[k + 1] - 1, y + RH);
+    mid(String(i + 1), X[0], X[1], cy, 20);
+    if (i === 0) money(rp(c.diterima), X[1], X[2], cy, 22);
+    if (!r) continue;
+    mid(r.nama || "", X[2], X[3], cy, 22);
+    if (isKasbon(r.po)) { rect(X[3], y, X[4], y + RH, "#ff0000"); box(X[3], y, X[4] - 1, y + RH); mid(r.po, X[3], X[4], cy, 22, "#7a0000"); }
+    else mid(r.po || "", X[3], X[4], cy, 22);
+    money(rp(r.jumlah), X[4], X[5], cy, 22);
+  }
+
+  let y = TH + HH + n * RH;
+  const row = (fill) => { if (fill) rect(X[1], y, W, y + RH, fill); box(X[1], y, X[4] - 1, y + RH); box(X[4], y, W - 1, y + RH); };
+  const left = (t, px, dx) => { g.fillStyle = "#000"; g.font = "bold " + px + "px " + SERIF; g.textAlign = "left"; g.textBaseline = "middle"; g.fillText(t, X[1] + dx, y + RH / 2); };
+  row(); left("TOTAL UANG YANG DITERIMA", 20, 4); money(rp(c.diterima), X[4], W, y + RH / 2, 18); y += RH;
+  row(); left("TOTAL UANG YANG DISERAHKAN", 20, 4); money(rp(c.total), X[4], W, y + RH / 2, 18); y += RH;
+  row("#ffff1a"); left("SISA UANG", 20, 90); money((c.sisa < 0 ? "-" : "") + rp(Math.abs(c.sisa)), X[4], W, y + RH / 2, 30); y += RH;
+  row("#92cddc"); left("FISIK UANG", 20, 84); y += RH;
+  row();
+  if (c.fisik != null) { rect(X[4], y, W, y + RH, "#ff0000"); box(X[4], y, W - 1, y + RH); money(rp(c.fisik), X[4], W, y + RH / 2, 18); }
+  return cv;
+}
+
+function sendWA() {
+  if (S.day === undefined) { toast("Data belum dimuat. Tunggu sebentar.", "warn"); return; }
+  const c = calc(S.day);
+  if (!c.rows.length) { toast("Belum ada catatan untuk dikirim.", "warn"); return; }
+  const date = S.date;
+  /* 1) gambar rekap otomatis terunduh (dibuat sinkron agar tidak diblokir browser) */
+  try {
+    const a = document.createElement("a");
+    a.href = drawSheet(c, date).toDataURL("image/png");
+    a.download = "Kas-Ritase-" + date + ".png";
+    document.body.appendChild(a); a.click(); a.remove();
+  } catch (e) { toast("Gagal membuat gambar: " + (e && e.message), "error", 6000); return; }
+  /* 2) buka chat WhatsApp tujuan */
+  const msg = "Halo " + WA_NAME + ", berikut rekap kas ritase " + dowOf(date) + ", " + titleDate(date) + ".\n" +
+    "Total diserahkan: Rp " + rp(c.total) + "\nSisa uang: " + (c.sisa < 0 ? "-" : "") + "Rp " + rp(Math.abs(c.sisa)) + "\n(gambar rekap saya lampirkan)";
+  const url = "https://wa.me/" + WA_NUM + "?text=" + encodeURIComponent(msg);
+  const w = window.open(url, "_blank");
+  if (!w) location.href = url;
+  toast("Gambar terunduh. Di WhatsApp, ketuk ikon lampiran lalu pilih gambar Kas-Ritase-" + date + ".png", "success", 7000);
 }
 
 async function copyReport() {
@@ -561,4 +639,4 @@ function boot() {
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
 
 /* untuk pengujian */
-window.__kas = { calc, rowsOf, up, num, fmtIn, isKasbon };
+window.__kas = { drawSheet, calc, rowsOf, up, num, fmtIn, isKasbon };

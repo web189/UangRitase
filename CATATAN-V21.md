@@ -1,11 +1,11 @@
-# UangRitase v21 — Kas Ritase Harian
+# UangRitase v21 — BREAKDOWN Online
 
 ## Yang baru
-- Bagian **Kas Ritase Harian** (di bawah "Data Lainnya", atau tombol kuning di header / menu **Kas** di dock HP / alamat `#kas`).
+- Bagian **BREAKDOWN Online** (di bawah "Data Lainnya", atau tombol kuning di header / menu **Kas** di dock HP / alamat `#kas`).
 - **Harian**: pilih tanggal (‹ ›, kalender, atau "Hari ini"). Isi *Nama → No PO / keterangan → Jumlah*, tekan Enter berturut-turut, baris langsung masuk dan form siap untuk input berikutnya.
   - Tiap baris bisa **Edit** (ikon pensil) dan **Hapus** (ikon sampah, ada tombol *Pulihkan* 7 detik).
   - Keterangan yang diawali `KASBON` otomatis berwarna merah, seperti di lembar Excel.
-  - Tombol *Salin laporan untuk WhatsApp* menghasilkan teks rekap hari itu.
+  
 - **Angka otomatis (bergembok, tidak bisa diubah):** Total diserahkan, Sisa uang, Selisih, dan seluruh Rekap bulan.
   Yang diinput manual hanya: baris-baris catatan, *Uang diterima*, dan *Fisik uang*.
 - **Rekap bulan**: tabel per tanggal (diterima, diserahkan, sisa, fisik, selisih) + total bulan. Ketuk baris untuk membuka harinya.
@@ -27,3 +27,6 @@ Tanpa langkah ini kas akan menolak menyimpan ("Ditolak server").
 ## Struktur data
 `kas/{YYYY-MM}/{DD}` = `{ diterima, fisik, rows:{ id:{nama,po,jumlah,ts,by} } }`
 `kasLog/{YYYY-MM}/{DD}/{id}` = `{ act, detail, by, ts }`
+
+## Ganti nomor / nama tujuan WhatsApp
+Bagian atas `kas.js`: `WA_NAME` dan `WA_NUM` (format 62…, tanpa + dan tanpa 0 di depan).
