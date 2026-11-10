@@ -39,6 +39,7 @@ const IC = {
   prev: '<svg class="ksv" viewBox="0 0 24 24"><path d="m14.5 5.5-6.5 6.5 6.5 6.5"/></svg>',
   next: '<svg class="ksv" viewBox="0 0 24 24"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg>',
   copy: '<svg class="ksv" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="12" rx="2.2"/><path d="M15.5 8.5v-2a2 2 0 0 0-2-2h-7a2 2 0 0 0-2 2v9.5a2 2 0 0 0 2 2h2"/></svg>',
+  print: '<svg class="ksv" viewBox="0 0 24 24"><path d="M7 9V4.5h10V9M7 17H5.2A1.7 1.7 0 0 1 3.5 15.3v-5A1.7 1.7 0 0 1 5.2 8.6h13.6a1.7 1.7 0 0 1 1.7 1.7v5a1.7 1.7 0 0 1-1.7 1.7H17"/><rect x="7" y="13.5" width="10" height="6" rx="1"/></svg>',
   user: '<svg class="ksv" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.6-3.6 3.5-5.6 7.2-5.6s6.6 2 7.2 5.6"/></svg>',
   edit: '<svg class="ksv" viewBox="0 0 24 24"><path d="M4 20h4.2L19.4 8.8a2.2 2.2 0 0 0 0-3.1l-1.1-1.1a2.2 2.2 0 0 0-3.1 0L4 15.8z"/><path d="m13.5 6.3 4.2 4.2"/></svg>',
   del: '<svg class="ksv" viewBox="0 0 24 24"><path d="M4.5 7h15M9.5 7V4.8h5V7M6.5 7l.8 12.2a1.6 1.6 0 0 0 1.6 1.5h6.2a1.6 1.6 0 0 0 1.6-1.5L17.5 7M10 11v6M14 11v6"/></svg>',
@@ -247,14 +248,11 @@ function mount() {
             '<button type="button" role="tab" data-tab="log" aria-selected="false">Riwayat</button>' +
           '</div>' +
           '<button class="kbtn kbtn-ghost" type="button" id="kasToday">Hari ini</button>' +
-          '<label class="kas-who" title="Nama ini ikut tercatat di riwayat">' + IC.user +
-            '<input id="kasWho" type="text" maxlength="24" placeholder="Nama penginput" autocomplete="off" aria-label="Nama penginput"></label>' +
+          '<a class="kbtn kbtn-bkb" href="https://web189.github.io/E-Book/index.html#/dms-manual" target="_blank" rel="noopener noreferrer">' + IC.print + '<span>Cetak BKB Manual</span></a>' +
         '</div>' +
         '<div id="kasView"></div>' +
       '</div>' +
     '</div>';
-  $("kasWho").value = lsGet("kas_who", "");
-  $("kasWho").addEventListener("input", (e) => lsSet("kas_who", e.target.value.trim().slice(0, 24)));
   return true;
 }
 
@@ -289,34 +287,32 @@ function setTab(tab) {
 /* ───────── TAMPILAN HARIAN ───────── */
 function renderDayShell() {
   const v = $("kasView"); if (!v) return;
+  const amtIn = (id, ph) => '<div class="amt"><span>Rp</span><input id="' + id + '" inputmode="numeric" enterkeyhint="done" placeholder="' + ph + '"></div>';
   v.innerHTML =
     '<div class="kd">' +
-      '<div class="kd-main">' +
-        '<form class="kd-add" id="kdAdd" autocomplete="off" novalidate>' +
-          '<div class="kf kf-nama"><label for="kaNama">Nama</label><input id="kaNama" list="kasNames" maxlength="60" autocapitalize="characters" enterkeyhint="next" placeholder="Driver / TKBM"></div>' +
-          '<div class="kf kf-po"><label for="kaPo">No PO / keterangan</label><input id="kaPo" list="kasPos" maxlength="60" autocapitalize="characters" enterkeyhint="next" placeholder="mis. KASBON"></div>' +
-          '<div class="kf kf-amt"><label for="kaAmt">Jumlah</label><div class="amt"><span>Rp</span><input id="kaAmt" inputmode="numeric" enterkeyhint="done" placeholder="0"></div></div>' +
-          '<button class="kd-addbtn" type="submit">' + IC.plus + '<span>Tambah baris</span></button>' +
-          '<p class="kd-err" id="kaErr" role="alert"></p>' +
-        '</form>' +
-        '<datalist id="kasNames"></datalist><datalist id="kasPos"></datalist>' +
-        '<div class="kd-head"><b id="kdCount">Catatan hari ini</b></div>' +
-        '<div class="kd-listhead" aria-hidden="true"><span>#</span><span>Nama</span><span>No PO / keterangan</span><span>Jumlah</span><span></span></div>' +
-        '<div class="kd-list" id="kdList"></div>' +
-      '</div>' +
-      '<aside class="ks" aria-label="Ringkasan kas">' +
-        '<div class="ks-row ks-in"><label for="ksTerima">Uang diterima</label><div class="amt"><span>Rp</span><input id="ksTerima" inputmode="numeric" enterkeyhint="done" placeholder="0"></div></div>' +
-        '<div class="ks-row ks-auto"><span class="k">Total diserahkan ' + IC.lock + '</span><b id="ksTotal">Rp 0</b></div>' +
-        '<div class="ks-sisa"><span class="k">Sisa uang ' + IC.lock + '</span><b id="ksSisa">Rp 0</b></div>' +
-        '<div class="ks-row ks-in ks-fisik"><label for="ksFisik">Fisik uang</label><div class="amt"><span>Rp</span><input id="ksFisik" inputmode="numeric" enterkeyhint="done" placeholder="Hasil hitung"></div></div>' +
-        '<div class="ks-row ks-auto ks-diff" id="ksDiff"><span class="k">Selisih ' + IC.lock + '</span><b id="ksSel">—</b><em id="ksTag"></em></div>' +
-        '<div class="ks-actions">' +
+      '<section class="kk" aria-label="Ringkasan kas">' +
+        '<div class="kk-c kk-terima"><label for="ksTerima">Uang diterima</label>' + amtIn("ksTerima", "0") + '</div>' +
+        '<div class="kk-c kk-total"><span class="k">Total diserahkan ' + IC.lock + '</span><b id="ksTotal">Rp 0</b><small id="ksCount">0 baris</small></div>' +
+        '<div class="kk-c kk-sisa"><span class="k">Sisa uang ' + IC.lock + '</span><b id="ksSisa">Rp 0</b></div>' +
+        '<div class="kk-c kk-fisik"><label for="ksFisik">Fisik uang</label>' + amtIn("ksFisik", "Hasil hitung") +
+          '<div class="kk-diff none" id="ksDiff"><span class="k">Selisih ' + IC.lock + '</span><b id="ksSel">—</b><em id="ksTag"></em></div></div>' +
+      '</section>' +
+      '<form class="kd-add" id="kdAdd" autocomplete="off" novalidate>' +
+        '<div class="kf kf-nama"><label for="kaNama">Nama</label><input id="kaNama" list="kasNames" maxlength="60" autocapitalize="characters" enterkeyhint="next" placeholder="Driver / TKBM"></div>' +
+        '<div class="kf kf-po"><label for="kaPo">No PO / keterangan</label><input id="kaPo" list="kasPos" maxlength="60" autocapitalize="characters" enterkeyhint="next" placeholder="mis. KASBON"></div>' +
+        '<div class="kf kf-amt"><label for="kaAmt">Jumlah</label>' + amtIn("kaAmt", "0") + '</div>' +
+        '<button class="kd-addbtn" type="submit">' + IC.plus + '<span>Tambah baris</span></button>' +
+        '<p class="kd-err" id="kaErr" role="alert"></p>' +
+      '</form>' +
+      '<datalist id="kasNames"></datalist><datalist id="kasPos"></datalist>' +
+      '<div class="kd-bar"><b id="kdCount">Catatan hari ini</b>' +
+        '<div class="kd-bar-a">' +
           '<button class="kbtn kbtn-wa" type="button" id="ksWa"><i class="fab fa-whatsapp"></i><span>Kirim ke WhatsApp ' + esc(WA_NAME) + '</span></button>' +
           '<button class="kbtn kbtn-ghost" type="button" id="ksCopy">' + IC.copy + '<span>Salin teks</span></button>' +
-        '</div>' +
-        '<p class="ks-hint">Yang dikirim berupa gambar. Pilih WhatsApp lalu Ibu Alda di menu bagikan; jika tidak muncul, gambar terunduh dan chat terbuka untuk dilampirkan.</p>' +
-        '<p class="ks-note">' + IC.lock + '<span>Angka bergembok dihitung otomatis dan tidak bisa diubah.</span></p>' +
-      '</aside>' +
+        '</div></div>' +
+      '<p class="ks-hint">Dikirim sebagai gambar lewat menu Bagikan WhatsApp. Jika menu tidak muncul, gambar terunduh dan chat terbuka untuk dilampirkan.</p>' +
+      '<div class="kd-listhead" aria-hidden="true"><span>#</span><span>Nama</span><span>No PO / keterangan</span><span>Jumlah</span><span></span></div>' +
+      '<div class="kd-list" id="kdList"></div>' +
     '</div>';
 
   const nama = $("kaNama"), po = $("kaPo"), amt = $("kaAmt");
@@ -361,6 +357,7 @@ function renderSummary(c) {
   setIfIdle($("ksTerima"), S.day.diterima == null ? "" : nf.format(S.day.diterima));
   setIfIdle($("ksFisik"), c.fisik == null ? "" : nf.format(c.fisik));
   $("ksTotal").textContent = "Rp " + rp(c.total);
+  $("ksCount").textContent = c.rows.length + " baris";
   $("ksSisa").textContent = (c.sisa < 0 ? "−" : "") + "Rp " + rp(Math.abs(c.sisa));
   $("ksSisa").parentNode.classList.toggle("is-neg", c.sisa < 0);
   const d = $("ksDiff"), sel = $("ksSel"), tag = $("ksTag");
@@ -371,11 +368,12 @@ function renderSummary(c) {
   else { d.classList.add("more"); sel.textContent = "Rp " + rp(c.selisih); tag.textContent = "Uang lebih"; }
 }
 
+const hueOf = (t) => { let h = 0; const x = String(t || "?"); for (let i = 0; i < x.length; i++) h = (h * 31 + x.charCodeAt(i)) % 360; return h; };
 function rowView(r, i) {
   const k = isKasbon(r.po);
   return '<div class="kr' + (k ? " is-kasbon" : "") + '" data-id="' + esc(r.id) + '">' +
     '<span class="kr-no">' + (i + 1) + '</span>' +
-    '<span class="kr-nama">' + esc(r.nama) + '</span>' +
+    '<span class="kr-nama"><i class="kr-av" style="--h:' + hueOf(r.nama) + '">' + esc(String(r.nama || "?").charAt(0)) + '</i><b>' + esc(r.nama) + '</b></span>' +
     '<span class="kr-po">' + (r.po ? '<em>' + esc(r.po) + '</em>' : '<i class="kr-none">—</i>') + '</span>' +
     '<span class="kr-amt"><small>Rp</small><b>' + rp(r.jumlah) + '</b></span>' +
     '<span class="kr-act">' +

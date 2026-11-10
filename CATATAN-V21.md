@@ -30,3 +30,8 @@ Tanpa langkah ini kas akan menolak menyimpan ("Ditolak server").
 
 ## Ganti nomor / nama tujuan WhatsApp
 Bagian atas `kas.js`: `WA_NAME` dan `WA_NUM` (format 62…, tanpa + dan tanpa 0 di depan).
+
+## Perubahan v22 (tampilan BREAKDOWN Online)
+- Kolom "Nama penginput" dihapus; diganti tombol **Cetak BKB Manual** (buka tab baru ke https://web189.github.io/E-Book/index.html#/dms-manual). Riwayat kini mencatat penginput sebagai "Tamu".
+- Tata letak dirombak: satu alur (tanggal → kartu ringkasan → form → daftar) yang sama untuk HP, HP mode desktop, tablet, dan PC.
+- Ringan untuk Windows 7: tanpa blur, tanpa bayangan besar, animasi minimal.
