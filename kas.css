@@ -77,37 +77,40 @@ html[data-theme=light] .kas { --k-in: #fff; --k-row: rgba(var(--acc-rgb), .07); 
 
 .kd { display: grid; gap: 12px; }
 
-/* ── kartu ringkasan ── */
+/* ── kartu ringkasan (5 kartu: diterima · diserahkan · sisa · fisik · selisih) ── */
 .kk { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.kk-c { display: flex; flex-direction: column; justify-content: center; gap: 6px; min-width: 0; padding: 12px; border: 1px solid var(--ln2); border-radius: 14px; background: rgba(var(--acc-rgb), .04); border-top: 3px solid var(--ln2); }
+.kk-c { display: flex; flex-direction: column; justify-content: center; gap: 6px; min-width: 0; padding: 12px; border: 1px solid var(--ln2); border-top: 3px solid var(--ln2); border-radius: 14px; background: rgba(var(--acc-rgb), .04); }
 .kk-terima { border-top-color: var(--neon); }
 .kk-total { border-top-color: var(--violet); }
-.kk-fisik { border-top-color: var(--k-bad); grid-column: 1 / -1; }
+.kk-fisik { border-top-color: var(--k-bad); }
 .kk .k { font: 700 12.5px var(--font-b); color: var(--tx2); }
 .kk-total b { font: 800 20px var(--font-d); font-variant-numeric: tabular-nums; }
 .kk-total small { font: 600 12px var(--font-b); color: var(--tx3); }
-.kk-sisa { grid-column: 1 / -1; color: var(--k-ink); background: linear-gradient(135deg, var(--k-gold1), var(--k-gold2)); border-color: transparent; border-top-color: transparent; flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; }
+.kk-sisa { grid-column: 1 / -1; color: var(--k-ink); background: linear-gradient(135deg, var(--k-gold1), var(--k-gold2)); border-color: transparent; flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; }
 .kk-sisa .k { color: var(--k-ink); opacity: .8; }
-.kk-sisa b { font: 800 clamp(26px, 7vw, 34px)/1.1 var(--font-d); font-variant-numeric: tabular-nums; }
+.kk-sisa b { font: 800 clamp(26px, 7vw, 32px)/1.1 var(--font-d); font-variant-numeric: tabular-nums; }
 .kk-sisa.is-neg { background: linear-gradient(135deg, #ff8fa1, var(--k-bad)); color: #fff; }
 .kk-sisa.is-neg .k { color: #fff; }
 .kk-fisik .amt input { background: rgba(255, 74, 104, .1); border-color: rgba(255, 74, 104, .45); }
 html[data-theme=light] .kk-fisik .amt input { background: #fff1f3; }
-.kk-diff { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; padding: 8px 10px; border-radius: 10px; }
-.kk-diff b { font: 800 16px var(--font-d); font-variant-numeric: tabular-nums; }
-.kk-diff em { margin-left: auto; font: 800 12px var(--font-b); font-style: normal; padding: 2px 10px; border-radius: 99px; }
-.kk-diff.none { background: rgba(127, 150, 190, .1); } .kk-diff.none em { color: var(--tx3); font-weight: 600; padding: 0; }
-.kk-diff.ok { background: rgba(25, 230, 140, .12); } .kk-diff.ok b, .kk-diff.ok em { color: var(--k-ok); } .kk-diff.ok em { background: rgba(25, 230, 140, .18); }
-.kk-diff.less { background: rgba(255, 74, 104, .12); } .kk-diff.less b, .kk-diff.less em { color: var(--k-bad); } .kk-diff.less em { background: rgba(255, 74, 104, .16); }
-.kk-diff.more { background: rgba(255, 200, 61, .14); } .kk-diff.more b, .kk-diff.more em { color: var(--k-warn); } .kk-diff.more em { background: rgba(255, 200, 61, .18); }
+.kk-diff b { font: 800 17px var(--font-d); font-variant-numeric: tabular-nums; }
+.kk-diff em { align-self: flex-start; font: 800 12px var(--font-b); font-style: normal; padding: 2px 10px; border-radius: 99px; }
+.kk-diff.none b { color: var(--tx3); } .kk-diff.none em { color: var(--tx3); font-weight: 600; padding: 0; }
+.kk-diff.ok { border-top-color: var(--k-ok); background: rgba(25, 230, 140, .1); } .kk-diff.ok b, .kk-diff.ok em { color: var(--k-ok); } .kk-diff.ok em { background: rgba(25, 230, 140, .18); }
+.kk-diff.less { border-top-color: var(--k-bad); background: rgba(255, 74, 104, .1); } .kk-diff.less b, .kk-diff.less em { color: var(--k-bad); } .kk-diff.less em { background: rgba(255, 74, 104, .16); }
+.kk-diff.more { border-top-color: var(--k-warn); background: rgba(255, 200, 61, .12); } .kk-diff.more b, .kk-diff.more em { color: var(--k-warn); } .kk-diff.more em { background: rgba(255, 200, 61, .18); }
 
 @media (min-width: 700px) {
-  .kk { grid-template-columns: 1fr 1fr; gap: 10px; }
-  .kk-sisa, .kk-fisik { grid-column: auto; }
-  .kk-sisa { flex-direction: column; align-items: flex-start; justify-content: center; }
+  .kk { grid-template-columns: repeat(6, 1fr); gap: 10px; }
+  .kk-terima, .kk-total, .kk-sisa { grid-column: span 2; }
+  .kk-fisik, .kk-diff { grid-column: span 3; }
+  .kk-sisa { flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px; padding: 12px; }
+  .kk-sisa b { font-size: 30px; }
 }
-@media (min-width: 1100px) {
-  .kk { grid-template-columns: 1fr 1fr 1.25fr 1.2fr; }
+@media (min-width: 1000px) {
+  .kk { grid-template-columns: 1.1fr 1fr 1.3fr 1.1fr 1.1fr; }
+  .kk-terima, .kk-total, .kk-sisa, .kk-fisik, .kk-diff { grid-column: auto; }
+  .kk-sisa b { font-size: 26px; }
 }
 
 /* ── form tambah ── */
@@ -245,9 +248,6 @@ body.kas-focus .chat-toggle { opacity: 0; pointer-events: none; }
 @media (max-width: 699px) {
   .kbtn-bkb { flex: 1 1 0; white-space: nowrap; padding: 0 10px; font-size: 13px; }
   .kk-c { padding: 10px; }
-  .kk-fisik { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px 10px; }
-  .kk-fisik .kk-diff { grid-column: 1 / -1; }
-  .kk-sisa { padding: 8px 14px; }
 }
 
 /* ── ringkasan mengambang saat menggulir ── */
@@ -287,3 +287,8 @@ body.kas-focus .chat-toggle { opacity: 0; pointer-events: none; }
 .kc button:focus-visible { outline: 2px solid var(--neon); outline-offset: 2px; }
 @media (max-height: 640px) { .kc-k { height: 48px; } .kc-disp { min-height: 84px; } }
 .kc-op { font-size: 24px; }
+
+.kd-empty-ic { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 16px; margin-bottom: 6px; color: var(--neon); background: rgba(var(--acc-rgb), .12); }
+.kd-empty-ic .ksv { width: 26px; height: 26px; }
+.kd-empty .kbtn { margin-top: 10px; min-height: 40px; color: var(--tx1); border-color: var(--neon); background: rgba(var(--acc-rgb), .14); }
+@media (max-width: 480px) { .wa-w { display: none; } }

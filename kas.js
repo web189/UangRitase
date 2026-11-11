@@ -41,6 +41,7 @@ const IC = {
   copy: '<svg class="ksv" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="12" rx="2.2"/><path d="M15.5 8.5v-2a2 2 0 0 0-2-2h-7a2 2 0 0 0-2 2v9.5a2 2 0 0 0 2 2h2"/></svg>',
   print: '<svg class="ksv" viewBox="0 0 24 24"><path d="M7 9V4.5h10V9M7 17H5.2A1.7 1.7 0 0 1 3.5 15.3v-5A1.7 1.7 0 0 1 5.2 8.6h13.6a1.7 1.7 0 0 1 1.7 1.7v5a1.7 1.7 0 0 1-1.7 1.7H17"/><rect x="7" y="13.5" width="10" height="6" rx="1"/></svg>',
   calc: '<svg class="ksv" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7.5h7"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01" stroke-width="2.6"/></svg>',
+  doc: '<svg class="ksv" viewBox="0 0 24 24"><path d="M6.5 3.5h11v17l-2.2-1.5-2.2 1.5-2.1-1.5-2.2 1.5-2.3-1.5z"/><path d="M9.5 8.5h5M9.5 12h5"/></svg>',
   user: '<svg class="ksv" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.6-3.6 3.5-5.6 7.2-5.6s6.6 2 7.2 5.6"/></svg>',
   edit: '<svg class="ksv" viewBox="0 0 24 24"><path d="M4 20h4.2L19.4 8.8a2.2 2.2 0 0 0 0-3.1l-1.1-1.1a2.2 2.2 0 0 0-3.1 0L4 15.8z"/><path d="m13.5 6.3 4.2 4.2"/></svg>',
   del: '<svg class="ksv" viewBox="0 0 24 24"><path d="M4.5 7h15M9.5 7V4.8h5V7M6.5 7l.8 12.2a1.6 1.6 0 0 0 1.6 1.5h6.2a1.6 1.6 0 0 0 1.6-1.5L17.5 7M10 11v6M14 11v6"/></svg>',
@@ -431,8 +432,8 @@ function renderDayShell() {
         '<div class="kk-c kk-terima"><label for="ksTerima">Uang diterima</label>' + amtIn("ksTerima", "0") + '</div>' +
         '<div class="kk-c kk-total"><span class="k">Total diserahkan ' + IC.lock + '</span><b id="ksTotal">Rp 0</b><small id="ksCount">0 baris</small></div>' +
         '<div class="kk-c kk-sisa"><span class="k">Sisa uang ' + IC.lock + '</span><b id="ksSisa">Rp 0</b></div>' +
-        '<div class="kk-c kk-fisik"><label for="ksFisik">Fisik uang</label>' + amtIn("ksFisik", "Hasil hitung") +
-          '<div class="kk-diff none" id="ksDiff"><span class="k">Selisih ' + IC.lock + '</span><b id="ksSel">—</b><em id="ksTag"></em></div></div>' +
+        '<div class="kk-c kk-fisik"><label for="ksFisik">Fisik uang</label>' + amtIn("ksFisik", "Hasil hitung") + '</div>' +
+        '<div class="kk-c kk-diff none" id="ksDiff"><span class="k">Selisih ' + IC.lock + '</span><b id="ksSel">—</b><em id="ksTag"></em></div>' +
       '</section>' +
       '<form class="kd-add" id="kdAdd" autocomplete="off" novalidate>' +
         '<div class="kf kf-nama"><label for="kaNama">Nama</label><input id="kaNama" list="kasNames" maxlength="60" autocapitalize="characters" enterkeyhint="next" placeholder="Driver / TKBM"></div>' +
@@ -444,10 +445,10 @@ function renderDayShell() {
       '<datalist id="kasNames"></datalist><datalist id="kasPos"></datalist>' +
       '<div class="kd-bar"><b id="kdCount">Catatan hari ini</b>' +
         '<div class="kd-bar-a">' +
-          '<button class="kbtn kbtn-wa" type="button" id="ksWa"><i class="fab fa-whatsapp"></i><span>Kirim ke WhatsApp ' + esc(WA_NAME) + '</span></button>' +
+          '<button class="kbtn kbtn-wa" type="button" id="ksWa"><i class="fab fa-whatsapp"></i><span>Kirim ke <span class="wa-w">WhatsApp </span>' + esc(WA_NAME) + '</span></button>' +
           '<button class="kbtn kbtn-ghost" type="button" id="ksCopy">' + IC.copy + '<span>Salin teks</span></button>' +
         '</div></div>' +
-      '<p class="ks-hint">Dikirim sebagai gambar lewat menu Bagikan WhatsApp. Jika menu tidak muncul, gambar terunduh dan chat terbuka untuk dilampirkan.</p>' +
+      '<p class="ks-hint">Dikirim sebagai gambar. Jika menu Bagikan tidak muncul, gambar diunduh dan chat WhatsApp dibuka.</p>' +
       '<div class="kd-listhead" aria-hidden="true"><span>#</span><span>Nama</span><span>No PO / keterangan</span><span>Jumlah</span><span></span></div>' +
       '<div class="kd-list" id="kdList"></div>' +
     '</div>';
@@ -543,7 +544,7 @@ function renderList(c) {
   $("kdCount").textContent = S.day === undefined ? "Memuat data…" : c.rows.length ? c.rows.length + " baris tercatat" : "Belum ada catatan";
   if (S.day === undefined) { el.innerHTML = '<div class="kd-empty">Menyambung ke server…</div>'; return; }
   if (!c.rows.length) {
-    el.innerHTML = '<div class="kd-empty"><b>Belum ada catatan di tanggal ini.</b><span>Isi nama dan jumlah di atas, lalu tekan Tambah baris.</span></div>';
+    el.innerHTML = '<div class="kd-empty"><span class="kd-empty-ic">' + IC.doc + '</span><b>Belum ada catatan di tanggal ini</b><span>Isi nama dan jumlah, lalu tekan Tambah baris.</span><button type="button" class="kbtn" data-act="focus">Mulai catat</button></div>';
     return;
   }
   el.innerHTML = c.rows.map((r, i) => (S.editId === r.id ? rowEdit(r, i) : rowView(r, i))).join("");
@@ -552,6 +553,7 @@ function renderList(c) {
 
 function onListClick(e) {
   const b = e.target.closest("[data-act]"); if (!b) return;
+  if (b.dataset.act === "focus") { const n = $("kaNama"); if (n) { n.focus(); if (n.scrollIntoView) n.scrollIntoView({ block: "center" }); } return; }
   const rowEl = b.closest(".kr"), id = rowEl && rowEl.dataset.id, act = b.dataset.act;
   if (act === "edit") { S.editId = id; renderList(); const i = document.querySelector(".kr-edit .ke-nama"); if (i) { i.focus(); i.select(); } bindEditAmt(); }
   else if (act === "cancel") { S.editId = null; renderList(); }

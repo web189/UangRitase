@@ -41,3 +41,8 @@ Bagian atas `kas.js`: `WA_NAME` dan `WA_NUM` (format 62…, tanpa + dan tanpa 0 
 - **Ringkasan mengambang**: saat menggulir daftar, bilah emas kecil berisi Sisa uang tetap terlihat di atas.
 - Baris alat dirapikan (Hari ini · Kalkulator · Cetak BKB Manual).
 - `sw.js` VERSION dinaikkan ke v23 agar browser mengganti file lama (WAJIB dinaikkan tiap rilis).
+
+## Perubahan v24
+- Notifikasi benyoriki.com (`ur.js`): jeda **10 menit** (`c=600`), notifikasi pertama juga setelah 10 menit (`o=600`), tampil **10 detik** (`p=10`).
+- BREAKDOWN Online: 5 kartu ringkasan seragam (Diterima · Diserahkan · Sisa · Fisik · Selisih), tata letak 2 kolom (HP) / 3+2 (mode desktop HP) / 5 sejajar (PC), tombol WhatsApp 1 baris di HP, tampilan kosong dengan tombol "Mulai catat".
+- `sw.js` VERSION v24.
