@@ -46,3 +46,8 @@ Bagian atas `kas.js`: `WA_NAME` dan `WA_NUM` (format 62…, tanpa + dan tanpa 0 
 - Notifikasi benyoriki.com (`ur.js`): jeda **10 menit** (`c=600`), notifikasi pertama juga setelah 10 menit (`o=600`), tampil **10 detik** (`p=10`).
 - BREAKDOWN Online: 5 kartu ringkasan seragam (Diterima · Diserahkan · Sisa · Fisik · Selisih), tata letak 2 kolom (HP) / 3+2 (mode desktop HP) / 5 sejajar (PC), tombol WhatsApp 1 baris di HP, tampilan kosong dengan tombol "Mulai catat".
 - `sw.js` VERSION v24.
+
+## Perubahan v25
+- Tombol "WA Logistik TUA" (beserta hitungan pengunjung) dihapus dari header. Tombol chat WhatsApp mengambang di pojok kanan bawah tidak diubah.
+- Header kini 3 kartu: Pasang Aplikasi · BREAKDOWN Online · Cek Google Sheet.
+- `sw.js` VERSION v25.

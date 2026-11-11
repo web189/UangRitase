@@ -8,7 +8,7 @@
    • Firebase / situs lain TIDAK disentuh (data tetap langsung ke server).
    ES5 — aman untuk Chrome 109 / Windows 7.
    ========================================================================== */
-var VERSION = "v24-notif-kpi";
+var VERSION = "v25-header-rapi";
 var APP = "uangritase";
 var SHELL = APP + "-shell-" + VERSION;
 var MEDIA = APP + "-media-v1";
