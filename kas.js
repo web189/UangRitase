@@ -42,6 +42,7 @@ const IC = {
   print: '<svg class="ksv" viewBox="0 0 24 24"><path d="M7 9V4.5h10V9M7 17H5.2A1.7 1.7 0 0 1 3.5 15.3v-5A1.7 1.7 0 0 1 5.2 8.6h13.6a1.7 1.7 0 0 1 1.7 1.7v5a1.7 1.7 0 0 1-1.7 1.7H17"/><rect x="7" y="13.5" width="10" height="6" rx="1"/></svg>',
   calc: '<svg class="ksv" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7.5h7"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01" stroke-width="2.6"/></svg>',
   doc: '<svg class="ksv" viewBox="0 0 24 24"><path d="M6.5 3.5h11v17l-2.2-1.5-2.2 1.5-2.1-1.5-2.2 1.5-2.3-1.5z"/><path d="M9.5 8.5h5M9.5 12h5"/></svg>',
+  pin: '<svg class="ksv" viewBox="0 0 24 24"><path d="M12 21s6.5-5.6 6.5-11a6.5 6.5 0 1 0-13 0c0 5.4 6.5 11 6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg>',
   user: '<svg class="ksv" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.6-3.6 3.5-5.6 7.2-5.6s6.6 2 7.2 5.6"/></svg>',
   edit: '<svg class="ksv" viewBox="0 0 24 24"><path d="M4 20h4.2L19.4 8.8a2.2 2.2 0 0 0 0-3.1l-1.1-1.1a2.2 2.2 0 0 0-3.1 0L4 15.8z"/><path d="m13.5 6.3 4.2 4.2"/></svg>',
   del: '<svg class="ksv" viewBox="0 0 24 24"><path d="M4.5 7h15M9.5 7V4.8h5V7M6.5 7l.8 12.2a1.6 1.6 0 0 0 1.6 1.5h6.2a1.6 1.6 0 0 0 1.6-1.5L17.5 7M10 11v6M14 11v6"/></svg>',
@@ -385,7 +386,10 @@ function mount() {
           '</div>' +
           '<button class="kbtn kbtn-ghost" type="button" id="kasToday">Hari ini</button>' +
           '<button class="kbtn kbtn-icon" type="button" id="kasCalc" aria-label="Kalkulator" title="Kalkulator">' + IC.calc + '</button>' +
+          '<div class="kas-links">' +
           '<a class="kbtn kbtn-bkb" href="https://web189.github.io/E-Book/index.html#/dms-manual" target="_blank" rel="noopener noreferrer">' + IC.print + '<span>Cetak BKB Manual</span></a>' +
+          '<a class="kbtn kbtn-gps" href="https://benyoriki.github.io/Absensi/index.html" target="_blank" rel="noopener noreferrer">' + IC.pin + '<span>Absen GPS</span></a>' +
+          '</div>' +
         '</div>' +
         '<div id="kasView"></div>' +
       '</div>' +

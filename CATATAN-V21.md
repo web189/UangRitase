@@ -51,3 +51,8 @@ Bagian atas `kas.js`: `WA_NAME` dan `WA_NUM` (format 62…, tanpa + dan tanpa 0 
 - Tombol "WA Logistik TUA" (beserta hitungan pengunjung) dihapus dari header. Tombol chat WhatsApp mengambang di pojok kanan bawah tidak diubah.
 - Header kini 3 kartu: Pasang Aplikasi · BREAKDOWN Online · Cek Google Sheet.
 - `sw.js` VERSION v25.
+
+## Perubahan v26
+- Tombol **Absen GPS** (ikon lokasi hijau) di BREAKDOWN Online → tab baru ke https://benyoriki.github.io/Absensi/index.html
+- Baris alat: HP = Hari ini + Kalkulator / Cetak BKB Manual + Absen GPS (2 baris); PC = semua dalam 1 baris di sebelah tab.
+- `sw.js` VERSION v26.
