@@ -384,9 +384,9 @@ function mount() {
             '<button type="button" role="tab" data-tab="rekap" aria-selected="false">Rekap bulan</button>' +
             '<button type="button" role="tab" data-tab="log" aria-selected="false">Riwayat</button>' +
           '</div>' +
+          '<div class="kas-quick">' +
           '<button class="kbtn kbtn-ghost" type="button" id="kasToday">Hari ini</button>' +
           '<button class="kbtn kbtn-icon" type="button" id="kasCalc" aria-label="Kalkulator" title="Kalkulator">' + IC.calc + '</button>' +
-          '<div class="kas-links">' +
           '<a class="kbtn kbtn-bkb" href="https://web189.github.io/E-Book/index.html#/dms-manual" target="_blank" rel="noopener noreferrer">' + IC.print + '<span>Cetak BKB Manual</span></a>' +
           '<a class="kbtn kbtn-gps" href="https://benyoriki.github.io/Absensi/index.html" target="_blank" rel="noopener noreferrer">' + IC.pin + '<span>Absen GPS</span></a>' +
           '</div>' +
@@ -432,30 +432,36 @@ function renderDayShell() {
   v.innerHTML =
     '<div class="kd" id="kdRoot">' +
       '<div class="kd-mini" id="kdMini"><span>Sisa uang</span><b id="kmSisa">Rp 0</b><small id="kmInfo"></small></div>' +
-      '<section class="kk" id="kkBox" aria-label="Ringkasan kas">' +
-        '<div class="kk-c kk-terima"><label for="ksTerima">Uang diterima</label>' + amtIn("ksTerima", "0") + '</div>' +
-        '<div class="kk-c kk-total"><span class="k">Total diserahkan ' + IC.lock + '</span><b id="ksTotal">Rp 0</b><small id="ksCount">0 baris</small></div>' +
-        '<div class="kk-c kk-sisa"><span class="k">Sisa uang ' + IC.lock + '</span><b id="ksSisa">Rp 0</b></div>' +
-        '<div class="kk-c kk-fisik"><label for="ksFisik">Fisik uang</label>' + amtIn("ksFisik", "Hasil hitung") + '</div>' +
-        '<div class="kk-c kk-diff none" id="ksDiff"><span class="k">Selisih ' + IC.lock + '</span><b id="ksSel">—</b><em id="ksTag"></em></div>' +
-      '</section>' +
-      '<form class="kd-add" id="kdAdd" autocomplete="off" novalidate>' +
-        '<div class="kf kf-nama"><label for="kaNama">Nama</label><input id="kaNama" list="kasNames" maxlength="60" autocapitalize="characters" enterkeyhint="next" placeholder="Driver / TKBM"></div>' +
-        '<div class="kf kf-po"><label for="kaPo">No PO / keterangan</label><input id="kaPo" list="kasPos" maxlength="60" autocapitalize="characters" enterkeyhint="next" placeholder="mis. KASBON"></div>' +
-        '<div class="kf kf-amt"><label for="kaAmt">Jumlah</label>' + amtIn("kaAmt", "0") + '</div>' +
-        '<button class="kd-addbtn" type="submit">' + IC.plus + '<span>Tambah baris</span></button>' +
-        '<p class="kd-err" id="kaErr" role="alert"></p>' +
-      '</form>' +
+      '<div class="kd-side">' +
+        '<section class="kk" id="kkBox" aria-label="Ringkasan kas">' +
+          '<div class="kk-c kk-sisa"><span class="k">Sisa uang ' + IC.lock + '</span><b id="ksSisa">Rp 0</b><div class="kk-prog" aria-hidden="true"><i id="ksProg"></i></div><small id="ksPct"></small></div>' +
+          '<div class="kk-c kk-terima"><label for="ksTerima">Uang diterima</label>' + amtIn("ksTerima", "0") + '</div>' +
+          '<div class="kk-c kk-total"><span class="k">Total diserahkan ' + IC.lock + '</span><b id="ksTotal">Rp 0</b><small id="ksCount">0 baris</small></div>' +
+          '<div class="kk-c kk-fisik"><label for="ksFisik">Fisik uang</label>' + amtIn("ksFisik", "Hasil hitung") + '</div>' +
+          '<div class="kk-c kk-diff none" id="ksDiff"><span class="k">Selisih ' + IC.lock + '</span><b id="ksSel">—</b><em id="ksTag"></em></div>' +
+        '</section>' +
+        '<form class="kd-add" id="kdAdd" autocomplete="off" novalidate>' +
+          '<div class="kd-add-h"><b>Catat baru</b><span>Enter = pindah ke kolom berikutnya</span></div>' +
+          '<div class="kf kf-nama"><label for="kaNama">Nama</label><input id="kaNama" list="kasNames" maxlength="60" autocapitalize="characters" enterkeyhint="next" placeholder="Driver / TKBM"></div>' +
+          '<div class="kf kf-po"><label for="kaPo">No PO / keterangan</label><input id="kaPo" list="kasPos" maxlength="60" autocapitalize="characters" enterkeyhint="next" placeholder="mis. KASBON"></div>' +
+          '<div class="kf kf-amt"><label for="kaAmt">Jumlah</label>' + amtIn("kaAmt", "0") + '</div>' +
+          '<button class="kd-addbtn" type="submit">' + IC.plus + '<span>Tambah baris</span></button>' +
+          '<p class="kd-err" id="kaErr" role="alert"></p>' +
+        '</form>' +
+      '</div>' +
       '<datalist id="kasNames"></datalist><datalist id="kasPos"></datalist>' +
-      '<div class="kd-bar"><b id="kdCount">Catatan hari ini</b>' +
-        '<div class="kd-bar-a">' +
-          '<button class="kbtn kbtn-wa" type="button" id="ksWa"><i class="fab fa-whatsapp"></i><span>Kirim ke <span class="wa-w">WhatsApp </span>' + esc(WA_NAME) + '</span></button>' +
-          '<button class="kbtn kbtn-ghost" type="button" id="ksCopy">' + IC.copy + '<span>Salin teks</span></button>' +
-        '</div></div>' +
-      '<p class="ks-hint">HP: dikirim sebagai gambar lewat menu Bagikan. Komputer: gambar disalin otomatis, chat WhatsApp Web terbuka, tinggal tekan Ctrl+V lalu Enter.</p>' +
-      '<div class="kd-listhead" aria-hidden="true"><span>#</span><span>Nama</span><span>No PO / keterangan</span><span>Jumlah</span><span></span></div>' +
-      '<div class="kd-list" id="kdList"></div>' +
+      '<div class="kd-main">' +
+        '<div class="kd-bar"><b id="kdCount">Catatan hari ini</b>' +
+          '<div class="kd-bar-a">' +
+            '<button class="kbtn kbtn-wa" type="button" id="ksWa"><i class="fab fa-whatsapp"></i><span>Kirim ke <span class="wa-w">WhatsApp </span>' + esc(WA_NAME) + '</span></button>' +
+            '<button class="kbtn kbtn-ghost" type="button" id="ksCopy">' + IC.copy + '<span>Salin teks</span></button>' +
+          '</div></div>' +
+        '<p class="ks-hint"><span class="h-m">Dikirim sebagai gambar lewat menu Bagikan.</span><span class="h-d">Gambar disalin otomatis dan chat WhatsApp Web terbuka. Tekan Ctrl+V, lalu Enter.</span></p>' +
+        '<div class="kd-listhead" aria-hidden="true"><span>#</span><span>Nama</span><span>No PO / keterangan</span><span>Jumlah</span><span></span></div>' +
+        '<div class="kd-list" id="kdList"></div>' +
+      '</div>' +
     '</div>';
+  { const root = $("kasRoot"); if (root) { root.classList.remove("is-m", "is-d"); root.classList.add(isMobileDevice() ? "is-m" : "is-d"); } }
 
   if (miniIO) { try { miniIO.disconnect(); } catch { /* */ } miniIO = null; }
   if ("IntersectionObserver" in window) {
@@ -510,6 +516,14 @@ function renderSummary(c) {
   $("kdMini").classList.toggle("is-neg", c.sisa < 0);
   $("ksSisa").textContent = (c.sisa < 0 ? "−" : "") + "Rp " + rp(Math.abs(c.sisa));
   $("ksSisa").parentNode.classList.toggle("is-neg", c.sisa < 0);
+  const pr = $("ksProg"), pc = $("ksPct");
+  if (pr && pc) {
+    if (c.diterima > 0) {
+      const pct = Math.max(0, Math.min(100, Math.round(c.total / c.diterima * 100)));
+      pr.style.width = (c.sisa < 0 ? 100 : pct) + "%";
+      pc.textContent = c.sisa < 0 ? "Melebihi uang diterima" : pct + "% dari uang diterima sudah diserahkan";
+    } else { pr.style.width = "0"; pc.textContent = "Isi uang diterima untuk melihat penggunaan"; }
+  }
   const d = $("ksDiff"), sel = $("ksSel"), tag = $("ksTag");
   d.classList.remove("ok", "less", "more", "none");
   if (c.selisih == null) { d.classList.add("none"); sel.textContent = "—"; tag.textContent = "isi fisik dulu"; }
@@ -551,7 +565,8 @@ function renderList(c) {
     el.innerHTML = '<div class="kd-empty"><span class="kd-empty-ic">' + IC.doc + '</span><b>Belum ada catatan di tanggal ini</b><span>Isi nama dan jumlah, lalu tekan Tambah baris.</span><button type="button" class="kbtn" data-act="focus">Mulai catat</button></div>';
     return;
   }
-  el.innerHTML = c.rows.map((r, i) => (S.editId === r.id ? rowEdit(r, i) : rowView(r, i))).join("");
+  el.innerHTML = c.rows.map((r, i) => (S.editId === r.id ? rowEdit(r, i) : rowView(r, i))).join("") +
+    '<div class="kd-foot"><span>Total ' + c.rows.length + ' baris</span><b>Rp ' + rp(c.total) + '</b></div>';
   S.dirty = false;
 }
 
