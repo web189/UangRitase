@@ -452,7 +452,7 @@ function renderDayShell() {
           '<button class="kbtn kbtn-wa" type="button" id="ksWa"><i class="fab fa-whatsapp"></i><span>Kirim ke <span class="wa-w">WhatsApp </span>' + esc(WA_NAME) + '</span></button>' +
           '<button class="kbtn kbtn-ghost" type="button" id="ksCopy">' + IC.copy + '<span>Salin teks</span></button>' +
         '</div></div>' +
-      '<p class="ks-hint">Dikirim sebagai gambar. Jika menu Bagikan tidak muncul, gambar diunduh dan chat WhatsApp dibuka.</p>' +
+      '<p class="ks-hint">HP: dikirim sebagai gambar lewat menu Bagikan. Komputer: gambar disalin otomatis, chat WhatsApp Web terbuka, tinggal tekan Ctrl+V lalu Enter.</p>' +
       '<div class="kd-listhead" aria-hidden="true"><span>#</span><span>Nama</span><span>No PO / keterangan</span><span>Jumlah</span><span></span></div>' +
       '<div class="kd-list" id="kdList"></div>' +
     '</div>';
@@ -639,35 +639,68 @@ function drawSheet(c, date) {
   return cv;
 }
 
+/* HP / tablet = layar sentuh. Desktop (Windows, Mac, Linux) = pakai WhatsApp Web */
+function isMobileDevice() {
+  try { if (navigator.userAgentData && navigator.userAgentData.mobile) return true; } catch (e) {}
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "");
+}
+
 function sendWA() {
   if (S.day === undefined) { toast("Data belum dimuat. Tunggu sebentar.", "warn"); return; }
   const c = calc(S.day);
   if (!c.rows.length) { toast("Belum ada catatan untuk dikirim.", "warn"); return; }
   const date = S.date, name = "Kas-Ritase-" + date + ".png";
   const cv = drawSheet(c, date);
-  /* cadangan: unduh gambar + buka chat WhatsApp tujuan (tanpa teks) */
-  const fallback = (blob) => {
-    try {
-      const a = document.createElement("a");
-      a.href = blob ? URL.createObjectURL(blob) : cv.toDataURL("image/png"); a.download = name;
-      document.body.appendChild(a); a.click(); a.remove();
-    } catch (e) { toast("Gagal membuat gambar: " + (e && e.message), "error", 6000); return; }
-    const url = "https://wa.me/" + WA_NUM;
-    const w = window.open(url, "_blank"); if (!w) location.href = url;
-    toast("Gambar terunduh. Di chat " + WA_NAME + ", ketuk ikon lampiran lalu pilih " + name, "success", 8000);
+  const mobile = isMobileDevice();
+
+  const download = (blob) => {
+    const a = document.createElement("a");
+    a.href = blob ? URL.createObjectURL(blob) : cv.toDataURL("image/png"); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
   };
-  cv.toBlob(async (blob) => {
-    if (!blob) return fallback(null);
-    /* utama: kirim FILE GAMBAR lewat menu Bagikan (tanpa teks) */
+  /* buka chat tujuan di WhatsApp Web (tanpa pindah dari halaman aplikasi) */
+  const openWebChat = () => {
+    const w = window.open("https://web.whatsapp.com/send?phone=" + WA_NUM, "_blank");
+    if (!w) toast("Pop-up diblokir browser. Izinkan pop-up untuk situs ini, lalu coba lagi.", "warn", 7000);
+    return !!w;
+  };
+
+  /* ── DESKTOP: gambar disalin ke clipboard, lalu chat dibuka. Tinggal Ctrl+V → Enter ── */
+  const desktopFlow = async (blob) => {
+    let copied = false;
     try {
-      const file = new File([blob], name, { type: "image/png" });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        toast("Pilih WhatsApp, lalu kontak " + WA_NAME, "info", 4000);
-        await navigator.share({ files: [file] });
-        return;
+      if (navigator.clipboard && window.ClipboardItem) {
+        await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+        copied = true;
       }
-    } catch (e) { if (e && e.name === "AbortError") return; }
-    fallback(blob);
+    } catch (e) { copied = false; }
+    if (!copied) {            /* clipboard tidak didukung / ditolak -> unduh sebagai cadangan */
+      try { download(blob); } catch (e) { toast("Gagal membuat gambar: " + (e && e.message), "error", 6000); return; }
+    }
+    openWebChat();
+    toast(copied
+      ? "Gambar disalin. Di chat " + WA_NAME + " tekan Ctrl+V, lalu Enter."
+      : "Gambar terunduh. Di chat " + WA_NAME + " klik lampiran (+) lalu pilih " + name, "success", 9000);
+  };
+
+  cv.toBlob(async (blob) => {
+    if (!blob) { try { download(null); } catch (e) {} return; }
+    if (mobile) {
+      /* HP: menu Bagikan (tidak diubah) */
+      try {
+        const file = new File([blob], name, { type: "image/png" });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          toast("Pilih WhatsApp, lalu kontak " + WA_NAME, "info", 4000);
+          await navigator.share({ files: [file] });
+          return;
+        }
+      } catch (e) { if (e && e.name === "AbortError") return; }
+      try { download(blob); } catch (e) { toast("Gagal membuat gambar: " + (e && e.message), "error", 6000); return; }
+      const w = window.open("https://wa.me/" + WA_NUM, "_blank"); if (!w) location.href = "https://wa.me/" + WA_NUM;
+      toast("Gambar terunduh. Di chat " + WA_NAME + ", ketuk ikon lampiran lalu pilih " + name, "success", 8000);
+    } else {
+      desktopFlow(blob);
+    }
   }, "image/png");
 }
 
