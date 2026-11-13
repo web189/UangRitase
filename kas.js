@@ -136,7 +136,7 @@ function guard(p) {
      langsung tampil di layar, lalu dikirim ke server. Antrean tahan ditutup / dimuat ulang.
    • Begitu server terjangkau lagi, antrean dikirim otomatis berurutan (aman diulang: id sama = hasil sama). */
 const OB_KEY = "kas_outbox_v1", CACHE_PFX = "kas_day_", MON_PFX = "kas_mon_";
-let outbox = [], flushing = false, flushTimer = null, lastWarn = 0, wasPending = false;
+let outbox = [], flushing = false, flushTimer = null, lastWarn = 0, wasPending = false, queuedOffline = false;
 try { const a = JSON.parse(lsGet(OB_KEY, "[]")); if (Array.isArray(a)) outbox = a.filter((o) => o && o.k && o.date); } catch { /* */ }
 
 const live = () => !!db && S.conn === true && (typeof navigator === "undefined" || navigator.onLine !== false);
@@ -188,6 +188,7 @@ function enqueue(op) {
   outbox = outbox.filter((o) => !same(o));
   outbox.push(op);
   saveOutbox(); rebuild(); onDay();
+  if (!live()) queuedOffline = true;
   if (!live() && Date.now() - lastWarn > 4000) { lastWarn = Date.now(); toast("Tersimpan di HP. Dikirim otomatis saat online.", "info", 2800); }
   flush();
 }
@@ -211,7 +212,7 @@ async function flush() {
     }
   } finally { flushing = false; rebuild(); onDay(); paintNet(); }
   if (outbox.length) { clearTimeout(flushTimer); flushTimer = setTimeout(flush, 8000); }
-  else if (wasPending) { wasPending = false; toast("Semua perubahan sudah tersinkron ke server.", "success", 2600); }
+  else if (wasPending) { wasPending = false; if (queuedOffline) { queuedOffline = false; toast("Semua perubahan sudah tersinkron ke server.", "success", 2600); } }
 }
 
 /* ───────── penanda status (online / offline / antrean) ───────── */

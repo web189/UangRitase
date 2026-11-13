@@ -599,6 +599,18 @@ window.addEventListener('appinstalled',function(){window.__pwaInstalled=true;});
 })();
 </script>
 <script>
+/* tema: peralihan halus + warna bilah browser mengikuti tema */
+(function () {
+  var de = document.documentElement, meta = document.getElementById("metaTheme"), t = null;
+  function sync() { if (meta) meta.setAttribute("content", de.getAttribute("data-theme") === "light" ? "#e2ebf7" : "#030a17"); }
+  document.addEventListener("click", function (e) {
+    var el = e.target; while (el && el !== document) { if (el.classList && (el.classList.contains("theme-toggle") || el.getAttribute("data-act") === "theme")) { de.classList.add("theme-anim"); clearTimeout(t); t = setTimeout(function () { de.classList.remove("theme-anim"); }, 450); break; } el = el.parentNode; }
+  }, true);
+  try { new MutationObserver(sync).observe(de, { attributes: true, attributeFilter: ["data-theme"] }); } catch (e) {}
+  sync();
+})();
+</script>
+<script>
 /* pembaruan otomatis: pantau semua file kode, jangan muat ulang saat kas sedang dikirim / diedit */
 window.PWA_CFG = { watch: ["index.html", "sw.js", "kas.js", "kas.css", "app.js", "app.css"], busy: function () { try { return !!(window.__kasBusy && window.__kasBusy()); } catch (e) { return false; } } };
 (function () {

@@ -390,3 +390,17 @@ html.lite .kas-net .kn-ic path { animation: none !important; }
 .kd-mini b { font-size: 18px; }
 .kd-mini small { overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 420px) { .kd-mini span { display: none; } .kd-mini small { margin-left: auto; font-size: 11.5px; } }
+
+/* ── v31: kedalaman kartu kas per tema ── */
+.kk-sisa { box-shadow: 0 16px 28px -18px rgba(20, 99, 214, .75); }
+.kk-sisa.is-neg { box-shadow: 0 16px 28px -18px rgba(214, 43, 75, .7); }
+html[data-theme=light] .kk-c:not(.kk-sisa), html[data-theme=light] .kd-add, html[data-theme=light] .kd-main, html[data-theme=light] .kr,
+html[data-theme=light] .kd-foot { box-shadow: 0 1px 2px rgba(11, 36, 71, .05), 0 10px 22px -16px rgba(11, 36, 71, .28); }
+html[data-theme=light] .kd-main .kr, html[data-theme=light] .kd-main .kd-foot { box-shadow: none; }
+html[data-theme=light] .kas-bar { box-shadow: 0 10px 22px -16px rgba(183, 121, 31, .7); }
+html[data-theme=light] .kas-tabs { background: #1446821a; }
+html[data-theme=light] .kas-net.is-on { background: #e3f6ee; border-color: #7fcfae; }
+html[data-theme=light] .kas-net.is-off { background: repeating-linear-gradient(135deg, #fff1d1 0 10px, #ffe9b8 10px 20px); }
+html[data-theme=light] .kas-net.is-sync { background: #e1f1fb; border-color: #8cc6e8; }
+html:not([data-theme=light]) .kk-c:not(.kk-sisa), html:not([data-theme=light]) .kd-add, html:not([data-theme=light]) .kd-main { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05); }
+html:not([data-theme=light]) .kr { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04); }
