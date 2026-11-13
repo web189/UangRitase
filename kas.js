@@ -49,6 +49,7 @@ const IC = {
   ok: '<svg class="ksv" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
   x: '<svg class="ksv" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg>',
   plus: '<svg class="ksv" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  clock: '<svg class="ksv" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
   lock: '<svg class="ksv ksv-lock" viewBox="0 0 24 24"><rect x="5.5" y="10.5" width="13" height="9.5" rx="2.2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg>'
 };
 
@@ -94,7 +95,8 @@ function calc(day) {
 let db = null, offset = 0;
 const S = {
   date: "", month: "", tab: "day", touched: false,
-  day: undefined, monthData: undefined, log: undefined,
+  day: undefined, srv: undefined, pend: {}, conn: false, fromCache: false, cacheAt: 0, cacheT: null,
+  monthData: undefined, log: undefined,
   editId: null, dirty: false, undo: null
 };
 const un = { day: null, month: null, log: null };
@@ -108,9 +110,9 @@ const who = () => (lsGet("kas_who", "") || "Tamu").slice(0, 24);
 function listen(kind, path, cb) {
   if (un[kind]) { try { un[kind](); } catch { /* */ } un[kind] = null; }
   if (!db) return;
-  un[kind] = onValue(ref(db, path), (snap) => cb(snap.val()), (err) => {
+  un[kind] = onValue(ref(db, path), (snap) => cb(snap.val(), null), (err) => {
     toast(errMsg(err), "error", 7000);
-    cb(null);
+    cb(null, err);
   });
 }
 function errMsg(e) {
@@ -122,30 +124,125 @@ function errMsg(e) {
 }
 function ready() {
   if (!db) { toast("Server belum terhubung. Tunggu sebentar lalu coba lagi.", "warn", 4500); return false; }
-  if (typeof navigator !== "undefined" && navigator.onLine === false) { toast("Sedang offline. Input kas hanya bisa saat online.", "warn", 4500); return false; }
-  return true;
+  return true;                       /* offline pun boleh: perubahan masuk antrean di HP */
 }
 function guard(p) {
   return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 12000))]);
 }
-function writeAt(path, val) { return guard(set(ref(db, path), val)); }
-function logAct(date, act, detail) {
-  if (!db) return;
-  push(ref(db, logPath(date)), { act, detail: trunc(detail, 190), by: who(), ts: nowMs() }).catch(() => {});
+
+/* ───────── OFFLINE: simpanan data + antrean kirim otomatis ─────────
+   • Setiap hari yang pernah dibuka online disimpan di HP (localStorage) → tetap tampil saat offline.
+   • Setiap perubahan (tambah / edit / hapus / uang diterima / fisik) MASUK ANTREAN dulu,
+     langsung tampil di layar, lalu dikirim ke server. Antrean tahan ditutup / dimuat ulang.
+   • Begitu server terjangkau lagi, antrean dikirim otomatis berurutan (aman diulang: id sama = hasil sama). */
+const OB_KEY = "kas_outbox_v1", CACHE_PFX = "kas_day_", MON_PFX = "kas_mon_";
+let outbox = [], flushing = false, flushTimer = null, lastWarn = 0, wasPending = false;
+try { const a = JSON.parse(lsGet(OB_KEY, "[]")); if (Array.isArray(a)) outbox = a.filter((o) => o && o.k && o.date); } catch { /* */ }
+
+const live = () => !!db && S.conn === true && (typeof navigator === "undefined" || navigator.onLine !== false);
+function saveOutbox() { lsSet(OB_KEY, JSON.stringify(outbox)); paintNet(); }
+const mkLog = (act, detail) => ({ act, detail: trunc(detail, 190), by: who(), ts: nowMs() });
+
+function cacheWrite(prefix, key, v) {
+  lsSet(prefix + key, JSON.stringify({ t: nowMs(), v }));
+  if (Math.random() < 0.15) {            /* simpan paling banyak 45 hari / 12 bulan terakhir */
+    try {
+      const keep = prefix === CACHE_PFX ? 45 : 12, all = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.indexOf(prefix) === 0) { let t = 0; try { t = JSON.parse(localStorage.getItem(k)).t || 0; } catch { /* */ } all.push([k, t]); }
+      }
+      all.sort((x, y) => y[1] - x[1]).slice(keep).forEach((x) => { try { localStorage.removeItem(x[0]); } catch { /* */ } });
+    } catch { /* */ }
+  }
 }
+function cacheRead(prefix, key) {
+  try { const o = JSON.parse(lsGet(prefix + key, "null")); return o && o.v ? o : null; } catch { return null; }
+}
+
+/* tampilan = data server + perubahan yang masih antre */
+function overlay(base, date) {
+  const ops = outbox.filter((o) => o.date === date);
+  if (!ops.length) return base;
+  const day = JSON.parse(JSON.stringify(base || {}));
+  day.rows = day.rows || {};
+  ops.forEach((o) => {
+    if (o.k === "set") day.rows[o.id] = o.row;
+    else if (o.k === "del") delete day.rows[o.id];
+    else if (o.k === "money") { if (o.val == null) delete day[o.field]; else day[o.field] = o.val; }
+  });
+  return day;
+}
+function rebuild() {
+  if (S.srv === undefined) return;
+  S.day = overlay(S.srv, S.date);
+  S.pend = {};
+  outbox.forEach((o) => { if (o.date === S.date && o.k === "set") S.pend[o.id] = 1; });
+}
+
+function enqueue(op) {
+  /* gabungkan perubahan beruntun pada baris / kolom yang sama (riwayat tetap lengkap) */
+  const same = (o) => o.date === op.date && (op.k === "money" ? (o.k === "money" && o.field === op.field) : (o.k !== "money" && o.id === op.id));
+  const prev = outbox.filter(same);
+  op.logs = prev.reduce((a, o) => a.concat(o.logs || []), []).concat(op.logs || []);
+  outbox = outbox.filter((o) => !same(o));
+  outbox.push(op);
+  saveOutbox(); rebuild(); onDay();
+  if (!live() && Date.now() - lastWarn > 4000) { lastWarn = Date.now(); toast("Tersimpan di HP. Dikirim otomatis saat online.", "info", 2800); }
+  flush();
+}
+
+async function flush() {
+  if (flushing || !outbox.length || !live()) return;
+  flushing = true; wasPending = true; paintNet();
+  try {
+    while (outbox.length && live()) {
+      const o = outbox[0], base = dayPath(o.date);
+      try {
+        if (o.k === "set") await guard(set(ref(db, base + "/rows/" + o.id), o.row));
+        else if (o.k === "del") await guard(remove(ref(db, base + "/rows/" + o.id)));
+        else if (o.k === "money") await guard(set(ref(db, base + "/" + o.field), o.val == null ? null : o.val));
+        (o.logs || []).forEach((l) => { push(ref(db, logPath(o.date)), { act: l.act, detail: l.detail, by: l.by, ts: l.ts }).catch(() => {}); });
+        outbox.shift(); saveOutbox();
+      } catch (e) {
+        if (e && e.code === "PERMISSION_DENIED") { outbox.shift(); saveOutbox(); toast(errMsg(e), "error", 8000); continue; }
+        break;                                   /* jaringan bermasalah: coba lagi nanti, antrean tetap aman */
+      }
+    }
+  } finally { flushing = false; rebuild(); onDay(); paintNet(); }
+  if (outbox.length) { clearTimeout(flushTimer); flushTimer = setTimeout(flush, 8000); }
+  else if (wasPending) { wasPending = false; toast("Semua perubahan sudah tersinkron ke server.", "success", 2600); }
+}
+
+/* ───────── penanda status (online / offline / antrean) ───────── */
+function paintNet() {
+  const el = $("kasNet"); 
+  const n = outbox.length, off = typeof navigator !== "undefined" && navigator.onLine === false;
+  let cls, txt, sub = "", btn = false;
+  if (off) { cls = "is-off"; txt = n ? "Offline · " + n + " perubahan menunggu dikirim" : "Offline · data tersimpan di HP"; sub = S.fromCache && S.cacheAt ? "data terakhir " + clock(S.cacheAt) : ""; }
+  else if (!db || S.conn !== true) { cls = "is-sync"; txt = n ? "Menyambung · " + n + " perubahan menunggu" : "Menyambung ke server…"; }
+  else if (flushing) { cls = "is-sync"; txt = "Mengirim " + n + " perubahan…"; }
+  else if (n) { cls = "is-sync"; txt = n + " perubahan belum terkirim"; btn = true; }
+  else { cls = "is-on"; txt = "Online · tersinkron"; sub = "realtime"; }
+  if (el) {
+    el.className = "kas-net " + cls;
+    $("kasNetTxt").textContent = txt; $("kasNetSub").textContent = sub;
+    $("kasNetGo").hidden = !btn;
+  }
+  try { window.dispatchEvent(new CustomEvent("kas:net", { detail: { pending: n, live: live(), flushing } })); } catch { /* */ }
+}
+const clock = (ts) => { const d = new Date((ts || 0) + 7 * 3600e3); return pad(d.getUTCHours()) + "." + pad(d.getUTCMinutes()); };
+
 const rowTxt = (r) => [r.nama, r.po, "Rp " + rp(r.jumlah)].filter(Boolean).join(" · ");
 
 /* ───────── aksi data ───────── */
 async function addRow(nama, po, jumlah) {
   if (!ready()) return false;
   const date = S.date, row = { nama, po, jumlah, ts: nowMs(), by: who() };
-  try {
-    const r = push(ref(db, dayPath(date) + "/rows"));
-    await guard(set(r, row));
-    logAct(date, "tambah", rowTxt(row));
-    rememberWords(nama, po);
-    return true;
-  } catch (e) { toast(errMsg(e), "error", 7000); return false; }
+  const id = push(ref(db, dayPath(date) + "/rows")).key;
+  enqueue({ k: "set", date, id, row, logs: [mkLog("tambah", rowTxt(row))] });
+  rememberWords(nama, po);
+  return true;
 }
 async function saveRow(id, nama, po, jumlah) {
   if (!ready()) return false;
@@ -153,31 +250,22 @@ async function saveRow(id, nama, po, jumlah) {
   if (!old) { toast("Baris ini sudah dihapus orang lain.", "warn"); return true; }
   if (old.nama === nama && old.po === po && Number(old.jumlah) === jumlah) return true;
   const row = Object.assign({}, old, { nama, po, jumlah, eby: who(), ets: nowMs() });
-  try {
-    await writeAt(dayPath(date) + "/rows/" + id, row);
-    logAct(date, "edit", trunc(rowTxt(old), 90) + "  →  " + trunc(rowTxt(row), 90));
-    rememberWords(nama, po);
-    return true;
-  } catch (e) { toast(errMsg(e), "error", 7000); return false; }
+  enqueue({ k: "set", date, id, row, logs: [mkLog("edit", trunc(rowTxt(old), 90) + "  →  " + trunc(rowTxt(row), 90))] });
+  rememberWords(nama, po);
+  return true;
 }
 async function delRow(id) {
   if (!ready()) return;
   const date = S.date, old = ((S.day && S.day.rows) || {})[id];
   if (!old) return;
-  try {
-    await guard(remove(ref(db, dayPath(date) + "/rows/" + id)));
-    logAct(date, "hapus", rowTxt(old));
-    showUndo({ date, id, row: old });
-  } catch (e) { toast(errMsg(e), "error", 7000); }
+  enqueue({ k: "del", date, id, logs: [mkLog("hapus", rowTxt(old))] });
+  showUndo({ date, id, row: old });
 }
 async function undoDel() {
   const u = S.undo; if (!u || !ready()) return;
   hideUndo();
-  try {
-    await writeAt(dayPath(u.date) + "/rows/" + u.id, u.row);
-    logAct(u.date, "pulih", rowTxt(u.row));
-    toast("Baris dipulihkan", "success", 2200);
-  } catch (e) { toast(errMsg(e), "error", 7000); }
+  enqueue({ k: "set", date: u.date, id: u.id, row: u.row, logs: [mkLog("pulih", rowTxt(u.row))] });
+  toast("Baris dipulihkan", "success", 2200);
 }
 async function setMoney(field, label, raw) {
   if (!ready()) return;
@@ -185,10 +273,7 @@ async function setMoney(field, label, raw) {
   const prev = S.day && typeof S.day[field] === "number" ? S.day[field] : null;
   const val = d === "" ? null : parseInt(d, 10);
   if (val === prev) return;
-  try {
-    await writeAt(dayPath(date) + "/" + field, val);
-    logAct(date, field, label + ": " + (prev == null ? "kosong" : "Rp " + rp(prev)) + "  →  " + (val == null ? "kosong" : "Rp " + rp(val)));
-  } catch (e) { toast(errMsg(e), "error", 7000); }
+  enqueue({ k: "money", date, field, val, logs: [mkLog(field, label + ": " + (prev == null ? "kosong" : "Rp " + rp(prev)) + "  →  " + (val == null ? "kosong" : "Rp " + rp(val)))] });
 }
 
 /* kata yang pernah dipakai → saran isian */
@@ -378,6 +463,7 @@ function mount() {
         '<button class="kb-nav" type="button" data-act="next" aria-label="Hari berikutnya">' + IC.next + '</button>' +
       '</div>' +
       '<div class="kas-body">' +
+        '<div class="kas-net is-sync" id="kasNet" role="status" aria-live="polite"><span class="kn-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path class="b1" d="M5 19v-3"/><path class="b2" d="M10 19v-6"/><path class="b3" d="M15 19V9"/><path class="b4" d="M20 19V5"/><circle class="of" cx="12" cy="12" r="7.5"/><path class="sl" d="M6.7 6.7l10.6 10.6"/></svg></span><span class="kn-tx"><b id="kasNetTxt">Menyambung…</b><small id="kasNetSub"></small></span><button class="kn-go" id="kasNetGo" type="button" hidden>Kirim sekarang</button></div>' +
         '<div class="kas-tools">' +
           '<div class="kas-tabs" role="tablist" aria-label="Tampilan kas">' +
             '<button type="button" role="tab" data-tab="day" aria-selected="true">Harian</button>' +
@@ -408,9 +494,23 @@ function setHead() {
 function setDate(date, byUser) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
   if (byUser) S.touched = true;
-  S.date = date; S.day = undefined; S.log = undefined; S.editId = null; S.dirty = false;
+  S.date = date; S.day = undefined; S.srv = undefined; S.fromCache = false; S.cacheAt = 0; S.pend = {}; S.log = undefined; S.editId = null; S.dirty = false;
   setHead();
-  listen("day", dayPath(date), (v) => { S.day = v || {}; onDay(); });
+  clearTimeout(S.cacheT);
+  listen("day", dayPath(date), (v, err) => {
+    if (err && S.srv !== undefined) return;                 /* galat: jangan timpa data yang sudah tampil */
+    S.srv = v || {}; S.fromCache = false;
+    if (!err) cacheWrite(CACHE_PFX, date, S.srv);
+    rebuild(); onDay();
+  });
+  /* belum ada jawaban server (offline / lambat) → tampilkan simpanan di HP */
+  S.cacheT = setTimeout(() => {
+    if (S.date !== date || S.srv !== undefined) return;
+    const c = cacheRead(CACHE_PFX, date), off = typeof navigator !== "undefined" && navigator.onLine === false;
+    if (!c && !off) return;                                 /* online tanpa simpanan: tunggu server */
+    S.srv = c ? c.v : {}; S.fromCache = true; S.cacheAt = c ? c.t : 0;
+    rebuild(); onDay(); paintNet();
+  }, (typeof navigator !== "undefined" && navigator.onLine === false) ? 0 : 1800);
   if (S.tab === "day") onDay();
   if (S.tab === "log") { renderLog(); listen("log", logPath(date), (v) => { S.log = v || {}; renderLog(); }); }
 }
@@ -456,7 +556,7 @@ function renderDayShell() {
             '<button class="kbtn kbtn-wa" type="button" id="ksWa"><i class="fab fa-whatsapp"></i><span>Kirim ke <span class="wa-w">WhatsApp </span>' + esc(WA_NAME) + '</span></button>' +
             '<button class="kbtn kbtn-ghost" type="button" id="ksCopy">' + IC.copy + '<span>Salin teks</span></button>' +
           '</div></div>' +
-        '<p class="ks-hint"><span class="h-m">Dikirim sebagai gambar lewat menu Bagikan.</span><span class="h-d">Gambar disalin otomatis dan chat WhatsApp Web terbuka. Tekan Ctrl+V, lalu Enter.</span></p>' +
+        '<p class="ks-hint"><span class="h-m">Dikirim sebagai gambar lewat menu Bagikan.</span><span class="h-d">Di komputer, tombol ini hanya mengunduh gambar JPG ke folder Download.</span></p>' +
         '<div class="kd-listhead" aria-hidden="true"><span>#</span><span>Nama</span><span>No PO / keterangan</span><span>Jumlah</span><span></span></div>' +
         '<div class="kd-list" id="kdList"></div>' +
       '</div>' +
@@ -534,10 +634,10 @@ function renderSummary(c) {
 
 const hueOf = (t) => { let h = 0; const x = String(t || "?"); for (let i = 0; i < x.length; i++) h = (h * 31 + x.charCodeAt(i)) % 360; return h; };
 function rowView(r, i) {
-  const k = isKasbon(r.po);
-  return '<div class="kr' + (k ? " is-kasbon" : "") + '" data-id="' + esc(r.id) + '">' +
+  const k = isKasbon(r.po), pend = S.pend && S.pend[r.id];
+  return '<div class="kr' + (k ? " is-kasbon" : "") + (pend ? " is-pending" : "") + '" data-id="' + esc(r.id) + '">' +
     '<span class="kr-no">' + (i + 1) + '</span>' +
-    '<span class="kr-nama"><i class="kr-av" style="--h:' + hueOf(r.nama) + '">' + esc(String(r.nama || "?").charAt(0)) + '</i><b>' + esc(r.nama) + '</b></span>' +
+    '<span class="kr-nama"><i class="kr-av" style="--h:' + hueOf(r.nama) + '">' + esc(String(r.nama || "?").charAt(0)) + '</i><b>' + esc(r.nama) + '</b>' + (pend ? '<i class="kr-pend" title="Menunggu dikirim ke server">' + IC.clock + '<span>menunggu</span></i>' : '') + '</span>' +
     '<span class="kr-po">' + (r.po ? '<em>' + esc(r.po) + '</em>' : '<i class="kr-none">—</i>') + '</span>' +
     '<span class="kr-amt"><small>Rp</small><b>' + rp(r.jumlah) + '</b></span>' +
     '<span class="kr-act">' +
@@ -654,68 +754,63 @@ function drawSheet(c, date) {
   return cv;
 }
 
-/* HP / tablet = layar sentuh. Desktop (Windows, Mac, Linux) = pakai WhatsApp Web */
+/* HP / tablet = layar sentuh -> menu Bagikan. Komputer (Windows 7 dll) = unduh gambar JPG saja. */
 function isMobileDevice() {
-  try { if (navigator.userAgentData && navigator.userAgentData.mobile) return true; } catch (e) {}
+  try { if (navigator.userAgentData && navigator.userAgentData.mobile) return true; } catch (e) { /* */ }
+  try { if (window.matchMedia && window.matchMedia("(pointer: coarse)").matches && (navigator.maxTouchPoints || 0) > 0) return true; } catch (e) { /* */ }
   return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "");
+}
+
+/* simpan Blob / data-URL sebagai file (aman untuk Chrome lama) */
+function saveFile(blob, dataUrl, filename) {
+  const a = document.createElement("a");
+  const url = blob ? URL.createObjectURL(blob) : dataUrl;
+  a.href = url; a.download = filename; a.style.display = "none";
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { try { document.body.removeChild(a); if (blob) URL.revokeObjectURL(url); } catch (e) { /* */ } }, 1500);
 }
 
 function sendWA() {
   if (S.day === undefined) { toast("Data belum dimuat. Tunggu sebentar.", "warn"); return; }
   const c = calc(S.day);
   if (!c.rows.length) { toast("Belum ada catatan untuk dikirim.", "warn"); return; }
-  const date = S.date, name = "Kas-Ritase-" + date + ".png";
-  const cv = drawSheet(c, date);
-  const mobile = isMobileDevice();
+  const date = S.date;
+  let cv;
+  try { cv = drawSheet(c, date); } catch (e) { toast("Gagal membuat gambar: " + (e && e.message), "error", 6000); return; }
 
-  const download = (blob) => {
-    const a = document.createElement("a");
-    a.href = blob ? URL.createObjectURL(blob) : cv.toDataURL("image/png"); a.download = name;
-    document.body.appendChild(a); a.click(); a.remove();
-  };
-  /* buka chat tujuan di WhatsApp Web (tanpa pindah dari halaman aplikasi) */
-  const openWebChat = () => {
-    const w = window.open("https://web.whatsapp.com/send?phone=" + WA_NUM, "_blank");
-    if (!w) toast("Pop-up diblokir browser. Izinkan pop-up untuk situs ini, lalu coba lagi.", "warn", 7000);
-    return !!w;
-  };
-
-  /* ── DESKTOP: gambar disalin ke clipboard, lalu chat dibuka. Tinggal Ctrl+V → Enter ── */
-  const desktopFlow = async (blob) => {
-    let copied = false;
+  /* ── KOMPUTER: unduh JPG saja. Tidak membuka WhatsApp, tidak menyalin apa pun. ── */
+  if (!isMobileDevice()) {
+    const jpg = "Kas-Ritase-" + date + ".jpg";
     try {
-      if (navigator.clipboard && window.ClipboardItem) {
-        await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-        copied = true;
-      }
-    } catch (e) { copied = false; }
-    if (!copied) {            /* clipboard tidak didukung / ditolak -> unduh sebagai cadangan */
-      try { download(blob); } catch (e) { toast("Gagal membuat gambar: " + (e && e.message), "error", 6000); return; }
+      cv.toBlob((blob) => {
+        try {
+          if (blob) saveFile(blob, null, jpg);
+          else saveFile(null, cv.toDataURL("image/jpeg", 0.92), jpg);
+          toast("Gambar tersimpan: " + jpg + " (folder Download)", "success", 5000);
+        } catch (e) { toast("Gagal mengunduh gambar: " + (e && e.message), "error", 6000); }
+      }, "image/jpeg", 0.92);
+    } catch (e) {
+      try { saveFile(null, cv.toDataURL("image/jpeg", 0.92), jpg); toast("Gambar tersimpan: " + jpg, "success", 5000); }
+      catch (e2) { toast("Gagal mengunduh gambar: " + (e2 && e2.message), "error", 6000); }
     }
-    openWebChat();
-    toast(copied
-      ? "Gambar disalin. Di chat " + WA_NAME + " tekan Ctrl+V, lalu Enter."
-      : "Gambar terunduh. Di chat " + WA_NAME + " klik lampiran (+) lalu pilih " + name, "success", 9000);
-  };
+    return;
+  }
 
+  /* ── HP: menu Bagikan (tidak diubah) ── */
+  const name = "Kas-Ritase-" + date + ".png";
   cv.toBlob(async (blob) => {
-    if (!blob) { try { download(null); } catch (e) {} return; }
-    if (mobile) {
-      /* HP: menu Bagikan (tidak diubah) */
-      try {
-        const file = new File([blob], name, { type: "image/png" });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          toast("Pilih WhatsApp, lalu kontak " + WA_NAME, "info", 4000);
-          await navigator.share({ files: [file] });
-          return;
-        }
-      } catch (e) { if (e && e.name === "AbortError") return; }
-      try { download(blob); } catch (e) { toast("Gagal membuat gambar: " + (e && e.message), "error", 6000); return; }
-      const w = window.open("https://wa.me/" + WA_NUM, "_blank"); if (!w) location.href = "https://wa.me/" + WA_NUM;
-      toast("Gambar terunduh. Di chat " + WA_NAME + ", ketuk ikon lampiran lalu pilih " + name, "success", 8000);
-    } else {
-      desktopFlow(blob);
-    }
+    if (!blob) { try { saveFile(null, cv.toDataURL("image/png"), name); } catch (e) { /* */ } return; }
+    try {
+      const file = new File([blob], name, { type: "image/png" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        toast("Pilih WhatsApp, lalu kontak " + WA_NAME, "info", 4000);
+        await navigator.share({ files: [file] });
+        return;
+      }
+    } catch (e) { if (e && e.name === "AbortError") return; }
+    try { saveFile(blob, null, name); } catch (e) { toast("Gagal membuat gambar: " + (e && e.message), "error", 6000); return; }
+    const w = window.open("https://wa.me/" + WA_NUM, "_blank"); if (!w) location.href = "https://wa.me/" + WA_NUM;
+    toast("Gambar terunduh. Di chat " + WA_NAME + ", ketuk ikon lampiran lalu pilih " + name, "success", 8000);
   }, "image/png");
 }
 
@@ -762,11 +857,13 @@ function renderRekapShell() {
 function loadMonth() {
   $("kmTitle").textContent = monthTitle(S.month);
   S.monthData = undefined; renderRekap();
-  listen("month", "kas/" + S.month, (v) => { S.monthData = v || {}; renderRekap(); });
+  const mc = cacheRead(MON_PFX, S.month);
+  if (mc && !live()) { S.monthData = mc.v; renderRekap(); }
+  listen("month", "kas/" + S.month, (v, err) => { if (err && S.monthData !== undefined) return; S.monthData = v || {}; if (!err) cacheWrite(MON_PFX, S.month, S.monthData); renderRekap(); });
 }
 function renderRekap() {
   const el = $("kmBody"); if (!el) return;
-  if (S.monthData === undefined) { el.innerHTML = '<div class="kd-empty">Memuat rekap…</div>'; return; }
+  if (S.monthData === undefined) { el.innerHTML = live() ? '<div class="kd-empty">Memuat rekap…</div>' : '<div class="kd-empty"><b>Rekap belum tersimpan di HP</b><span>Buka rekap bulan ini sekali saat online. Setelah itu bisa dilihat tanpa internet.</span></div>'; return; }
   const days = Object.keys(S.monthData).filter((d) => /^\d{2}$/.test(d)).sort();
   if (!days.length) { el.innerHTML = '<div class="kd-empty"><b>Belum ada catatan di ' + esc(monthTitle(S.month)) + '.</b><span>Buka tab Harian dan mulai input.</span></div>'; return; }
   let tD = 0, tS = 0, tN = 0;
@@ -791,7 +888,7 @@ function renderRekap() {
 const ACT = { tambah: ["Tambah", "ok"], edit: ["Edit", "warn"], hapus: ["Hapus", "bad"], pulih: ["Pulihkan", "info"], diterima: ["Uang diterima", "viol"], fisik: ["Fisik uang", "viol"] };
 function renderLog() {
   const v = $("kasView"); if (!v) return;
-  if (S.log === undefined) { v.innerHTML = '<div class="kd-empty">Memuat riwayat…</div>'; return; }
+  if (S.log === undefined) { v.innerHTML = live() ? '<div class="kd-empty">Memuat riwayat…</div>' : '<div class="kd-empty"><b>Riwayat butuh internet</b><span>Tampil otomatis begitu koneksi kembali.</span></div>'; return; }
   const items = Object.keys(S.log).map((id) => Object.assign({ id }, S.log[id])).filter((x) => x && x.ts).sort((a, b) => b.ts - a.ts);
   if (!items.length) { v.innerHTML = '<div class="kd-empty"><b>Belum ada riwayat di tanggal ' + esc(titleDate(S.date)) + '.</b><span>Setiap tambah, edit, dan hapus akan tercatat di sini beserta jamnya.</span></div>'; return; }
   v.innerHTML = '<p class="kh-sum">' + items.length + ' perubahan pada kas ' + esc(titleDate(S.date)) + '. Riwayat tidak bisa diubah atau dihapus.</p><ol class="kh">' +
@@ -839,6 +936,14 @@ function boot() {
       offset = Number(s.val()) || 0;
       if (!S.touched && S.tab === "day" && todayWIB() !== S.date && !S.editId) setDate(todayWIB());
     });
+    onValue(ref(db, ".info/connected"), (s) => { S.conn = !!s.val(); paintNet(); if (S.conn) flush(); });
+    window.addEventListener("online", () => { paintNet(); setTimeout(flush, 800); });
+    window.addEventListener("offline", paintNet);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) { paintNet(); flush(); } });
+    setInterval(() => { if (outbox.length) flush(); }, 20000);
+    const go = $("kasNetGo"); if (go) go.addEventListener("click", flush);
+    window.__kasBusy = () => flushing || !!S.editId;
+    paintNet();
     setDate(S.date);
   } catch (e) {
     console.warn("[Kas] Firebase tidak termuat:", e && e.message);
@@ -848,4 +953,4 @@ function boot() {
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
 
 /* untuk pengujian */
-window.__kas = { Calc, drawSheet, calc, rowsOf, up, num, fmtIn, isKasbon };
+window.__kas = { outbox: () => outbox, overlay, Calc, drawSheet, calc, rowsOf, up, num, fmtIn, isKasbon };

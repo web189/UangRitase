@@ -78,12 +78,13 @@ window.addEventListener('appinstalled',function(){window.__pwaInstalled=true;});
 <!-- APP BAR: status koneksi · jam · tema · pasang aplikasi -->
 <div class="appbar" id="appbar">
   <div class="appbar-in">
-    <div class="conn is-sync" id="connChip" role="status" aria-live="polite"><i class="conn-dot"></i><span id="connTxt">Menyambung…</span><small class="conn-sub" id="syncTime"></small></div>
+    <div class="conn is-sync" id="connChip" role="status" aria-live="polite"><span class="conn-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path class="b1" d="M5 19v-3"/><path class="b2" d="M10 19v-6"/><path class="b3" d="M15 19V9"/><path class="b4" d="M20 19V5"/><circle class="of" cx="12" cy="12" r="7.5"/><path class="sl" d="M6.7 6.7l10.6 10.6"/></svg></span><span id="connTxt">Menyambung…</span><small class="conn-sub" id="syncTime"></small></div>
     <span class="appbar-sp"></span>
     <div class="datetime-pill" id="datetime"></div>
     <button class="appbar-btn theme-toggle" id="themeToggle" type="button" aria-label="Ganti mode terang / gelap" title="Ganti mode terang / gelap"><svg class="sv ic-sun"><use href="#i-sun"/></svg><svg class="sv ic-moon"><use href="#i-moon"/></svg></button>
     <button class="appbar-btn pwa-bar-btn js-install" id="pwaBarBtn" type="button" aria-label="Pasang aplikasi UangRitase" title="Pasang aplikasi (bisa offline)"><svg class="sv"><use href="#i-install"/></svg><span class="bar-lab">Pasang Aplikasi</span></button>
   </div>
+  <div class="netbar" id="netBar" role="status" aria-live="polite" hidden><span class="nb-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path class="b1" d="M5 19v-3"/><path class="b2" d="M10 19v-6"/><path class="b3" d="M15 19V9"/><path class="b4" d="M20 19V5"/><circle class="of" cx="12" cy="12" r="7.5"/><path class="sl" d="M6.7 6.7l10.6 10.6"/></svg></span><span class="nb-tx"><b id="nbT"></b><small id="nbS"></small></span></div>
 </div>
 
 <!-- HEADER -->
@@ -595,6 +596,29 @@ window.addEventListener('appinstalled',function(){window.__pwaInstalled=true;});
     if (stack) stack.classList.toggle("byp-muted", active.size > 0);
   }, { threshold: [0, 0.35, 0.6] });
   targets.forEach(function (t) { io.observe(t); });
+})();
+</script>
+<script>
+/* pembaruan otomatis: pantau semua file kode, jangan muat ulang saat kas sedang dikirim / diedit */
+window.PWA_CFG = { watch: ["index.html", "sw.js", "kas.js", "kas.css", "app.js", "app.css"], busy: function () { try { return !!(window.__kasBusy && window.__kasBusy()); } catch (e) { return false; } } };
+(function () {
+  var bar = document.getElementById("netBar"), T = document.getElementById("nbT"), Sx = document.getElementById("nbS"), hideT = null, pending = 0, back = false;
+  if (!bar) return;
+  function show(cls, t, s, ms) {
+    clearTimeout(hideT); bar.hidden = false; bar.className = "netbar " + cls; T.textContent = t; Sx.textContent = s || "";
+    if (ms) hideT = setTimeout(function () { bar.hidden = true; }, ms);
+  }
+  function off() {
+    back = false;
+    show("is-off", "Mode offline", pending ? pending + " perubahan kas menunggu, dikirim otomatis saat online" : "Data terakhir tetap bisa dilihat. Input kas tersimpan di HP");
+  }
+  function on() { back = true; show("is-sync", "Kembali online", "Menyinkronkan data dan memeriksa pembaruan\u2026", 0); setTimeout(done, 4500); }
+  function done() { if (!back || navigator.onLine === false) return; back = false; show("is-on", "Tersinkron", pending ? pending + " perubahan masih dikirim\u2026" : "Semua data sudah terbaru", 3200); }
+  window.addEventListener("offline", off);
+  window.addEventListener("online", on);
+  window.addEventListener("kas:net", function (e) { var d = e.detail || {}; pending = d.pending || 0; if (navigator.onLine === false) off(); else if (back && d.live && !d.pending && !d.flushing) done(); });
+  window.addEventListener("ur:data", function (e) { if (back && e.detail && e.detail.kind === "server") done(); });
+  if (navigator.onLine === false) off();
 })();
 </script>
 <script src="ur.js" defer></script>
