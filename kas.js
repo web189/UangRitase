@@ -59,6 +59,25 @@ const addDays = (s, n) => { const d = pd(s); d.setUTCDate(d.getUTCDate() + n); r
 const addMonths = (ym, n) => { const p = ym.split("-").map(Number); const d = new Date(Date.UTC(p[0], p[1] - 1 + n, 1)); return d.getUTCFullYear() + "-" + pad(d.getUTCMonth() + 1); };
 const titleDate = (s) => { const d = pd(s); return pad(d.getUTCDate()) + " " + MONTHS[d.getUTCMonth()] + " " + d.getUTCFullYear(); };
 const dowOf = (s) => DAYS[pd(s).getUTCDay()];
+
+/* ───────── AKHIR PEKAN: Sabtu + Minggu dilihat sebagai SATU periode ─────────
+   Data di database tetap per tanggal (tidak ada migrasi). Yang digabung hanya tampilan & hitungannya.
+   Aturan gabungan:
+     • Baris           : semua baris Sabtu + Minggu, urut jam input. Baris baru disimpan di tanggal Sabtu.
+     • Uang diterima   : angka Sabtu (angka Minggu dianggap sisa lanjutan Sabtu, tidak dijumlah).
+                         Kalau Sabtu kosong, dipakai angka Minggu.
+     • Fisik uang      : angka Minggu (hitungan paling akhir); kalau kosong, angka Sabtu.
+     • Senin – Jumat   : tetap harian seperti biasa. */
+const periodOf = (s) => { const w = pd(s).getUTCDay(); return w === 6 ? [s, addDays(s, 1)] : w === 0 ? [addDays(s, -1), s] : [s]; };
+function titlePeriod(ds) {
+  if (ds.length === 1) return titleDate(ds[0]);
+  const a = pd(ds[0]), b = pd(ds[1]), ya = a.getUTCFullYear(), yb = b.getUTCFullYear(), ma = a.getUTCMonth(), mb = b.getUTCMonth();
+  if (ya !== yb) return titleDate(ds[0]) + " & " + titleDate(ds[1]);
+  if (ma !== mb) return pad(a.getUTCDate()) + " " + MONTHS[ma] + " & " + pad(b.getUTCDate()) + " " + MONTHS[mb] + " " + ya;
+  return pad(a.getUTCDate()) + " & " + pad(b.getUTCDate()) + " " + MONTHS[ma] + " " + ya;
+}
+const dowPeriod = (ds) => ds.map(dowOf).join(" & ");
+const fileTag = (ds) => (ds.length === 1 ? ds[0] : ds[0].slice(0, 7) === ds[1].slice(0, 7) ? ds[0] + "_" + ds[1].slice(8) : ds[0] + "_" + ds[1]);
 const monthTitle = (ym) => { const p = ym.split("-").map(Number); return MONTHS[p[1] - 1] + " " + p[0]; };
 const fmtTs = (ts) => { const d = new Date((ts || 0) + 7 * 3600e3); return pad(d.getUTCDate()) + " " + MON3[d.getUTCMonth()] + " " + d.getUTCFullYear() + " · " + pad(d.getUTCHours()) + "." + pad(d.getUTCMinutes()) + "." + pad(d.getUTCSeconds()); };
 const dayPath = (s) => "kas/" + s.slice(0, 7) + "/" + s.slice(8, 10);
@@ -82,6 +101,23 @@ function rowsOf(day) {
     .map((id) => Object.assign({ id }, r[id]))
     .sort((a, b) => (a.ts || 0) - (b.ts || 0) || (a.id < b.id ? -1 : 1));
 }
+/* gabungkan data beberapa tanggal (Sabtu, Minggu) menjadi satu "hari" semu.
+   list = [[tanggal, dataHari], …]. Mengembalikan {day, src, msrc}:
+   src[id] = tanggal asal baris (untuk edit/hapus), msrc[field] = tanggal tempat angka disimpan. */
+function mergeDays(list) {
+  const day = { rows: {} }, src = {}, msrc = {};
+  list.forEach((p) => {
+    const r = (p[1] && p[1].rows) || {};
+    Object.keys(r).forEach((id) => { if (r[id] && typeof r[id] === "object") { day.rows[id] = r[id]; src[id] = p[0]; } });
+  });
+  const pick = (f, order) => {
+    for (let i = 0; i < order.length; i++) { const d = order[i][1]; if (d && typeof d[f] === "number") { day[f] = d[f]; msrc[f] = order[i][0]; return; } }
+    msrc[f] = list[0][0];                       /* kosong: kalau diisi, disimpan di tanggal Sabtu */
+  };
+  pick("diterima", list);
+  pick("fisik", list.slice().reverse());
+  return { day, src, msrc };
+}
 function calc(day) {
   const rows = rowsOf(day);
   const total = rows.reduce((s, r) => s + (Number(r.jumlah) || 0), 0);
@@ -94,12 +130,12 @@ function calc(day) {
 /* ───────── state ───────── */
 let db = null, offset = 0;
 const S = {
-  date: "", month: "", tab: "day", touched: false,
-  day: undefined, srv: undefined, pend: {}, conn: false, fromCache: false, cacheAt: 0, cacheT: null,
-  monthData: undefined, log: undefined,
+  date: "", dates: [], month: "", tab: "day", touched: false,      /* date = tanggal acuan (Sabtu bila akhir pekan), dates = 1 atau 2 tanggal */
+  day: undefined, srvMap: {}, src: {}, msrc: {}, pend: {}, conn: false, fromCache: false, cacheAt: 0, cacheT: null,
+  monthData: undefined, edge: undefined, log: undefined, logB: undefined,
   editId: null, dirty: false, undo: null
 };
-const un = { day: null, month: null, log: null };
+const un = { day: null, dayB: null, month: null, edge: null, log: null, logB: null };
 let undoTimer = null;
 
 const nowMs = () => Date.now() + offset;
@@ -174,10 +210,11 @@ function overlay(base, date) {
   return day;
 }
 function rebuild() {
-  if (S.srv === undefined) return;
-  S.day = overlay(S.srv, S.date);
+  if (!S.dates.length || !S.dates.every((d) => S.srvMap[d] !== undefined)) return;     /* tunggu semua tanggal periode */
+  const m = mergeDays(S.dates.map((d) => [d, overlay(S.srvMap[d], d)]));
+  S.day = m.day; S.src = m.src; S.msrc = m.msrc;
   S.pend = {};
-  outbox.forEach((o) => { if (o.date === S.date && o.k === "set") S.pend[o.id] = 1; });
+  outbox.forEach((o) => { if (S.dates.indexOf(o.date) > -1 && o.k === "set") S.pend[o.id] = 1; });
 }
 
 function enqueue(op) {
@@ -247,7 +284,7 @@ async function addRow(nama, po, jumlah) {
 }
 async function saveRow(id, nama, po, jumlah) {
   if (!ready()) return false;
-  const date = S.date, old = ((S.day && S.day.rows) || {})[id];
+  const date = S.src[id] || S.date, old = ((S.day && S.day.rows) || {})[id];       /* simpan di tanggal asal baris */
   if (!old) { toast("Baris ini sudah dihapus orang lain.", "warn"); return true; }
   if (old.nama === nama && old.po === po && Number(old.jumlah) === jumlah) return true;
   const row = Object.assign({}, old, { nama, po, jumlah, eby: who(), ets: nowMs() });
@@ -257,7 +294,7 @@ async function saveRow(id, nama, po, jumlah) {
 }
 async function delRow(id) {
   if (!ready()) return;
-  const date = S.date, old = ((S.day && S.day.rows) || {})[id];
+  const date = S.src[id] || S.date, old = ((S.day && S.day.rows) || {})[id];
   if (!old) return;
   enqueue({ k: "del", date, id, logs: [mkLog("hapus", rowTxt(old))] });
   showUndo({ date, id, row: old });
@@ -270,7 +307,7 @@ async function undoDel() {
 }
 async function setMoney(field, label, raw) {
   if (!ready()) return;
-  const date = S.date, d = digits(raw);
+  const date = S.msrc[field] || S.date, d = digits(raw);       /* angka disimpan di tanggal tempat nilainya berasal */
   const prev = S.day && typeof S.day[field] === "number" ? S.day[field] : null;
   const val = d === "" ? null : parseInt(d, 10);
   if (val === prev) return;
@@ -485,8 +522,9 @@ function mount() {
 }
 
 function setHead() {
-  $("kasDow").textContent = dowOf(S.date) + (S.date === todayWIB() ? " · hari ini" : "");
-  $("kasTitle").textContent = titleDate(S.date);
+  $("kasDow").textContent = dowPeriod(S.dates) + (S.dates.indexOf(todayWIB()) > -1 ? " · hari ini" : "");
+  $("kasTitle").textContent = titlePeriod(S.dates);
+  $("kasTitle").classList.toggle("is-wk", S.dates.length > 1);
   $("kasPick").value = S.date;
   $("kasRoot").dataset.tab = S.tab;
   document.querySelectorAll(".kas-tabs [data-tab]").forEach((b) => b.setAttribute("aria-selected", b.dataset.tab === S.tab ? "true" : "false"));
@@ -495,35 +533,57 @@ function setHead() {
 function setDate(date, byUser) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
   if (byUser) S.touched = true;
-  S.date = date; S.day = undefined; S.srv = undefined; S.fromCache = false; S.cacheAt = 0; S.pend = {}; S.log = undefined; S.editId = null; S.dirty = false;
+  const dates = periodOf(date), anchor = dates[0];     /* Minggu / Sabtu → periode Sabtu+Minggu; hari lain → 1 hari */
+  S.date = anchor; S.dates = dates; S.day = undefined; S.srvMap = {}; S.src = {}; S.msrc = {};
+  S.fromCache = false; S.cacheAt = 0; S.pend = {}; S.log = undefined; S.logB = undefined; S.editId = null; S.dirty = false;
   setHead();
   clearTimeout(S.cacheT);
-  listen("day", dayPath(date), (v, err) => {
-    if (err && S.srv !== undefined) return;                 /* galat: jangan timpa data yang sudah tampil */
-    S.srv = v || {}; S.fromCache = false;
-    if (!err) cacheWrite(CACHE_PFX, date, S.srv);
-    rebuild(); onDay();
+  ["day", "dayB"].forEach((kind, i) => {
+    if (i >= dates.length) { if (un[kind]) { try { un[kind](); } catch { /* */ } un[kind] = null; } return; }
+    const d = dates[i];
+    listen(kind, dayPath(d), (v, err) => {
+      if (S.dates[i] !== d) return;
+      if (err && S.srvMap[d] !== undefined) return;         /* galat: jangan timpa data yang sudah tampil */
+      S.srvMap[d] = v || {}; S.fromCache = false;
+      if (!err) cacheWrite(CACHE_PFX, d, S.srvMap[d]);
+      rebuild(); onDay();
+    });
   });
   /* belum ada jawaban server (offline / lambat) → tampilkan simpanan di HP */
   S.cacheT = setTimeout(() => {
-    if (S.date !== date || S.srv !== undefined) return;
-    const c = cacheRead(CACHE_PFX, date), off = typeof navigator !== "undefined" && navigator.onLine === false;
-    if (!c && !off) return;                                 /* online tanpa simpanan: tunggu server */
-    S.srv = c ? c.v : {}; S.fromCache = true; S.cacheAt = c ? c.t : 0;
+    if (S.date !== anchor) return;
+    const off = typeof navigator !== "undefined" && navigator.onLine === false;
+    let used = false, at = 0;
+    dates.forEach((d) => {
+      if (S.srvMap[d] !== undefined) return;
+      const c = cacheRead(CACHE_PFX, d);
+      if (!c && !off) return;                               /* online tanpa simpanan: tunggu server */
+      S.srvMap[d] = c ? c.v : {}; used = true; if (c && (!at || c.t < at)) at = c.t;
+    });
+    if (!used) return;
+    S.fromCache = true; S.cacheAt = at;
     rebuild(); onDay(); paintNet();
   }, (typeof navigator !== "undefined" && navigator.onLine === false) ? 0 : 1800);
   if (S.tab === "day") onDay();
-  if (S.tab === "log") { renderLog(); listen("log", logPath(date), (v) => { S.log = v || {}; renderLog(); }); }
+  if (S.tab === "log") listenLog();
+}
+function listenLog() {
+  S.log = undefined; S.logB = undefined;
+  renderLog();
+  ["log", "logB"].forEach((kind, i) => {
+    if (i >= S.dates.length) { if (un[kind]) { try { un[kind](); } catch { /* */ } un[kind] = null; } return; }
+    listen(kind, logPath(S.dates[i]), (v) => { S[kind] = v || {}; renderLog(); });
+  });
 }
 
 function setTab(tab) {
   S.tab = tab;
-  if (un.log && tab !== "log") { un.log(); un.log = null; }
-  if (un.month && tab !== "rekap") { un.month(); un.month = null; }
+  if (tab !== "log") ["log", "logB"].forEach((k) => { if (un[k]) { un[k](); un[k] = null; } });
+  if (tab !== "rekap") ["month", "edge"].forEach((k) => { if (un[k]) { un[k](); un[k] = null; } });
   setHead();
   if (tab === "day") renderDayShell(true);
   if (tab === "rekap") { S.month = S.date.slice(0, 7); renderRekapShell(); }
-  if (tab === "log") { S.log = undefined; renderLog(); listen("log", logPath(S.date), (v) => { S.log = v || {}; renderLog(); }); }
+  if (tab === "log") listenLog();
 }
 
 /* ───────── TAMPILAN HARIAN ───────── */
@@ -706,7 +766,8 @@ function flashSaved() {
 
 
 /* ───────── GAMBAR REKAP (meniru lembar Excel) + KIRIM WHATSAPP ───────── */
-function drawSheet(c, date) {
+function drawSheet(c, dates) {
+  dates = Array.isArray(dates) ? dates : [dates];
   const SERIF = '"Times New Roman","Liberation Serif",Tinos,serif';
   const X = [0, 44, 320, 600, 1380, 1600], W = 1600, RH = 39, TH = 69, HH = 35;
   const n = c.rows.length + 3;            /* baris terisi + 3 baris kosong */
@@ -724,7 +785,15 @@ function drawSheet(c, date) {
     g.font = "bold " + px + "px " + SERIF; g.textAlign = "left"; g.fillText("Rp", x0 + 10, y);
     fit(v, px, x1 - x0 - 70); g.textAlign = "right"; g.fillText(v, x1 - 10, y);
   };
-  const d = pd(date), title = pad(d.getUTCDate()) + " " + (d.getUTCMonth() === 10 ? "Nopember" : MONTHS[d.getUTCMonth()]) + " " + d.getUTCFullYear();
+  const mn = (m) => (m === 10 ? "Nopember" : MONTHS[m]);      /* ejaan lembar Excel lama */
+  const title = (() => {
+    const a = pd(dates[0]), b = dates[1] ? pd(dates[1]) : null, A = pad(a.getUTCDate());
+    if (!b) return A + " " + mn(a.getUTCMonth()) + " " + a.getUTCFullYear();
+    const B = pad(b.getUTCDate());
+    if (a.getUTCFullYear() !== b.getUTCFullYear()) return A + " " + mn(a.getUTCMonth()) + " " + a.getUTCFullYear() + " & " + B + " " + mn(b.getUTCMonth()) + " " + b.getUTCFullYear();
+    if (a.getUTCMonth() !== b.getUTCMonth()) return A + " " + mn(a.getUTCMonth()) + " & " + B + " " + mn(b.getUTCMonth()) + " " + a.getUTCFullYear();
+    return A + " & " + B + " " + mn(a.getUTCMonth()) + " " + a.getUTCFullYear();
+  })();
 
   rect(X[1], 0, W, TH, "#ffff1a"); box(X[1], 0, W - 1, TH);
   mid(title, X[1], W, TH / 2, 30);
@@ -775,9 +844,9 @@ function sendWA() {
   if (S.day === undefined) { toast("Data belum dimuat. Tunggu sebentar.", "warn"); return; }
   const c = calc(S.day);
   if (!c.rows.length) { toast("Belum ada catatan untuk dikirim.", "warn"); return; }
-  const date = S.date;
+  const dates = S.dates.slice(), date = fileTag(dates);
   let cv;
-  try { cv = drawSheet(c, date); } catch (e) { toast("Gagal membuat gambar: " + (e && e.message), "error", 6000); return; }
+  try { cv = drawSheet(c, dates); } catch (e) { toast("Gagal membuat gambar: " + (e && e.message), "error", 6000); return; }
 
   /* ── KOMPUTER: unduh JPG saja. Tidak membuka WhatsApp, tidak menyalin apa pun. ── */
   if (!isMobileDevice()) {
@@ -817,7 +886,7 @@ function sendWA() {
 
 async function copyReport() {
   const c = calc(S.day), L = [];
-  L.push("*KAS RITASE — " + dowOf(S.date) + ", " + titleDate(S.date) + "*");
+  L.push("*KAS RITASE — " + dowPeriod(S.dates) + ", " + titlePeriod(S.dates) + "*");
   L.push("Uang diterima: Rp " + rp(c.diterima));
   L.push("");
   c.rows.forEach((r, i) => L.push((i + 1) + ". " + [r.nama, r.po].filter(Boolean).join(" · ") + " — Rp " + rp(r.jumlah)));
@@ -857,22 +926,41 @@ function renderRekapShell() {
 }
 function loadMonth() {
   $("kmTitle").textContent = monthTitle(S.month);
-  S.monthData = undefined; renderRekap();
+  S.monthData = undefined; S.edge = undefined; renderRekap();
   const mc = cacheRead(MON_PFX, S.month);
   if (mc && !live()) { S.monthData = mc.v; renderRekap(); }
   listen("month", "kas/" + S.month, (v, err) => { if (err && S.monthData !== undefined) return; S.monthData = v || {}; if (!err) cacheWrite(MON_PFX, S.month, S.monthData); renderRekap(); });
+  /* bulan berakhir di hari Sabtu → Minggunya (tgl 1 bulan depan) ikut digabung di baris terakhir bulan ini */
+  const last = addDays(addMonths(S.month, 1) + "-01", -1), edgeDate = pd(last).getUTCDay() === 6 ? addDays(last, 1) : null;
+  if (edgeDate) listen("edge", dayPath(edgeDate), (v) => { S.edge = v || {}; renderRekap(); });
+  else if (un.edge) { un.edge(); un.edge = null; }
 }
 function renderRekap() {
   const el = $("kmBody"); if (!el) return;
   if (S.monthData === undefined) { el.innerHTML = live() ? '<div class="kd-empty">Memuat rekap…</div>' : '<div class="kd-empty"><b>Rekap belum tersimpan di HP</b><span>Buka rekap bulan ini sekali saat online. Setelah itu bisa dilihat tanpa internet.</span></div>'; return; }
   const days = Object.keys(S.monthData).filter((d) => /^\d{2}$/.test(d)).sort();
-  if (!days.length) { el.innerHTML = '<div class="kd-empty"><b>Belum ada catatan di ' + esc(monthTitle(S.month)) + '.</b><span>Buka tab Harian dan mulai input.</span></div>'; return; }
-  let tD = 0, tS = 0, tN = 0;
-  const trs = days.map((d) => {
-    const c = calc(S.monthData[d]); tD += c.diterima; tS += c.total; tN += c.rows.length;
-    const date = S.month + "-" + d, cls = c.selisih == null ? "none" : c.selisih === 0 ? "ok" : c.selisih < 0 ? "less" : "more";
+  if (!days.length && !(S.edge && Object.keys(S.edge).length)) { el.innerHTML = '<div class="kd-empty"><b>Belum ada catatan di ' + esc(monthTitle(S.month)) + '.</b><span>Buka tab Harian dan mulai input.</span></div>'; return; }
+  /* susun periode: Sabtu+Minggu = 1 baris, hari lain = 1 baris. Periode ikut bulan tanggal SABTU-nya. */
+  const last = addDays(addMonths(S.month, 1) + "-01", -1), edgeDate = pd(last).getUTCDay() === 6 ? addDays(last, 1) : null;
+  const dayData = (date) => date.slice(0, 7) === S.month ? S.monthData[date.slice(8, 10)] : (date === edgeDate ? S.edge : undefined);
+  const periods = [], seen = {};
+  let moved = "";
+  days.forEach((dd) => {
+    const ds = periodOf(S.month + "-" + dd);
+    if (ds[0].slice(0, 7) !== S.month) { moved = ds[0].slice(0, 7); return; }       /* tgl 1 hari Minggu: ikut Sabtu bulan lalu */
+    if (!seen[ds[0]]) { seen[ds[0]] = 1; periods.push(ds); }
+  });
+  if (edgeDate && S.edge && Object.keys(S.edge).length && !seen[last]) { seen[last] = 1; periods.push(periodOf(last)); }
+  periods.sort((a, b) => (a[0] < b[0] ? -1 : 1));
+  if (!periods.length) { el.innerHTML = '<div class="kd-empty"><b>Catatan ' + esc(monthTitle(S.month)) + ' digabung ke rekap ' + esc(monthTitle(moved || S.month)) + '.</b><span>Akhir pekan yang melewati pergantian bulan dihitung di bulan Sabtunya.</span></div>'; return; }
+  let tD = 0, tS = 0, tN = 0, nDay = 0;
+  const trs = periods.map((ds) => {
+    const m = mergeDays(ds.map((d) => [d, dayData(d)]));
+    const c = calc(m.day); tD += c.diterima; tS += c.total; tN += c.rows.length; nDay += ds.filter((d) => dayData(d)).length;
+    const cls = c.selisih == null ? "none" : c.selisih === 0 ? "ok" : c.selisih < 0 ? "less" : "more";
     const sel = c.selisih == null ? "—" : c.selisih === 0 ? "Cocok" : (c.selisih < 0 ? "−" : "+") + rp(Math.abs(c.selisih));
-    return '<tr data-date="' + date + '" tabindex="0"><th scope="row"><b>' + Number(d) + '</b><small>' + dowOf(date).slice(0, 3) + '</small></th>' +
+    const th = ds.map((d) => Number(d.slice(8, 10))).join("–"), sm = ds.map((d) => dowOf(d).slice(0, 3)).join("–");
+    return '<tr data-date="' + ds[0] + '" tabindex="0"' + (ds.length > 1 ? ' class="is-wk"' : '') + '><th scope="row"><b>' + th + '</b><small>' + sm + '</small></th>' +
       '<td>' + rp(c.diterima) + '</td><td>' + rp(c.total) + '<small>' + c.rows.length + ' baris</small></td>' +
       '<td class="kt-sisa">' + (c.sisa < 0 ? "−" : "") + rp(Math.abs(c.sisa)) + '</td>' +
       '<td>' + (c.fisik == null ? "—" : rp(c.fisik)) + '</td><td class="kt-sel ' + cls + '">' + sel + '</td></tr>';
@@ -880,19 +968,21 @@ function renderRekap() {
   el.innerHTML =
     '<div class="kt-wrap"><table class="kt"><thead><tr><th>Tgl</th><th>Diterima</th><th>Diserahkan</th><th>Sisa</th><th>Fisik</th><th>Selisih</th></tr></thead>' +
     '<tbody>' + trs + '</tbody>' +
-    '<tfoot><tr><th>' + days.length + ' hari</th><td>' + rp(tD) + ' ' + IC.lock + '</td><td>' + rp(tS) + ' ' + IC.lock + '<small>' + tN + ' baris</small></td><td class="kt-sisa">' + (tD - tS < 0 ? "−" : "") + rp(Math.abs(tD - tS)) + ' ' + IC.lock + '</td><td></td><td></td></tr></tfoot></table></div>' +
+    '<tfoot><tr><th>' + nDay + ' hari</th><td>' + rp(tD) + ' ' + IC.lock + '</td><td>' + rp(tS) + ' ' + IC.lock + '<small>' + tN + ' baris</small></td><td class="kt-sisa">' + (tD - tS < 0 ? "−" : "") + rp(Math.abs(tD - tS)) + ' ' + IC.lock + '</td><td></td><td></td></tr></tfoot></table></div>' +
     '<p class="kt-hint">Geser tabel ke kanan untuk melihat semua kolom.</p>' +
-    '<p class="ks-note">' + IC.lock + '<span>Semua angka rekap dihitung otomatis dari data harian. Ketuk satu baris untuk membuka harinya.</span></p>';
+    '<p class="ks-note">' + IC.lock + '<span>Semua angka rekap dihitung otomatis dari data harian. Ketuk satu baris untuk membuka harinya. Sabtu &amp; Minggu digabung jadi satu baris.</span></p>';
 }
 
 /* ───────── RIWAYAT ───────── */
 const ACT = { tambah: ["Tambah", "ok"], edit: ["Edit", "warn"], hapus: ["Hapus", "bad"], pulih: ["Pulihkan", "info"], diterima: ["Uang diterima", "viol"], fisik: ["Fisik uang", "viol"] };
 function renderLog() {
   const v = $("kasView"); if (!v) return;
-  if (S.log === undefined) { v.innerHTML = live() ? '<div class="kd-empty">Memuat riwayat…</div>' : '<div class="kd-empty"><b>Riwayat butuh internet</b><span>Tampil otomatis begitu koneksi kembali.</span></div>'; return; }
-  const items = Object.keys(S.log).map((id) => Object.assign({ id }, S.log[id])).filter((x) => x && x.ts).sort((a, b) => b.ts - a.ts);
-  if (!items.length) { v.innerHTML = '<div class="kd-empty"><b>Belum ada riwayat di tanggal ' + esc(titleDate(S.date)) + '.</b><span>Setiap tambah, edit, dan hapus akan tercatat di sini beserta jamnya.</span></div>'; return; }
-  v.innerHTML = '<p class="kh-sum">' + items.length + ' perubahan pada kas ' + esc(titleDate(S.date)) + '. Riwayat tidak bisa diubah atau dihapus.</p><ol class="kh">' +
+  if (S.log === undefined || (S.dates.length > 1 && S.logB === undefined)) { v.innerHTML = live() ? '<div class="kd-empty">Memuat riwayat…</div>' : '<div class="kd-empty"><b>Riwayat butuh internet</b><span>Tampil otomatis begitu koneksi kembali.</span></div>'; return; }
+  const items = [];
+  [S.log, S.logB].forEach((lg) => { if (lg) Object.keys(lg).forEach((id) => items.push(Object.assign({ id }, lg[id]))); });
+  items.splice(0, items.length, ...items.filter((x) => x && x.ts).sort((a, b) => b.ts - a.ts));
+  if (!items.length) { v.innerHTML = '<div class="kd-empty"><b>Belum ada riwayat di tanggal ' + esc(titlePeriod(S.dates)) + '.</b><span>Setiap tambah, edit, dan hapus akan tercatat di sini beserta jamnya.</span></div>'; return; }
+  v.innerHTML = '<p class="kh-sum">' + items.length + ' perubahan pada kas ' + esc(titlePeriod(S.dates)) + '. Riwayat tidak bisa diubah atau dihapus.</p><ol class="kh">' +
     items.map((x) => {
       const a = ACT[x.act] || [x.act || "Ubah", "info"];
       return '<li class="kh-i kh-' + a[1] + '"><span class="kh-tag">' + esc(a[0]) + '</span><span class="kh-txt">' + esc(x.detail) + '</span>' +
@@ -904,7 +994,8 @@ function renderLog() {
 function wire() {
   $("kasBar").addEventListener("click", (e) => {
     const b = e.target.closest("[data-act]"); if (!b) return;
-    setDate(addDays(S.date, b.dataset.act === "prev" ? -1 : 1), true);
+    const ds = S.dates;           /* dari akhir pekan: mundur → Jumat, maju → Senin */
+    setDate(b.dataset.act === "prev" ? addDays(ds[0], -1) : addDays(ds[ds.length - 1], 1), true);
   });
   const pick = $("kasPick");
   pick.addEventListener("change", () => { if (pick.value) setDate(pick.value, true); });
@@ -927,7 +1018,7 @@ function wire() {
 /* ───────── mulai ───────── */
 function boot() {
   if (!mount()) return;
-  S.date = todayWIB();
+  S.dates = periodOf(todayWIB()); S.date = S.dates[0];
   wire();
   setHead();
   renderDayShell();
@@ -935,7 +1026,7 @@ function boot() {
     db = getDatabase(initializeApp(CFG));
     onValue(ref(db, ".info/serverTimeOffset"), (s) => {
       offset = Number(s.val()) || 0;
-      if (!S.touched && S.tab === "day" && todayWIB() !== S.date && !S.editId) setDate(todayWIB());
+      if (!S.touched && S.tab === "day" && periodOf(todayWIB())[0] !== S.date && !S.editId) setDate(todayWIB());
     });
     onValue(ref(db, ".info/connected"), (s) => { S.conn = !!s.val(); paintNet(); if (S.conn) flush(); });
     window.addEventListener("online", () => { paintNet(); setTimeout(flush, 800); });

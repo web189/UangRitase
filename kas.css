@@ -404,3 +404,7 @@ html[data-theme=light] .kas-net.is-off { background: repeating-linear-gradient(1
 html[data-theme=light] .kas-net.is-sync { background: #e1f1fb; border-color: #8cc6e8; }
 html:not([data-theme=light]) .kk-c:not(.kk-sisa), html:not([data-theme=light]) .kd-add, html:not([data-theme=light]) .kd-main { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05); }
 html:not([data-theme=light]) .kr { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04); }
+
+/* v32: judul akhir pekan ("14 & 15 November 2026") bisa lebih panjang -> kecilkan sedikit & boleh turun baris */
+.kb-date strong.is-wk { font-size: clamp(17px, 4.7vw, 26px); text-wrap: balance; }
+.kt tbody tr.is-wk th b { color: var(--kas-wk, #f5b942); }
