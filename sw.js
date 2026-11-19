@@ -8,7 +8,7 @@
    • Firebase / situs lain TIDAK disentuh (data tetap langsung ke server).
    ES5 — aman untuk Chrome 109 / Windows 7.
    ========================================================================== */
-var VERSION = "v36-hitung-mundur";
+var VERSION = "v37-aktif-offline";
 var APP = "uangritase";
 var SHELL = APP + "-shell-" + VERSION;
 var MEDIA = APP + "-media-v1";
@@ -47,6 +47,19 @@ self.addEventListener("activate", function (event) {
   );
 });
 
+/* Pembaruan ATOMIK: semua file kode diunduh dulu, baru ditulis bersamaan -> simpanan offline selalu satu versi utuh. */
+function refreshCore() {
+  var codes = CORE.filter(function (u) { return /\.(?:html|css|js|json)$/i.test(u); });
+  return Promise.all(codes.map(function (u) {
+    return fresh(u).then(function (res) { if (!res || !res.ok) throw new Error(u); return [u, res]; });
+  })).then(function (pairs) {
+    return caches.open(SHELL).then(function (c) { return Promise.all(pairs.map(function (p) { return c.put(p[0], p[1]); })); });
+  }).then(function () { return broadcast({ type: "CORE_REFRESHED", version: VERSION }); }).catch(function () {});
+}
+self.addEventListener("periodicsync", function (event) {      /* Chrome (PWA terpasang): segarkan simpanan walau aplikasi tidak dibuka */
+  if (event.tag === "ur-refresh") event.waitUntil(refreshCore());
+});
+
 function broadcast(msg) {
   return self.clients.matchAll({ includeUncontrolled: true, type: "window" }).then(function (list) {
     list.forEach(function (c) { c.postMessage(msg); });
@@ -56,6 +69,7 @@ function broadcast(msg) {
 self.addEventListener("message", function (event) {
   var d = event.data || {};
   if (d.type === "SKIP_WAITING") { self.skipWaiting(); return; }
+  if (d.type === "REFRESH_CORE") { event.waitUntil(refreshCore()); return; }
   if (d.type === "CACHE_ALL") {
     event.waitUntil(caches.open(MEDIA).then(function (cache) {
       var done = 0, total = LATER.length;

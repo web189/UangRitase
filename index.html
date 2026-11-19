@@ -623,6 +623,23 @@ document.addEventListener("DOMContentLoaded", function () {
   };
   window.PWA_CFG = c;
 });
+/* Offline "canggih": (1) begitu internet kembali, minta service worker menyegarkan semua file kode sekaligus (atomik);
+   (2) daftar Periodic Background Sync (PWA terpasang di Chrome) agar simpanan segar walau aplikasi tidak dibuka. */
+(function () {
+  if (!("serviceWorker" in navigator)) return;
+  function ask() {
+    try {
+      var last = +(sessionStorage.getItem("ur_refresh_at") || 0);
+      if (Date.now() - last < 120000) return;
+      sessionStorage.setItem("ur_refresh_at", String(Date.now()));
+      navigator.serviceWorker.ready.then(function (r) { if (r.active) r.active.postMessage({ type: "REFRESH_CORE" }); });
+    } catch (e) {}
+  }
+  window.addEventListener("online", function () { setTimeout(ask, 2500); });
+  navigator.serviceWorker.ready.then(function (r) {
+    try { if (r.periodicSync && r.periodicSync.register) r.periodicSync.register("ur-refresh", { minInterval: 12 * 3600 * 1000 }).catch(function () {}); } catch (e) {}
+  }).catch(function () {});
+})();
 /* pemberitahuan sekali: simpanan offline sudah siap */
 window.addEventListener("pwa-offline-ready", function (e) {
   var v = (e.detail && e.detail.version) || "1", k = "ur_offline_ready", old = null;

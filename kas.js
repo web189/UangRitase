@@ -177,6 +177,20 @@ let undoTimer = null;
 
 const nowMs = () => Date.now() + offset;
 const todayWIB = () => fd(new Date(nowMs() + 7 * 3600e3));
+/* Periode AKTIF = periode paling lama yang belum terkunci (maks. satu periode sebelum hari ini).
+   Contoh: Jumat 20 Nov 04.37 -> Kamis 19 Nov masih terbuka sampai 08.30 -> tampil 19 Nov; setelah 08.30 otomatis pindah ke 20 Nov. */
+function activePeriod() {
+  const cur = periodOf(todayWIB()), prev = periodOf(addDays(cur[0], -1));
+  return nowMs() < lockAtOf(prev) ? prev : cur;
+}
+function followActive(notify) {
+  if (S.touched || S.tab !== "day" || S.editId || !S.dates.length) return;
+  const a = activePeriod();
+  if (a[0] === S.date) return;
+  const from = titlePeriod(S.dates);
+  setDate(a[0]);
+  if (notify) toast("Periode " + from + " sudah terkunci. Beralih ke " + titlePeriod(S.dates) + ".", "info", 4800);
+}
 const who = () => (lsGet("kas_who", "") || "Tamu").slice(0, 24);
 
 /* ───────── firebase ───────── */
@@ -412,6 +426,7 @@ function paintCount(st) {
   if (ht) { const t = st.mode === "open" ? (ph === "hot" ? "Kunci terpasang lagi sebentar lagi. Simpan perubahan sekarang." : "Kunci dibuka " + UNLOCK_MIN + " menit — tambah, edit & hapus diizinkan.") : HINT[ph]; if (ht.textContent !== t) ht.textContent = t; }
 }
 function lkTick() {
+  if (!document.hidden) followActive(true);                 /* kunci jatuh -> tampilan pindah ke periode berikutnya */
   if (document.hidden || S.tab !== "day" || !$("lkHost") || !S.dates.length) return;
   if (lkKey(lockState()) !== S.lkKey) applyLock(); else paintCount(lockState());
 }
@@ -733,8 +748,8 @@ function setHead() {
 
 function setDate(date, byUser) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
-  if (byUser) S.touched = true;
-  const dates = periodOf(date), anchor = dates[0];     /* Minggu / Sabtu → periode Sabtu+Minggu; hari lain → 1 hari */
+  const dates = periodOf(date), anchor = dates[0];
+  if (byUser) S.touched = anchor !== activePeriod()[0];       /* memilih periode aktif = tetap mengikuti otomatis */     /* Minggu / Sabtu → periode Sabtu+Minggu; hari lain → 1 hari */
   S.date = anchor; S.dates = dates; S.day = undefined; S.srvMap = {}; S.src = {}; S.msrc = {};
   S.fromCache = false; S.cacheAt = 0; S.pend = {}; S.logs = undefined; S.editId = null; S.dirty = false;
   setHead();
@@ -1212,7 +1227,7 @@ function wire() {
   pick.addEventListener("change", () => { if (pick.value) setDate(pick.value, true); });
   pick.addEventListener("click", () => { try { pick.showPicker && pick.showPicker(); } catch { /* */ } });
   $("kasCalc").addEventListener("click", (e) => Calc.open(e.currentTarget));
-  $("kasToday").addEventListener("click", () => { setTab("day"); setDate(todayWIB(), true); });
+  $("kasToday").addEventListener("click", () => { setTab("day"); setDate(activePeriod()[0], true); });
   document.querySelectorAll(".kas-tabs [data-tab]").forEach((b) => b.addEventListener("click", () => setTab(b.dataset.tab)));
 
   /* dock + tautan #kas */
@@ -1229,7 +1244,7 @@ function wire() {
 /* ───────── mulai ───────── */
 function boot() {
   if (!mount()) return;
-  S.dates = periodOf(todayWIB()); S.date = S.dates[0];
+  S.dates = activePeriod(); S.date = S.dates[0];
   wire();
   setHead();
   watchAdmin();
@@ -1238,7 +1253,7 @@ function boot() {
     db = getDatabase(initializeApp(CFG));
     onValue(ref(db, ".info/serverTimeOffset"), (s) => {
       offset = Number(s.val()) || 0;
-      if (!S.touched && S.tab === "day" && periodOf(todayWIB())[0] !== S.date && !S.editId) setDate(todayWIB());
+      followActive(false);
     });
     onValue(ref(db, ".info/connected"), (s) => { S.conn = !!s.val(); paintNet(); if (S.conn) flush(); });
     window.addEventListener("online", () => { paintNet(); setTimeout(flush, 800); });
