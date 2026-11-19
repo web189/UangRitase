@@ -1,7 +1,9 @@
 /* ==========================================================================
    KAS RITASE HARIAN  (kas.js)
    --------------------------------------------------------------------------
-   • Siapa saja boleh input / edit / hapus baris — tanpa login.
+   • Siapa saja boleh input / edit / hapus baris — tanpa login — SELAMA tanggalnya belum terkunci.
+   • KUNCI OTOMATIS (v33): periode terkunci pukul 08.30 WIB di hari berikutnya (Sab+Min → Senin 08.30).
+     Setelah terkunci hanya admin yang bisa membuka (sementara), dan pembukaan tercatat di Riwayat.
    • Setiap perubahan dicatat di riwayat (append-only) lengkap dengan tanggal + jam.
    • Angka otomatis (total diserahkan, sisa uang, selisih, rekap) dihitung program,
      tampil bergembok, dan tidak bisa diubah.
@@ -10,6 +12,7 @@
    Struktur data:
      kas/{YYYY-MM}/{DD} = { diterima, fisik, rows:{ <id>:{nama,po,jumlah,ts,by,eby?,ets?} } }
      kasLog/{YYYY-MM}/{DD}/<id> = { act, detail, by, ts }
+     kasOpen/{YYYY-MM}/{DD}     = { until, by, ts }   ← pembukaan kunci sementara oleh admin (DD = tanggal acuan periode)
    ========================================================================== */
 import { initializeApp, getDatabase, ref, onValue, set, push, remove } from "./vendor/fb-db.js";
 
@@ -60,24 +63,56 @@ const addMonths = (ym, n) => { const p = ym.split("-").map(Number); const d = ne
 const titleDate = (s) => { const d = pd(s); return pad(d.getUTCDate()) + " " + MONTHS[d.getUTCMonth()] + " " + d.getUTCFullYear(); };
 const dowOf = (s) => DAYS[pd(s).getUTCDay()];
 
-/* ───────── AKHIR PEKAN: Sabtu + Minggu dilihat sebagai SATU periode ─────────
-   Data di database tetap per tanggal (tidak ada migrasi). Yang digabung hanya tampilan & hitungannya.
-   Aturan gabungan:
-     • Baris           : semua baris Sabtu + Minggu, urut jam input. Baris baru disimpan di tanggal Sabtu.
-     • Uang diterima   : angka Sabtu (angka Minggu dianggap sisa lanjutan Sabtu, tidak dijumlah).
-                         Kalau Sabtu kosong, dipakai angka Minggu.
-     • Fisik uang      : angka Minggu (hitungan paling akhir); kalau kosong, angka Sabtu.
-     • Senin – Jumat   : tetap harian seperti biasa. */
-const periodOf = (s) => { const w = pd(s).getUTCDay(); return w === 6 ? [s, addDays(s, 1)] : w === 0 ? [addDays(s, -1), s] : [s]; };
-function titlePeriod(ds) {
-  if (ds.length === 1) return titleDate(ds[0]);
-  const a = pd(ds[0]), b = pd(ds[1]), ya = a.getUTCFullYear(), yb = b.getUTCFullYear(), ma = a.getUTCMonth(), mb = b.getUTCMonth();
-  if (ya !== yb) return titleDate(ds[0]) + " & " + titleDate(ds[1]);
-  if (ma !== mb) return pad(a.getUTCDate()) + " " + MONTHS[ma] + " & " + pad(b.getUTCDate()) + " " + MONTHS[mb] + " " + ya;
-  return pad(a.getUTCDate()) + " & " + pad(b.getUTCDate()) + " " + MONTHS[ma] + " " + ya;
+/* ───────── PERIODE: akhir pekan + libur nasional dilihat sebagai SATU periode ─────────
+   Data di database tetap per tanggal (tidak ada migrasi). Yang digabung hanya tampilan, hitungan & kunci.
+   Aturan periode:
+     • Senin – Jumat biasa : 1 hari = 1 periode.
+     • Sabtu + Minggu       : 1 periode (kunci Senin 08.30).
+     • Libur nasional pada hari kerja (Senin – Jumat) ikut digabung dengan HARI SEBELUMNYA.
+         Contoh: Jumat 25 Des 2026 libur -> periode "24 & 25 Desember" (Kamis + Jumat), kunci Sabtu 26 Des 08.30.
+         Senin libur -> Sabtu + Minggu + Senin (kunci Selasa 08.30).
+     • Baris           : semua baris periode, urut jam input. Baris baru disimpan di tanggal PERTAMA periode.
+     • Uang diterima   : angka tanggal pertama yang terisi (angka berikutnya dianggap sisa lanjutan, tidak dijumlah).
+     • Fisik uang      : angka tanggal terakhir yang terisi (hitungan paling akhir). */
+const HOL_BASE = {
+  /* Libur NASIONAL (tanpa cuti bersama) — SKB 3 Menteri 2026 & 2027. Tambah / batalkan lewat node "libur" di Firebase. */
+  "2026-01-01": "Tahun Baru", "2026-01-16": "Isra Mikraj", "2026-02-17": "Imlek", "2026-03-19": "Nyepi", "2026-03-21": "Idulfitri", "2026-03-22": "Idulfitri",
+  "2026-04-03": "Wafat Yesus Kristus", "2026-04-05": "Paskah", "2026-05-01": "Hari Buruh", "2026-05-14": "Kenaikan Yesus Kristus", "2026-05-27": "Iduladha",
+  "2026-05-31": "Waisak", "2026-06-01": "Hari Lahir Pancasila", "2026-06-16": "Tahun Baru Islam", "2026-08-17": "Hari Kemerdekaan", "2026-08-25": "Maulid Nabi", "2026-12-25": "Natal",
+  "2027-01-01": "Tahun Baru", "2027-01-05": "Isra Mikraj", "2027-02-06": "Imlek", "2027-03-08": "Nyepi", "2027-03-10": "Idulfitri", "2027-03-11": "Idulfitri",
+  "2027-03-26": "Wafat Yesus Kristus", "2027-03-28": "Paskah", "2027-05-01": "Hari Buruh", "2027-05-06": "Kenaikan Yesus Kristus", "2027-05-17": "Iduladha",
+  "2027-05-20": "Waisak", "2027-06-01": "Hari Lahir Pancasila", "2027-06-06": "Tahun Baru Islam", "2027-08-15": "Maulid Nabi", "2027-08-17": "Hari Kemerdekaan",
+  "2027-12-25": "Natal", "2027-12-26": "Isra Mikraj"
+};
+let HOL = Object.assign({}, HOL_BASE);
+const isHol = (s) => !!HOL[s];
+const dowN = (s) => pd(s).getUTCDay();
+function periodOf(s) {
+  let a = s, b = s;
+  for (let n = 0; n < 10; n++) {
+    let ch = false;
+    const wa = dowN(a);
+    if (wa === 0 || (wa >= 1 && wa <= 5 && isHol(a))) { a = addDays(a, -1); ch = true; }       /* Minggu ikut Sabtu; libur hari kerja ikut hari sebelumnya */
+    const nb = addDays(b, 1), wn = dowN(nb);
+    if ((wn === 0 && dowN(b) === 6) || (wn >= 1 && wn <= 5 && isHol(nb))) { b = nb; ch = true; }
+    if (!ch) break;
+  }
+  const out = []; for (let d = a; d <= b; d = addDays(d, 1)) out.push(d);
+  return out;
 }
-const dowPeriod = (ds) => ds.map(dowOf).join(" & ");
-const fileTag = (ds) => (ds.length === 1 ? ds[0] : ds[0].slice(0, 7) === ds[1].slice(0, 7) ? ds[0] + "_" + ds[1].slice(8) : ds[0] + "_" + ds[1]);
+const joinList = (a) => (a.length < 2 ? a.join("") : a.slice(0, -1).join(", ") + " & " + a[a.length - 1]);
+function titleList(ds, mn) {
+  const P = ds.map(pd), y = P[0].getUTCFullYear(), m = P[0].getUTCMonth();
+  const dd = (d) => pad(d.getUTCDate());
+  if (ds.length === 1) return dd(P[0]) + " " + mn(m) + " " + y;
+  if (P.some((d) => d.getUTCFullYear() !== y)) return joinList(P.map((d) => dd(d) + " " + mn(d.getUTCMonth()) + " " + d.getUTCFullYear()));
+  if (P.some((d) => d.getUTCMonth() !== m)) return joinList(P.map((d) => dd(d) + " " + mn(d.getUTCMonth()))) + " " + y;
+  return joinList(P.map(dd)) + " " + mn(m) + " " + y;
+}
+const titlePeriod = (ds) => titleList(ds, (m) => MONTHS[m]);
+const dowPeriod = (ds) => joinList(ds.map(dowOf));
+const fileTag = (ds) => ds[0] + (ds.length > 1 ? "_" + (ds[0].slice(0, 7) === ds[ds.length - 1].slice(0, 7) ? ds[ds.length - 1].slice(8) : ds[ds.length - 1]) : "");
+const holNote = (ds) => { const n = ds.filter((d) => isHol(d) && dowN(d) >= 1 && dowN(d) <= 5).map((d) => HOL[d]).filter((v, i, a) => typeof v === "string" && a.indexOf(v) === i); return n.length ? "Libur nasional: " + n.join(", ") : ""; };
 const monthTitle = (ym) => { const p = ym.split("-").map(Number); return MONTHS[p[1] - 1] + " " + p[0]; };
 const fmtTs = (ts) => { const d = new Date((ts || 0) + 7 * 3600e3); return pad(d.getUTCDate()) + " " + MON3[d.getUTCMonth()] + " " + d.getUTCFullYear() + " · " + pad(d.getUTCHours()) + "." + pad(d.getUTCMinutes()) + "." + pad(d.getUTCSeconds()); };
 const dayPath = (s) => "kas/" + s.slice(0, 7) + "/" + s.slice(8, 10);
@@ -132,10 +167,12 @@ let db = null, offset = 0;
 const S = {
   date: "", dates: [], month: "", tab: "day", touched: false,      /* date = tanggal acuan (Sabtu bila akhir pekan), dates = 1 atau 2 tanggal */
   day: undefined, srvMap: {}, src: {}, msrc: {}, pend: {}, conn: false, fromCache: false, cacheAt: 0, cacheT: null,
-  monthData: undefined, edge: undefined, log: undefined, logB: undefined,
-  editId: null, dirty: false, undo: null
+  monthData: undefined, edge: undefined, logs: undefined,
+  editId: null, dirty: false, undo: null,
+  open: undefined, openC: null, lkKey: "", lkPrev: "", lkAdm: false, lkPend: false, lkChoose: false, lkWhy: ""
 };
-const un = { day: null, dayB: null, month: null, edge: null, log: null, logB: null };
+const un = { month: null, open: null, libur: null };
+const unOff = (k) => { if (un[k]) { try { un[k](); } catch { /* */ } un[k] = null; } };
 let undoTimer = null;
 
 const nowMs = () => Date.now() + offset;
@@ -273,8 +310,166 @@ const clock = (ts) => { const d = new Date((ts || 0) + 7 * 3600e3); return pad(d
 
 const rowTxt = (r) => [r.nama, r.po, "Rp " + rp(r.jumlah)].filter(Boolean).join(" · ");
 
+/* ───────── KUNCI OTOMATIS 08.30 WIB ─────────
+   • Periode (1 hari, Sabtu+Minggu, atau hari kerja + libur nasional sesudahnya) terkunci pukul 08.30 WIB di HARI BERIKUTNYA
+     setelah hari terakhir periode:  Senin → Selasa 08.30 · … · Jumat → Sabtu 08.30 · Sabtu+Minggu → Senin 08.30 · 24+25 Des → 26 Des 08.30.
+   • Terkunci = tidak bisa tambah / edit / hapus / pulihkan / ubah uang diterima & fisik.
+   • Buka kunci: wajib login admin. Terbuka UNLOCK_MIN (3) menit; disimpan di kasOpen/… sehingga semua perangkat ikut terbuka,
+     lalu kunci pasang lagi otomatis. Siapa saja boleh menekan "Kunci lagi" lebih awal. Pembukaan & penguncian tercatat di Riwayat (kasLog).
+   • Waktu memakai jam server (offset Firebase), bukan jam HP. */
+const UNLOCK_MIN = 3, LOCK_MIN = 8 * 60 + 30, WIB = 7 * 3600e3, RING = 2 * Math.PI * 26;
+const openPath = (s) => "kasOpen/" + s.slice(0, 7) + "/" + s.slice(8, 10);
+const lockAtOf = (ds) => pd(addDays(ds[ds.length - 1], 1)).getTime() - WIB + LOCK_MIN * 60e3;
+const winStartOf = (ds) => pd(ds[0]).getTime() - WIB;
+const isAdmin = () => !!document.body && document.body.classList.contains("admin-mode");
+const fmtLk = (ms) => { const d = new Date(ms + WIB); return DAYS[d.getUTCDay()].slice(0, 3) + ", " + d.getUTCDate() + " " + MON3[d.getUTCMonth()] + " · " + pad(d.getUTCHours()) + "." + pad(d.getUTCMinutes()) + " WIB"; };
+function parts(ms) {
+  let s = Math.max(0, Math.ceil(ms / 1000));
+  const d = Math.floor(s / 86400); s -= d * 86400;
+  const h = Math.floor(s / 3600); s -= h * 3600;
+  const m = Math.floor(s / 60);
+  return { d, h, m, s: s - m * 60 };
+}
+function lockState() {
+  const now = nowMs(), at = lockAtOf(S.dates), o = S.open !== undefined ? S.open : S.openC;
+  const until = o && typeof o.until === "number" ? o.until : 0;
+  if (now < at) return { mode: "auto", at, left: at - now, total: Math.max(1, at - winStartOf(S.dates)) };
+  if (until > now) return { mode: "open", at, until, left: until - now, total: Math.max(1, until - (Number(o.ts) || until - 36e5)), by: o.by || "Admin" };
+  return { mode: "locked", at, checking: S.open === undefined && S.openC == null && live() };
+}
+const isLocked = () => lockState().mode === "locked";
+function denyLocked() { toast("Tanggal ini sudah terkunci otomatis. Buka kunci lewat login admin.", "warn", 3800); }
+async function adminWho() {
+  try {
+    const m = await import("./vendor/fb-auth.js");
+    const u = m.getAuth(initializeApp(CFG)).currentUser, e = u && u.email;
+    if (e) return ("Admin " + e.split("@")[0]).slice(0, 24);
+  } catch { /* */ }
+  return "Admin";
+}
+
+const LK_SVG = '<svg class="lk-svg" viewBox="0 0 24 24" aria-hidden="true"><path class="lk-sh" d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/><rect x="5.5" y="10.5" width="13" height="9.5" rx="2.2"/><circle class="lk-dot" cx="12" cy="15.2" r="1.1"/></svg>';
+const lkKey = (st) => st.mode + (st.checking ? "?" : "") + (isAdmin() ? "A" : "") + (S.lkChoose ? "C" : "");
+
+function lockHTML(st) {
+  const adm = isAdmin();
+  const u = (id, t) => '<span class="lk-u"><b id="' + id + '">00</b><i>' + t + '</i></span>';
+  const cd = '<div class="lk-clock" id="lkClock" aria-hidden="true"><span class="lk-u lk-d" id="lkD" hidden><b id="lkDn">0</b><i>hari</i></span>' +
+    u("lkH", "jam") + '<span class="lk-c">:</span>' + u("lkM", "mnt") + '<span class="lk-c">:</span>' + u("lkS", "dtk") + '</div>';
+  const ring = '<div class="lk-ring"><svg viewBox="0 0 60 60" aria-hidden="true"><circle class="lk-tr" cx="30" cy="30" r="26"/><circle class="lk-pg" id="lkPg" cx="30" cy="30" r="26"/></svg><span class="lk-ic">' + LK_SVG + '</span></div>';
+  let h;
+  if (st.mode === "auto") {
+    h = ring + '<div class="lk-main"><span class="lk-eb">Terkunci otomatis dalam</span>' + cd + '<span class="lk-sub">Kunci: ' + esc(fmtLk(st.at)) + (holNote(S.dates) ? '<br><em class="lk-hol">' + esc(holNote(S.dates)) + ' · digabung</em>' : '') + '</span></div>' +
+      '<p class="lk-hint" id="lkHint"></p>';
+  } else if (st.mode === "open") {
+    h = ring + '<div class="lk-main"><span class="lk-eb">Dibuka sementara · kunci lagi dalam</span>' + cd + '<span class="lk-sub">oleh ' + esc(st.by) + ' · s/d ' + esc(clock(st.until)) + ' WIB</span></div>' +
+      '<div class="lk-act"><button type="button" class="lk-btn" data-lk="relock">' + IC.lock + '<span>Kunci lagi</span></button></div>' +
+      '<p class="lk-hint" id="lkHint"></p>';
+  } else {
+    h = ring + '<div class="lk-main"><span class="lk-eb">' + (st.checking ? "Memeriksa status kunci…" : "Terkunci otomatis") + '</span>' +
+      '<b class="lk-title">Tanggal ini sudah dikunci</b><span class="lk-sub">Sejak ' + esc(fmtLk(st.at)) + '</span></div>' +
+      (S.lkChoose ? "" : '<div class="lk-act"><button type="button" class="lk-btn pri" data-lk="unlock">' + IC.user + '<span>' + (adm ? "Buka kunci" : "Buka kunci (admin)") + '</span></button></div>') +
+      '<p class="lk-hint">Tambah, edit, hapus &amp; ubah uang diterima / fisik ditutup. Membuka kunci (' + UNLOCK_MIN + ' menit) wajib login admin dan tercatat di Riwayat.</p>';
+    if (S.lkChoose && adm) {
+      h += '<div class="lk-pick"><b>Buka kunci ' + UNLOCK_MIN + ' menit</b><span class="lk-sub">Setelah itu terkunci otomatis. Bisa dikunci lagi lebih awal.</span>' +
+        '<input id="lkWhy" class="lk-why" maxlength="80" autocomplete="off" placeholder="Alasan (opsional), mis. koreksi salah input" value="' + esc(S.lkWhy) + '">' +
+        '<div class="lk-pick-a"><button type="button" class="lk-btn" data-lk="cancel">Batal</button><button type="button" class="lk-btn pri" data-lk="confirm">' + IC.ok + '<span>Buka ' + UNLOCK_MIN + ' menit</span></button></div></div>';
+    }
+  }
+  return h;
+}
+
+function applyLock() {
+  const host = $("lkHost"); if (!host) return;
+  const st = lockState(), key = lkKey(st), lock = st.mode === "locked";
+  if (key !== S.lkKey) {
+    if (S.lkPrev === "auto" && st.mode === "locked") toast("Tanggal " + titlePeriod(S.dates) + " terkunci otomatis (08.30 WIB).", "warn", 4200);
+    S.lkKey = key; S.lkPrev = st.mode;
+    host.innerHTML = '<section class="lk lk-' + st.mode + '" id="lkCard" data-ph="calm" role="status">' + lockHTML(st) + '</section>';
+    const pg = $("lkPg"); if (pg) pg.style.strokeDasharray = RING.toFixed(2);
+    const root = $("kdRoot"); if (root) root.classList.toggle("is-locked", lock);
+    ["kaNama", "kaPo", "kaAmt"].forEach((id) => { const e = $(id); if (e) e.disabled = lock; });
+    const sb = document.querySelector(".kd-addbtn"); if (sb) sb.disabled = lock;
+    ["ksTerima", "ksFisik"].forEach((id) => { const e = $(id); if (e) e.readOnly = lock; });
+    if (lock && S.editId) { S.editId = null; renderList(); }
+    if (S.lkChoose) { const w = $("lkWhy"); if (w) w.addEventListener("input", () => { S.lkWhy = w.value; }); }
+  }
+  paintCount(st);
+}
+const HINT = { calm: "Input, edit & hapus masih terbuka.", warn: "Kurang dari 3 jam — selesaikan & cek input Anda.", hot: "Hampir terkunci! Simpan perubahan sekarang." };
+let tickFlip = false;
+function paintCount(st) {
+  const card = $("lkCard"); if (!card || st.mode === "locked") return;
+  const p = parts(st.left), setT = (id, v) => { const e = $(id); if (e && e.textContent !== v) { e.textContent = v; return e; } return null; };
+  const sEl = setT("lkS", pad(p.s)); setT("lkM", pad(p.m)); setT("lkH", pad(p.h));
+  if (sEl) { tickFlip = !tickFlip; sEl.className = tickFlip ? "ta" : "tb"; }
+  const d = $("lkD"); if (d) { d.hidden = p.d < 1; setT("lkDn", String(p.d)); }
+  const pg = $("lkPg"); if (pg) pg.style.strokeDashoffset = (RING * (1 - Math.max(0, Math.min(1, st.left / st.total)))).toFixed(2);
+  const ph = st.mode === "open" ? (st.left <= 60e3 ? "hot" : "calm") : st.left <= 1800e3 ? "hot" : st.left <= 3 * 3600e3 ? "warn" : "calm";
+  if (card.dataset.ph !== ph) card.dataset.ph = ph;
+  const ht = $("lkHint");
+  if (ht) { const t = st.mode === "open" ? (ph === "hot" ? "Kunci terpasang lagi sebentar lagi. Simpan perubahan sekarang." : "Kunci dibuka " + UNLOCK_MIN + " menit — tambah, edit & hapus diizinkan.") : HINT[ph]; if (ht.textContent !== t) ht.textContent = t; }
+}
+function lkTick() {
+  if (document.hidden || S.tab !== "day" || !$("lkHost") || !S.dates.length) return;
+  if (lkKey(lockState()) !== S.lkKey) applyLock(); else paintCount(lockState());
+}
+
+async function onLockClick(e) {
+  const b = e.target.closest("[data-lk]"); if (!b) return;
+  const a = b.dataset.lk;
+  if (a === "unlock") {
+    if (!isAdmin()) {
+      S.lkPend = true; setTimeout(() => { S.lkPend = false; }, 90000);
+      toast("Login admin dulu untuk membuka kunci.", "info", 3200);
+      const ab = $("adminBtn"); if (ab) ab.click();
+    } else { S.lkChoose = true; applyLock(); }
+  } else if (a === "cancel") { S.lkChoose = false; S.lkWhy = ""; applyLock(); }
+  else if (a === "confirm") doUnlock(b);
+  else if (a === "relock") doRelock(b);
+}
+async function doUnlock(btn) {
+  if (!isAdmin()) { toast("Sesi admin sudah berakhir. Login lagi.", "warn", 3500); S.lkChoose = false; applyLock(); return; }
+  if (!db || !live()) { toast("Perlu internet untuk membuka kunci.", "warn", 3500); return; }
+  const date = S.date, titl = titlePeriod(S.dates), mins = UNLOCK_MIN, why = String(S.lkWhy || "").replace(/\s+/g, " ").trim();
+  if (btn) btn.disabled = true;
+  const by = await adminWho(), ts = nowMs(), until = ts + mins * 60e3;
+  try { await guard(set(ref(db, openPath(date)), { until, by, ts })); }
+  catch (e) {
+    if (btn) btn.disabled = false;
+    toast(e && e.code === "PERMISSION_DENIED" ? "Ditolak server. Pastikan masih login admin dan aturan database v33 (kasOpen) sudah dipublikasikan." : errMsg(e), "error", 8000);
+    return;
+  }
+  push(ref(db, logPath(date)), { act: "buka", detail: trunc("Kunci dibuka " + mins + " menit (s/d " + clock(until) + " WIB) untuk " + titl + (why ? " · " + why : ""), 190), by, ts })
+    .catch(() => toast("Kunci terbuka, tetapi riwayat gagal tercatat. Periksa aturan database (kasLog: buka/kunci).", "warn", 7000));
+  S.lkChoose = false; S.lkWhy = "";
+  toast("Kunci dibuka " + mins + " menit. Terkunci lagi otomatis.", "success", 3000);
+}
+async function doRelock(btn) {
+  if (!db || !live()) { toast("Perlu internet untuk memasang kunci.", "warn", 3500); return; }
+  const date = S.date, titl = titlePeriod(S.dates);
+  if (btn) btn.disabled = true;
+  const by = isAdmin() ? await adminWho() : who(), ts = nowMs();
+  try { await guard(set(ref(db, openPath(date)), null)); }
+  catch (e) { if (btn) btn.disabled = false; toast(e && e.code === "PERMISSION_DENIED" ? "Ditolak server. Publikasikan aturan database v34 terbaru." : errMsg(e), "error", 6000); return; }
+  push(ref(db, logPath(date)), { act: "kunci", detail: trunc("Kunci dikunci manual sebelum waktunya untuk " + titl, 190), by, ts }).catch(() => {});
+  toast("Kunci dipasang kembali.", "success", 2400);
+}
+function watchAdmin() {
+  S.lkAdm = isAdmin();
+  if (!window.MutationObserver || !document.body) return;
+  new MutationObserver(() => {
+    const a = isAdmin(); if (a === S.lkAdm) return;
+    S.lkAdm = a;
+    if (a && S.lkPend) { S.lkPend = false; S.lkChoose = isLocked(); }
+    if (!a) S.lkChoose = false;
+    applyLock();
+  }).observe(document.body, { attributes: true, attributeFilter: ["class"] });
+}
+
 /* ───────── aksi data ───────── */
 async function addRow(nama, po, jumlah) {
+  if (isLocked()) { denyLocked(); return false; }
   if (!ready()) return false;
   const date = S.date, row = { nama, po, jumlah, ts: nowMs(), by: who() };
   const id = push(ref(db, dayPath(date) + "/rows")).key;
@@ -283,6 +478,7 @@ async function addRow(nama, po, jumlah) {
   return true;
 }
 async function saveRow(id, nama, po, jumlah) {
+  if (isLocked()) { denyLocked(); return false; }
   if (!ready()) return false;
   const date = S.src[id] || S.date, old = ((S.day && S.day.rows) || {})[id];       /* simpan di tanggal asal baris */
   if (!old) { toast("Baris ini sudah dihapus orang lain.", "warn"); return true; }
@@ -293,6 +489,7 @@ async function saveRow(id, nama, po, jumlah) {
   return true;
 }
 async function delRow(id) {
+  if (isLocked()) { denyLocked(); return; }
   if (!ready()) return;
   const date = S.src[id] || S.date, old = ((S.day && S.day.rows) || {})[id];
   if (!old) return;
@@ -300,12 +497,15 @@ async function delRow(id) {
   showUndo({ date, id, row: old });
 }
 async function undoDel() {
-  const u = S.undo; if (!u || !ready()) return;
+  const u = S.undo; if (!u) return;
+  if (isLocked()) { hideUndo(); denyLocked(); return; }
+  if (!ready()) return;
   hideUndo();
   enqueue({ k: "set", date: u.date, id: u.id, row: u.row, logs: [mkLog("pulih", rowTxt(u.row))] });
   toast("Baris dipulihkan", "success", 2200);
 }
 async function setMoney(field, label, raw) {
+  if (isLocked()) { denyLocked(); onDay(); return; }
   if (!ready()) return;
   const date = S.msrc[field] || S.date, d = digits(raw);       /* angka disimpan di tanggal tempat nilainya berasal */
   const prev = S.day && typeof S.day[field] === "number" ? S.day[field] : null;
@@ -535,13 +735,20 @@ function setDate(date, byUser) {
   if (byUser) S.touched = true;
   const dates = periodOf(date), anchor = dates[0];     /* Minggu / Sabtu → periode Sabtu+Minggu; hari lain → 1 hari */
   S.date = anchor; S.dates = dates; S.day = undefined; S.srvMap = {}; S.src = {}; S.msrc = {};
-  S.fromCache = false; S.cacheAt = 0; S.pend = {}; S.log = undefined; S.logB = undefined; S.editId = null; S.dirty = false;
+  S.fromCache = false; S.cacheAt = 0; S.pend = {}; S.logs = undefined; S.editId = null; S.dirty = false;
   setHead();
+  /* status kunci (dibuka admin?) untuk periode ini */
+  if (un.open) { try { un.open(); } catch { /* */ } un.open = null; }
+  S.open = undefined; S.lkChoose = false; S.lkKey = "";
+  try { S.openC = JSON.parse(lsGet("kas_open_" + anchor, "null")); } catch { S.openC = null; }
+  if (db) un.open = onValue(ref(db, openPath(anchor)), (snap) => {
+    if (S.date !== anchor) return;
+    S.open = snap.val() || null; lsSet("kas_open_" + anchor, JSON.stringify(S.open)); applyLock();
+  }, () => { if (S.date === anchor) { S.open = null; applyLock(); } });      /* aturan kasOpen belum dipasang: anggap tidak ada pembukaan */
   clearTimeout(S.cacheT);
-  ["day", "dayB"].forEach((kind, i) => {
-    if (i >= dates.length) { if (un[kind]) { try { un[kind](); } catch { /* */ } un[kind] = null; } return; }
-    const d = dates[i];
-    listen(kind, dayPath(d), (v, err) => {
+  for (let i = dates.length; i < 10; i++) unOff("day" + i);
+  dates.forEach((d, i) => {
+    listen("day" + i, dayPath(d), (v, err) => {
       if (S.dates[i] !== d) return;
       if (err && S.srvMap[d] !== undefined) return;         /* galat: jangan timpa data yang sudah tampil */
       S.srvMap[d] = v || {}; S.fromCache = false;
@@ -565,21 +772,20 @@ function setDate(date, byUser) {
     rebuild(); onDay(); paintNet();
   }, (typeof navigator !== "undefined" && navigator.onLine === false) ? 0 : 1800);
   if (S.tab === "day") onDay();
+  applyLock();
   if (S.tab === "log") listenLog();
 }
 function listenLog() {
-  S.log = undefined; S.logB = undefined;
+  S.logs = {};
   renderLog();
-  ["log", "logB"].forEach((kind, i) => {
-    if (i >= S.dates.length) { if (un[kind]) { try { un[kind](); } catch { /* */ } un[kind] = null; } return; }
-    listen(kind, logPath(S.dates[i]), (v) => { S[kind] = v || {}; renderLog(); });
-  });
+  for (let i = S.dates.length; i < 10; i++) unOff("log" + i);
+  S.dates.forEach((d, i) => listen("log" + i, logPath(d), (v) => { if (S.dates[i] !== d) return; S.logs[d] = v || {}; renderLog(); }));
 }
 
 function setTab(tab) {
   S.tab = tab;
-  if (tab !== "log") ["log", "logB"].forEach((k) => { if (un[k]) { un[k](); un[k] = null; } });
-  if (tab !== "rekap") ["month", "edge"].forEach((k) => { if (un[k]) { un[k](); un[k] = null; } });
+  if (tab !== "log") for (let i = 0; i < 10; i++) unOff("log" + i);
+  if (tab !== "rekap") { unOff("month"); for (let i = 0; i < 4; i++) unOff("edge" + i); }
   setHead();
   if (tab === "day") renderDayShell(true);
   if (tab === "rekap") { S.month = S.date.slice(0, 7); renderRekapShell(); }
@@ -594,6 +800,7 @@ function renderDayShell() {
     '<div class="kd" id="kdRoot">' +
       '<div class="kd-mini" id="kdMini"><span>Sisa uang</span><b id="kmSisa">Rp 0</b><small id="kmInfo"></small></div>' +
       '<div class="kd-side">' +
+        '<div id="lkHost"></div>' +
         '<section class="kk" id="kkBox" aria-label="Ringkasan kas">' +
           '<div class="kk-c kk-sisa"><span class="k">Sisa uang ' + IC.lock + '</span><b id="ksSisa">Rp 0</b><div class="kk-prog" aria-hidden="true"><i id="ksProg"></i></div><small id="ksPct"></small></div>' +
           '<div class="kk-c kk-terima"><label for="ksTerima">Uang diterima</label>' + amtIn("ksTerima", "0") + '</div>' +
@@ -608,6 +815,7 @@ function renderDayShell() {
           '<div class="kf kf-amt"><label for="kaAmt">Jumlah</label>' + amtIn("kaAmt", "0") + '</div>' +
           '<button class="kd-addbtn" type="submit">' + IC.plus + '<span>Tambah baris</span></button>' +
           '<p class="kd-err" id="kaErr" role="alert"></p>' +
+          '<p class="kd-lockmsg">' + IC.lock + '<span>Terkunci — input ditutup. Buka kunci lewat login admin.</span></p>' +
         '</form>' +
       '</div>' +
       '<datalist id="kasNames"></datalist><datalist id="kasPos"></datalist>' +
@@ -637,6 +845,7 @@ function renderDayShell() {
     e.preventDefault();
     const n = up(nama.value), p = up(po.value), j = num(amt.value), err = $("kaErr");
     err.textContent = "";
+    if (isLocked()) { denyLocked(); return; }
     if (!n) { err.textContent = "Isi nama dulu."; nama.focus(); return; }
     if (!j) { err.textContent = "Isi jumlah lebih dari 0."; amt.focus(); return; }
     if (j > MAX_AMT) { err.textContent = "Jumlah terlalu besar."; amt.focus(); return; }
@@ -654,7 +863,10 @@ function renderDayShell() {
   $("ksWa").addEventListener("click", sendWA);
   $("kdList").addEventListener("click", onListClick);
   $("kdList").addEventListener("keydown", onListKey);
+  $("lkHost").addEventListener("click", onLockClick);
+  S.lkKey = "";
   onDay();
+  applyLock();
 }
 
 function onDay() {
@@ -702,6 +914,7 @@ function rowView(r, i) {
     '<span class="kr-po">' + (r.po ? '<em>' + esc(r.po) + '</em>' : '<i class="kr-none">—</i>') + '</span>' +
     '<span class="kr-amt"><small>Rp</small><b>' + rp(r.jumlah) + '</b></span>' +
     '<span class="kr-act">' +
+      '<i class="kr-lk" title="Terkunci">' + IC.lock + '</i>' +
       '<button type="button" class="kib" data-act="edit" aria-label="Edit ' + esc(r.nama) + '" title="Edit">' + IC.edit + '</button>' +
       '<button type="button" class="kib kib-del" data-act="del" aria-label="Hapus ' + esc(r.nama) + '" title="Hapus">' + IC.del + '</button>' +
     '</span></div>';
@@ -735,6 +948,7 @@ function onListClick(e) {
   const b = e.target.closest("[data-act]"); if (!b) return;
   if (b.dataset.act === "focus") { const n = $("kaNama"); if (n) { n.focus(); if (n.scrollIntoView) n.scrollIntoView({ block: "center" }); } return; }
   const rowEl = b.closest(".kr"), id = rowEl && rowEl.dataset.id, act = b.dataset.act;
+  if (isLocked() && (act === "edit" || act === "del" || act === "save")) { denyLocked(); return; }
   if (act === "edit") { S.editId = id; renderList(); const i = document.querySelector(".kr-edit .ke-nama"); if (i) { i.focus(); i.select(); } bindEditAmt(); }
   else if (act === "cancel") { S.editId = null; renderList(); }
   else if (act === "save") commitEdit(rowEl);
@@ -786,14 +1000,7 @@ function drawSheet(c, dates) {
     fit(v, px, x1 - x0 - 70); g.textAlign = "right"; g.fillText(v, x1 - 10, y);
   };
   const mn = (m) => (m === 10 ? "Nopember" : MONTHS[m]);      /* ejaan lembar Excel lama */
-  const title = (() => {
-    const a = pd(dates[0]), b = dates[1] ? pd(dates[1]) : null, A = pad(a.getUTCDate());
-    if (!b) return A + " " + mn(a.getUTCMonth()) + " " + a.getUTCFullYear();
-    const B = pad(b.getUTCDate());
-    if (a.getUTCFullYear() !== b.getUTCFullYear()) return A + " " + mn(a.getUTCMonth()) + " " + a.getUTCFullYear() + " & " + B + " " + mn(b.getUTCMonth()) + " " + b.getUTCFullYear();
-    if (a.getUTCMonth() !== b.getUTCMonth()) return A + " " + mn(a.getUTCMonth()) + " & " + B + " " + mn(b.getUTCMonth()) + " " + a.getUTCFullYear();
-    return A + " & " + B + " " + mn(a.getUTCMonth()) + " " + a.getUTCFullYear();
-  })();
+  const title = titleList(dates, mn);
 
   rect(X[1], 0, W, TH, "#ffff1a"); box(X[1], 0, W - 1, TH);
   mid(title, X[1], W, TH / 2, 30);
@@ -926,23 +1133,25 @@ function renderRekapShell() {
 }
 function loadMonth() {
   $("kmTitle").textContent = monthTitle(S.month);
-  S.monthData = undefined; S.edge = undefined; renderRekap();
+  S.monthData = undefined; S.edge = {}; renderRekap();
   const mc = cacheRead(MON_PFX, S.month);
   if (mc && !live()) { S.monthData = mc.v; renderRekap(); }
   listen("month", "kas/" + S.month, (v, err) => { if (err && S.monthData !== undefined) return; S.monthData = v || {}; if (!err) cacheWrite(MON_PFX, S.month, S.monthData); renderRekap(); });
-  /* bulan berakhir di hari Sabtu → Minggunya (tgl 1 bulan depan) ikut digabung di baris terakhir bulan ini */
-  const last = addDays(addMonths(S.month, 1) + "-01", -1), edgeDate = pd(last).getUTCDay() === 6 ? addDays(last, 1) : null;
-  if (edgeDate) listen("edge", dayPath(edgeDate), (v) => { S.edge = v || {}; renderRekap(); });
-  else if (un.edge) { un.edge(); un.edge = null; }
+  /* periode terakhir bulan ini bisa menjangkau tanggal bulan depan (akhir pekan / libur) → ikut dibaca */
+  const last = addDays(addMonths(S.month, 1) + "-01", -1), eds = periodOf(last).filter((d) => d.slice(0, 7) !== S.month);
+  S.edge = {};
+  for (let i = eds.length; i < 4; i++) unOff("edge" + i);
+  eds.forEach((d, i) => listen("edge" + i, dayPath(d), (v) => { S.edge[d] = v || {}; renderRekap(); }));
 }
 function renderRekap() {
   const el = $("kmBody"); if (!el) return;
   if (S.monthData === undefined) { el.innerHTML = live() ? '<div class="kd-empty">Memuat rekap…</div>' : '<div class="kd-empty"><b>Rekap belum tersimpan di HP</b><span>Buka rekap bulan ini sekali saat online. Setelah itu bisa dilihat tanpa internet.</span></div>'; return; }
   const days = Object.keys(S.monthData).filter((d) => /^\d{2}$/.test(d)).sort();
-  if (!days.length && !(S.edge && Object.keys(S.edge).length)) { el.innerHTML = '<div class="kd-empty"><b>Belum ada catatan di ' + esc(monthTitle(S.month)) + '.</b><span>Buka tab Harian dan mulai input.</span></div>'; return; }
-  /* susun periode: Sabtu+Minggu = 1 baris, hari lain = 1 baris. Periode ikut bulan tanggal SABTU-nya. */
-  const last = addDays(addMonths(S.month, 1) + "-01", -1), edgeDate = pd(last).getUTCDay() === 6 ? addDays(last, 1) : null;
-  const dayData = (date) => date.slice(0, 7) === S.month ? S.monthData[date.slice(8, 10)] : (date === edgeDate ? S.edge : undefined);
+  const edgeHas = Object.keys(S.edge || {}).some((d) => S.edge[d] && Object.keys(S.edge[d]).length);
+  if (!days.length && !edgeHas) { el.innerHTML = '<div class="kd-empty"><b>Belum ada catatan di ' + esc(monthTitle(S.month)) + '.</b><span>Buka tab Harian dan mulai input.</span></div>'; return; }
+  /* susun periode (akhir pekan / libur digabung = 1 baris). Periode ikut bulan tanggal PERTAMA-nya. */
+  const last = addDays(addMonths(S.month, 1) + "-01", -1);
+  const dayData = (date) => date.slice(0, 7) === S.month ? S.monthData[date.slice(8, 10)] : (S.edge || {})[date];
   const periods = [], seen = {};
   let moved = "";
   days.forEach((dd) => {
@@ -950,16 +1159,16 @@ function renderRekap() {
     if (ds[0].slice(0, 7) !== S.month) { moved = ds[0].slice(0, 7); return; }       /* tgl 1 hari Minggu: ikut Sabtu bulan lalu */
     if (!seen[ds[0]]) { seen[ds[0]] = 1; periods.push(ds); }
   });
-  if (edgeDate && S.edge && Object.keys(S.edge).length && !seen[last]) { seen[last] = 1; periods.push(periodOf(last)); }
+  { const lp = periodOf(last); if (edgeHas && lp[0].slice(0, 7) === S.month && !seen[lp[0]]) { seen[lp[0]] = 1; periods.push(lp); } }
   periods.sort((a, b) => (a[0] < b[0] ? -1 : 1));
-  if (!periods.length) { el.innerHTML = '<div class="kd-empty"><b>Catatan ' + esc(monthTitle(S.month)) + ' digabung ke rekap ' + esc(monthTitle(moved || S.month)) + '.</b><span>Akhir pekan yang melewati pergantian bulan dihitung di bulan Sabtunya.</span></div>'; return; }
+  if (!periods.length) { el.innerHTML = '<div class="kd-empty"><b>Catatan ' + esc(monthTitle(S.month)) + ' digabung ke rekap ' + esc(monthTitle(moved || S.month)) + '.</b><span>Akhir pekan / libur yang melewati pergantian bulan dihitung di bulan tanggal pertamanya.</span></div>'; return; }
   let tD = 0, tS = 0, tN = 0, nDay = 0;
   const trs = periods.map((ds) => {
     const m = mergeDays(ds.map((d) => [d, dayData(d)]));
     const c = calc(m.day); tD += c.diterima; tS += c.total; tN += c.rows.length; nDay += ds.filter((d) => dayData(d)).length;
     const cls = c.selisih == null ? "none" : c.selisih === 0 ? "ok" : c.selisih < 0 ? "less" : "more";
     const sel = c.selisih == null ? "—" : c.selisih === 0 ? "Cocok" : (c.selisih < 0 ? "−" : "+") + rp(Math.abs(c.selisih));
-    const th = ds.map((d) => Number(d.slice(8, 10))).join("–"), sm = ds.map((d) => dowOf(d).slice(0, 3)).join("–");
+    const th = ds.length > 1 ? Number(ds[0].slice(8, 10)) + "–" + Number(ds[ds.length - 1].slice(8, 10)) : String(Number(ds[0].slice(8, 10))), sm = ds.length > 1 ? dowOf(ds[0]).slice(0, 3) + "–" + dowOf(ds[ds.length - 1]).slice(0, 3) : dowOf(ds[0]).slice(0, 3);
     return '<tr data-date="' + ds[0] + '" tabindex="0"' + (ds.length > 1 ? ' class="is-wk"' : '') + '><th scope="row"><b>' + th + '</b><small>' + sm + '</small></th>' +
       '<td>' + rp(c.diterima) + '</td><td>' + rp(c.total) + '<small>' + c.rows.length + ' baris</small></td>' +
       '<td class="kt-sisa">' + (c.sisa < 0 ? "−" : "") + rp(Math.abs(c.sisa)) + '</td>' +
@@ -970,16 +1179,16 @@ function renderRekap() {
     '<tbody>' + trs + '</tbody>' +
     '<tfoot><tr><th>' + nDay + ' hari</th><td>' + rp(tD) + ' ' + IC.lock + '</td><td>' + rp(tS) + ' ' + IC.lock + '<small>' + tN + ' baris</small></td><td class="kt-sisa">' + (tD - tS < 0 ? "−" : "") + rp(Math.abs(tD - tS)) + ' ' + IC.lock + '</td><td></td><td></td></tr></tfoot></table></div>' +
     '<p class="kt-hint">Geser tabel ke kanan untuk melihat semua kolom.</p>' +
-    '<p class="ks-note">' + IC.lock + '<span>Semua angka rekap dihitung otomatis dari data harian. Ketuk satu baris untuk membuka harinya. Sabtu &amp; Minggu digabung jadi satu baris.</span></p>';
+    '<p class="ks-note">' + IC.lock + '<span>Semua angka rekap dihitung otomatis dari data harian. Ketuk satu baris untuk membuka harinya. Sabtu &amp; Minggu serta libur nasional digabung jadi satu baris.</span></p>';
 }
 
 /* ───────── RIWAYAT ───────── */
-const ACT = { tambah: ["Tambah", "ok"], edit: ["Edit", "warn"], hapus: ["Hapus", "bad"], pulih: ["Pulihkan", "info"], diterima: ["Uang diterima", "viol"], fisik: ["Fisik uang", "viol"] };
+const ACT = { tambah: ["Tambah", "ok"], edit: ["Edit", "warn"], hapus: ["Hapus", "bad"], pulih: ["Pulihkan", "info"], diterima: ["Uang diterima", "viol"], fisik: ["Fisik uang", "viol"], buka: ["Buka kunci", "viol"], kunci: ["Kunci", "warn"] };
 function renderLog() {
   const v = $("kasView"); if (!v) return;
-  if (S.log === undefined || (S.dates.length > 1 && S.logB === undefined)) { v.innerHTML = live() ? '<div class="kd-empty">Memuat riwayat…</div>' : '<div class="kd-empty"><b>Riwayat butuh internet</b><span>Tampil otomatis begitu koneksi kembali.</span></div>'; return; }
+  if (S.logs === undefined || S.dates.some((d) => S.logs[d] === undefined)) { v.innerHTML = live() ? '<div class="kd-empty">Memuat riwayat…</div>' : '<div class="kd-empty"><b>Riwayat butuh internet</b><span>Tampil otomatis begitu koneksi kembali.</span></div>'; return; }
   const items = [];
-  [S.log, S.logB].forEach((lg) => { if (lg) Object.keys(lg).forEach((id) => items.push(Object.assign({ id }, lg[id]))); });
+  S.dates.forEach((d) => { const lg = S.logs[d]; if (lg) Object.keys(lg).forEach((id) => items.push(Object.assign({ id }, lg[id]))); });
   items.splice(0, items.length, ...items.filter((x) => x && x.ts).sort((a, b) => b.ts - a.ts));
   if (!items.length) { v.innerHTML = '<div class="kd-empty"><b>Belum ada riwayat di tanggal ' + esc(titlePeriod(S.dates)) + '.</b><span>Setiap tambah, edit, dan hapus akan tercatat di sini beserta jamnya.</span></div>'; return; }
   v.innerHTML = '<p class="kh-sum">' + items.length + ' perubahan pada kas ' + esc(titlePeriod(S.dates)) + '. Riwayat tidak bisa diubah atau dihapus.</p><ol class="kh">' +
@@ -1021,6 +1230,7 @@ function boot() {
   S.dates = periodOf(todayWIB()); S.date = S.dates[0];
   wire();
   setHead();
+  watchAdmin();
   renderDayShell();
   try {
     db = getDatabase(initializeApp(CFG));
@@ -1033,6 +1243,16 @@ function boot() {
     window.addEventListener("offline", paintNet);
     document.addEventListener("visibilitychange", () => { if (!document.hidden) { paintNet(); flush(); } });
     setInterval(() => { if (outbox.length) flush(); }, 20000);
+    onValue(ref(db, "libur"), (snap) => {                    /* tambahan / pembatalan libur nasional dari admin (opsional) */
+      const v = snap.val() || {}, h = Object.assign({}, HOL_BASE);
+      Object.keys(v).forEach((d) => { if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return; if (v[d] === false) delete h[d]; else h[d] = typeof v[d] === "string" ? v[d] : "Libur nasional"; });
+      if (JSON.stringify(h) === JSON.stringify(HOL)) return;
+      HOL = h;
+      if (S.tab === "rekap") renderRekap();
+      if (S.date && periodOf(S.date).join() !== S.dates.join() && !S.editId) setDate(S.date);
+    }, () => { /* aturan "libur" belum dipasang: pakai daftar bawaan */ });
+    setInterval(lkTick, 1000);                              /* hitung mundur kunci (berhenti saat tab disembunyikan) */
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) lkTick(); });
     const go = $("kasNetGo"); if (go) go.addEventListener("click", flush);
     window.__kasBusy = () => flushing || !!S.editId;
     paintNet();
@@ -1045,4 +1265,4 @@ function boot() {
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
 
 /* untuk pengujian */
-window.__kas = { outbox: () => outbox, overlay, Calc, drawSheet, calc, rowsOf, up, num, fmtIn, isKasbon };
+window.__kas = { lockState, lockAtOf, S, outbox: () => outbox, overlay, Calc, drawSheet, calc, rowsOf, up, num, fmtIn, isKasbon };
