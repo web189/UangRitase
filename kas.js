@@ -824,6 +824,9 @@ function renderDayShell() {
           '<div class="kk-c kk-fisik"><label for="ksFisik">Fisik uang</label>' + amtIn("ksFisik", "Hasil hitung") + '</div>' +
           '<div class="kk-c kk-diff none" id="ksDiff"><span class="k">Selisih ' + IC.lock + '</span><b id="ksSel">—</b><em id="ksTag"></em></div>' +
         '</section>' +
+      '</div>' +
+      '<datalist id="kasNames"></datalist><datalist id="kasPos"></datalist>' +
+      '<div class="kd-main">' +
         '<form class="kd-add" id="kdAdd" autocomplete="off" novalidate>' +
           '<div class="kd-add-h"><b>Catat baru</b><span>Enter = pindah ke kolom berikutnya</span></div>' +
           '<div class="kf kf-nama"><label for="kaNama">Nama</label><input id="kaNama" list="kasNames" maxlength="60" autocapitalize="characters" enterkeyhint="next" placeholder="Driver / TKBM"></div>' +
@@ -833,9 +836,6 @@ function renderDayShell() {
           '<p class="kd-err" id="kaErr" role="alert"></p>' +
           '<p class="kd-lockmsg">' + IC.lock + '<span>Terkunci — input ditutup. Buka kunci lewat login admin.</span></p>' +
         '</form>' +
-      '</div>' +
-      '<datalist id="kasNames"></datalist><datalist id="kasPos"></datalist>' +
-      '<div class="kd-main">' +
         '<div class="kd-bar"><b id="kdCount">Catatan hari ini</b>' +
           '<div class="kd-bar-a">' +
             '<button class="kbtn kbtn-wa" type="button" id="ksWa"><i class="fab fa-whatsapp"></i><span>Kirim ke <span class="wa-w">WhatsApp </span>' + esc(WA_NAME) + '</span></button>' +
