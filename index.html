@@ -394,7 +394,7 @@ window.addEventListener('appinstalled',function(){window.__pwaInstalled=true;});
     <div class="login-main">
       <div class="login-hero"><i class="fas fa-lock"></i></div>
       <h3 class="modal-heading" id="loginTitle">Login Admin</h3>
-      <p class="modal-desc">admin@uangritase.com / 123admin</p>
+      <p class="modal-desc">Khusus admin. Masukkan email dan password.</p>
 
       <div class="field-group">
         <div class="field-item login-field" id="fwEmail">
@@ -613,6 +613,24 @@ window.addEventListener('appinstalled',function(){window.__pwaInstalled=true;});
 <script>
 /* pembaruan otomatis: pantau semua file kode, jangan muat ulang saat kas sedang dikirim / diedit */
 window.PWA_CFG = { watch: ["index.html", "sw.js", "kas.js", "kas.css", "app.js", "app.css"], busy: function () { try { return !!(window.__kasBusy && window.__kasBusy()); } catch (e) { return false; } } };
+/* ur.js (defer) menimpa PWA_CFG di atas. Setelah ur.js jalan, gabungkan lagi: pantau SEMUA file kode + jangan muat ulang saat kas sedang dikirim/diedit. */
+document.addEventListener("DOMContentLoaded", function () {
+  var c = window.PWA_CFG || {}, ob = c.busy;
+  c.watch = ["index.html", "sw.js", "ur.js", "kas.js", "kas.css", "app.js", "app.css"];
+  c.busy = function () {
+    try { if (typeof ob === "function" && ob()) return true; } catch (e) {}
+    try { return !!(window.__kasBusy && window.__kasBusy()); } catch (e) { return false; }
+  };
+  window.PWA_CFG = c;
+});
+/* pemberitahuan sekali: simpanan offline sudah siap */
+window.addEventListener("pwa-offline-ready", function (e) {
+  var v = (e.detail && e.detail.version) || "1", k = "ur_offline_ready", old = null;
+  try { old = localStorage.getItem(k); } catch (x) {}
+  if (old === v) return;
+  try { localStorage.setItem(k, v); } catch (x) {}
+  if (window.urToast) window.urToast("Siap dipakai offline \u2713 Terbuka tanpa internet, update otomatis saat online.", "success", 4200);
+});
 (function () {
   var bar = document.getElementById("netBar"), T = document.getElementById("nbT"), Sx = document.getElementById("nbS"), hideT = null, pending = 0, back = false;
   if (!bar) return;

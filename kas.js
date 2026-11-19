@@ -333,7 +333,8 @@ function parts(ms) {
 function lockState() {
   const now = nowMs(), at = lockAtOf(S.dates), o = S.open !== undefined ? S.open : S.openC;
   const until = o && typeof o.until === "number" ? o.until : 0;
-  if (now < at) return { mode: "auto", at, left: at - now, total: Math.max(1, at - winStartOf(S.dates)) };
+  /* hitung mundur hanya tampil untuk periode yang sudah berjalan (bukan tanggal depan) DAN sudah ada isi — otomatis muncul saat baris pertama dicatat */
+  if (now < at) return { mode: "auto", at, left: at - now, total: Math.max(1, at - winStartOf(S.dates)), show: S.dates[0] <= todayWIB() && !!(S.day && S.day.rows && Object.keys(S.day.rows).length) };
   if (until > now) return { mode: "open", at, until, left: until - now, total: Math.max(1, until - (Number(o.ts) || until - 36e5)), by: o.by || "Admin" };
   return { mode: "locked", at, checking: S.open === undefined && S.openC == null && live() };
 }
@@ -349,7 +350,7 @@ async function adminWho() {
 }
 
 const LK_SVG = '<svg class="lk-svg" viewBox="0 0 24 24" aria-hidden="true"><path class="lk-sh" d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/><rect x="5.5" y="10.5" width="13" height="9.5" rx="2.2"/><circle class="lk-dot" cx="12" cy="15.2" r="1.1"/></svg>';
-const lkKey = (st) => st.mode + (st.checking ? "?" : "") + (isAdmin() ? "A" : "") + (S.lkChoose ? "C" : "");
+const lkKey = (st) => st.mode + (st.show === false ? "-" : "") + (st.checking ? "?" : "") + (isAdmin() ? "A" : "") + (S.lkChoose ? "C" : "");
 
 function lockHTML(st) {
   const adm = isAdmin();
@@ -385,7 +386,7 @@ function applyLock() {
   if (key !== S.lkKey) {
     if (S.lkPrev === "auto" && st.mode === "locked") toast("Tanggal " + titlePeriod(S.dates) + " terkunci otomatis (08.30 WIB).", "warn", 4200);
     S.lkKey = key; S.lkPrev = st.mode;
-    host.innerHTML = '<section class="lk lk-' + st.mode + '" id="lkCard" data-ph="calm" role="status">' + lockHTML(st) + '</section>';
+    host.innerHTML = st.show === false ? "" : '<section class="lk lk-' + st.mode + '" id="lkCard" data-ph="calm" role="status">' + lockHTML(st) + '</section>';
     const pg = $("lkPg"); if (pg) pg.style.strokeDasharray = RING.toFixed(2);
     const root = $("kdRoot"); if (root) root.classList.toggle("is-locked", lock);
     ["kaNama", "kaPo", "kaAmt"].forEach((id) => { const e = $(id); if (e) e.disabled = lock; });
@@ -875,6 +876,7 @@ function onDay() {
   renderSummary(c);
   if (S.editId) { S.dirty = true; } else renderList(c);
   fillSuggest();
+  applyLock();            /* kartu hitung mundur muncul otomatis begitu ada baris pertama */
 }
 
 function setIfIdle(el, val) { if (el && document.activeElement !== el) el.value = val; }
